@@ -1,0 +1,22 @@
+{
+  "productName": "Simple Remote Manager",
+  "version": "0.1.0",
+  "identifier": "com.simpleremote.manager",
+  "build": {
+    "frontendDist": "../src"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "title": "Simple Remote Manager",
+        "width": 1280,
+        "height": 820,
+        "resizable": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  }
+}

@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Simple Remote Manager</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="backdrop">
+      <div class="orb orb-one"></div>
+      <div class="orb orb-two"></div>
+      <div class="orb orb-three"></div>
+      <div class="mesh"></div>
+    </div>
+
+    <div class="app">
+      <header class="topbar">
+        <div class="brand">
+          <div class="logo">SR</div>
+          <div class="brand-text">
+            <div class="brand-title" data-i18n="brand.title">Simple Remote</div>
+            <div class="brand-subtitle" data-i18n="brand.subtitle">Manager</div>
+          </div>
+        </div>
+        <div class="top-actions">
+          <label class="search">
+            <span data-i18n="search.label">Suchen</span>
+            <input id="searchInput" type="search" placeholder="Name, Host, URL" data-i18n-placeholder="search.placeholder" />
+          </label>
+          <button id="settingsBtn" class="settings-btn" aria-label="Einstellungen" data-i18n-aria="settings.label">
+            <span class="settings-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <path
+                  d="M12 8.75a3.25 3.25 0 1 0 0 6.5 3.25 3.25 0 0 0 0-6.5Zm8.25 3.25c0-.46-.04-.9-.11-1.34l2.01-1.57-1.8-3.12-2.45.99a7.9 7.9 0 0 0-2.32-1.34l-.37-2.6H9.79l-.37 2.6a7.9 7.9 0 0 0-2.32 1.34l-2.45-.99-1.8 3.12 2.01 1.57c-.07.44-.11.88-.11 1.34 0 .46.04.9.11 1.34l-2.01 1.57 1.8 3.12 2.45-.99c.69.57 1.48 1 2.32 1.34l.37 2.6h4.42l.37-2.6c.84-.34 1.63-.77 2.32-1.34l2.45.99 1.8-3.12-2.01-1.57c.07-.44.11-.88.11-1.34Z"
+                />
+              </svg>
+            </span>
+            <span class="settings-label" data-i18n="settings.label">Einstellungen</span>
+            <span id="settingsModeBadge" class="settings-mode">Lokal</span>
+          </button>
+        </div>
+      </header>
+
+      <main class="layout">
+        <section class="connections panel">
+          <div class="connections-header">
+            <div>
+              <div class="eyebrow" data-i18n="connections.filter">Filter</div>
+              <h2 data-i18n="connections.title">Verbindungen</h2>
+            </div>
+            <div class="connections-actions">
+              <div id="counter" class="counter">0</div>
+              <button id="newBtn" class="btn primary" data-i18n="connections.new">Neue Verbindung</button>
+            </div>
+          </div>
+          <div class="filters">
+            <button class="chip active" data-filter="all" data-i18n="filters.all">Alle</button>
+            <button class="chip" data-filter="ssh" data-i18n="filters.ssh">SSH</button>
+            <button class="chip" data-filter="rdp" data-i18n="filters.rdp">RDP</button>
+            <button class="chip" data-filter="web" data-i18n="filters.web">Web</button>
+          </div>
+          <div class="view-toggle">
+            <button class="chip active" data-view="list" data-i18n="view.list">Liste</button>
+            <button class="chip" data-view="tree" data-i18n="view.tree">Baum</button>
+          </div>
+          <div id="list" class="list"></div>
+          <div id="tree" class="tree hidden"></div>
+        </section>
+
+      </main>
+
+      <footer class="footer">
+        <span data-i18n="app.title">Simple Remote Manager</span>
+        <span class="status-dot" data-i18n="footer.status.ready">Bereit</span>
+      </footer>
+    </div>
+
+    <div id="globalStatus" class="status toast"></div>
+
+    <div id="editor" class="editor hidden" aria-hidden="true">
+      <div class="editor-backdrop" data-action="close"></div>
+      <div class="editor-panel">
+        <div class="panel-header">
+          <div>
+            <div class="eyebrow" data-i18n="editor.eyebrow">Details</div>
+            <h2 id="formTitle">Neue Verbindung</h2>
+          </div>
+          <div class="panel-actions">
+            <button id="connectBtn" class="btn accent" data-i18n="action.connect">Verbinden</button>
+            <button id="saveBtn" class="btn" data-i18n="action.save">Speichern</button>
+            <button id="deleteBtn" class="btn ghost" data-i18n="action.delete">Loeschen</button>
+            <button id="closeBtn" class="btn ghost" data-i18n="action.close">Schliessen</button>
+          </div>
+        </div>
+
+        <div id="status" class="status"></div>
+
+        <form id="form" class="form-grid" autocomplete="off">
+          <label class="field" data-field="name">
+            <span data-i18n="field.name">Name</span>
+            <input id="fieldName" type="text" placeholder="z.B. Prod Gateway" data-i18n-placeholder="field.name.placeholder" />
+          </label>
+          <label class="field" data-field="kind">
+            <span data-i18n="field.kind">Typ</span>
+            <select id="fieldKind">
+              <option value="ssh">SSH</option>
+              <option value="rdp">RDP</option>
+              <option value="web" data-i18n="field.kind.web">Webseite</option>
+            </select>
+          </label>
+          <label class="field" data-field="host">
+            <span data-i18n="field.host">Host</span>
+            <input id="fieldHost" type="text" placeholder="server.example.com" data-i18n-placeholder="field.host.placeholder" />
+          </label>
+          <label class="field" data-field="port">
+            <span data-i18n="field.port">Port</span>
+            <input id="fieldPort" type="number" min="1" max="65535" placeholder="Standard" data-i18n-placeholder="field.port.placeholder" />
+          </label>
+          <label class="field" data-field="username">
+            <span data-i18n="field.username">Benutzer</span>
+            <input id="fieldUsername" type="text" placeholder="user" data-i18n-placeholder="field.username.placeholder" />
+          </label>
+          <label class="field" data-field="domain" data-only="rdp">
+            <span data-i18n="field.domain">Domaene</span>
+            <input id="fieldDomain" type="text" placeholder="z.B. CONTOSO oder contoso.local" data-i18n-placeholder="field.domain.placeholder" />
+          </label>
+          <label class="field checkbox" data-field="trustCert" data-only="rdp">
+            <input id="fieldTrustCert" type="checkbox" />
+            <div>
+              <span data-i18n="field.trustCert">Zertifikat vertrauen (unsicher)</span>
+              <small data-i18n="field.trustCert.help">Ignoriert Zertifikatswarnungen beim RDP-Client.</small>
+            </div>
+          </label>
+          <label class="field" data-field="keyPath" data-only="ssh">
+            <span data-i18n="field.keyPath">SSH Key Pfad</span>
+            <input id="fieldKeyPath" type="text" placeholder="~/.ssh/id_ed25519" data-i18n-placeholder="field.keyPath.placeholder" />
+          </label>
+          <label class="field" data-field="url" data-only="web">
+            <span data-i18n="field.url">URL</span>
+            <input id="fieldUrl" type="url" placeholder="https://example.com" data-i18n-placeholder="field.url.placeholder" />
+          </label>
+          <label class="field" data-field="notes">
+            <span data-i18n="field.notes">Notizen</span>
+            <textarea id="fieldNotes" rows="4" placeholder="Kurzbeschreibung, Hinweise, Ablauf" data-i18n-placeholder="field.notes.placeholder"></textarea>
+          </label>
+          <label class="field" data-field="tags">
+            <span data-i18n="field.tags">Tags</span>
+            <input id="fieldTags" type="text" placeholder="z.B. prod, mysql, vpn" data-i18n-placeholder="field.tags.placeholder" />
+          </label>
+          <div class="field meta" data-field="lastUsed">
+            <span data-i18n="field.lastUsed">Zuletzt genutzt</span>
+            <div id="fieldLastUsed" class="meta-value">-</div>
+          </div>
+        </form>
+
+        <div class="security">
+          <div>
+            <div class="eyebrow" data-i18n="security.eyebrow">Sicherheit</div>
+            <h3 data-i18n="security.title">Private Daten bleiben lokal</h3>
+            <p data-i18n="security.body">
+              Passwoerter werden bewusst nicht gespeichert. SSH nutzt deine lokalen Keys,
+              RDP laesst dich beim Start authentifizieren. Die Konfiguration wird lokal
+              im Benutzerprofil abgelegt.
+            </p>
+          </div>
+          <div class="security-tags">
+            <span data-i18n="security.tag.local">Lokale Speicherung</span>
+            <span data-i18n="security.tag.noPasswordDb">Keine Passwortdatenbank</span>
+            <span data-i18n="security.tag.osClients">OS Standard Clients</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="passwordPrompt" class="editor hidden" aria-hidden="true">
+      <div class="editor-backdrop" data-action="close-password"></div>
+      <div class="editor-panel compact">
+        <div class="panel-header">
+          <div>
+            <div class="eyebrow">RDP</div>
+            <h2 data-i18n="rdp.title">Passwort eingeben</h2>
+          </div>
+          <div class="panel-actions">
+            <button id="passwordCancelBtn" class="btn ghost" data-i18n="action.cancel">Abbrechen</button>
+            <button id="passwordConfirmBtn" class="btn accent" data-i18n="action.connect">Verbinden</button>
+          </div>
+        </div>
+
+        <div class="status show" id="passwordHint" data-i18n="rdp.hint">
+          Das Passwort wird nur fuer diese Verbindung verwendet und nicht gespeichert.
+        </div>
+
+        <form class="form-grid single" autocomplete="off">
+          <label class="field" data-field="prompt-username">
+            <span data-i18n="prompt.username">Benutzer</span>
+            <input
+              id="fieldPromptUsername"
+              type="text"
+              placeholder="user"
+              data-i18n-placeholder="prompt.username.placeholder"
+              required
+              autocomplete="username"
+            />
+          </label>
+          <label class="field" data-field="prompt-domain">
+            <span data-i18n="prompt.domain">Domaene</span>
+            <input
+              id="fieldPromptDomain"
+              type="text"
+              placeholder="z.B. CONTOSO"
+              data-i18n-placeholder="prompt.domain.placeholder"
+              autocomplete="organization"
+            />
+          </label>
+          <label class="field" data-field="password">
+            <span data-i18n="prompt.password">Passwort</span>
+            <input
+              id="fieldPassword"
+              type="password"
+              placeholder="Passwort"
+              data-i18n-placeholder="prompt.password.placeholder"
+              required
+              autocomplete="current-password"
+            />
+          </label>
+          <label class="field checkbox" id="passwordRememberField">
+            <input id="passwordRememberInput" type="checkbox" />
+            <div>
+              <span data-i18n="rdp.remember">Auf diesem Geraet speichern</span>
+              <small data-i18n="rdp.remember.help">Nur lokal im OS-Schluesselbund.</small>
+            </div>
+          </label>
+        </form>
+      </div>
+    </div>
+
+    <div id="settingsPrompt" class="editor hidden" aria-hidden="true">
+      <div class="editor-backdrop" data-action="close-settings"></div>
+      <div class="editor-panel compact">
+        <div class="panel-header">
+          <div>
+            <div class="eyebrow">Sync</div>
+            <h2 data-i18n="settings.title">Einstellungen</h2>
+          </div>
+          <div class="panel-actions">
+            <button id="settingsCancelBtn" class="btn ghost" data-i18n="action.cancel">Abbrechen</button>
+            <button id="settingsSaveBtn" class="btn accent" data-i18n="action.save">Speichern</button>
+          </div>
+        </div>
+
+        <form class="form-grid single" autocomplete="off">
+          <label class="field">
+            <span data-i18n="settings.mode.label">Modus</span>
+            <div class="radio-group">
+              <label class="radio-option">
+                <input type="radio" name="syncMode" value="local" checked />
+                <span data-i18n="settings.mode.local">Lokal</span>
+              </label>
+              <label class="radio-option">
+                <input type="radio" name="syncMode" value="sync" />
+                <span data-i18n="settings.mode.sync">Sync</span>
+              </label>
+            </div>
+          </label>
+          <label class="field" id="languageField">
+            <span data-i18n="settings.language.label">Sprache</span>
+            <select id="languageSelect">
+              <option value="de" data-i18n="settings.language.de">Deutsch</option>
+              <option value="en" data-i18n="settings.language.en">Englisch</option>
+            </select>
+          </label>
+          <label class="field" id="syncUrlField">
+            <span data-i18n="settings.url.label">Sync URL (https)</span>
+            <input id="syncUrlInput" type="url" placeholder="https://example.com/connections.json" data-i18n-placeholder="settings.url.placeholder" />
+            <small data-i18n="settings.url.help">Die JSON-Datei wird beim Start und regelmaessig geladen.</small>
+          </label>
+          <label class="field" id="syncIntervalField">
+            <span data-i18n="settings.interval.label">Sync Intervall (Minuten)</span>
+            <input id="syncIntervalInput" type="number" min="1" max="1440" step="1" value="1" />
+            <small data-i18n="settings.interval.help">Mindestens 1 Minute, maximal 24 Stunden.</small>
+          </label>
+          <label class="field checkbox" id="storePasswordsField">
+            <input id="storePasswordsInput" type="checkbox" />
+            <div>
+              <span data-i18n="settings.passwords.store">Passwoerter lokal speichern (OS-Schluesselbund)</span>
+              <small data-i18n="settings.passwords.help">Nur auf diesem Geraet, niemals im Sync.</small>
+            </div>
+          </label>
+        </form>
+      </div>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
