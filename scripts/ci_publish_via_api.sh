@@ -117,12 +117,26 @@ curl "${curl_common[@]}" \
   "${api_url}/api/repos/${APTLY_REPO}/snapshots" >/dev/null
 
 echo "Checking if publish endpoint '${publish_prefix}/${APTLY_DISTRIBUTION}' already exists..."
-publish_status="$(
-  curl "${curl_common[@]}" \
-    --output /tmp/publish_check.json \
-    --write-out "%{http_code}" \
-    "${api_url}/api/publish/${publish_prefix}/${APTLY_DISTRIBUTION}"
-)"
+curl "${curl_common[@]}" \
+  --fail \
+  --output /tmp/publish_list.json \
+  "${api_url}/api/publish"
+
+if python3 -c "
+import json, sys
+data = json.load(open('/tmp/publish_list.json'))
+prefix = '${publish_prefix}'.strip('/')
+dist = '${APTLY_DISTRIBUTION}'
+found = any(
+    p.get('Distribution') == dist and p.get('Prefix', '').strip('/') == prefix
+    for p in data
+)
+sys.exit(0 if found else 1)
+"; then
+  publish_status="200"
+else
+  publish_status="404"
+fi
 
 signing_fragment="$(cat <<JSON
 "Signing": {
@@ -181,7 +195,7 @@ JSON
 
 else
   echo "Unexpected publish check status: HTTP ${publish_status}" >&2
-  cat /tmp/publish_check.json >&2 || true
+  cat /tmp/publish_list.json >&2 || true
   exit 1
 fi
 
