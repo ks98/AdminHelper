@@ -458,19 +458,56 @@ import { detectSystemLanguage, getIntervalMinutes, getSettingsDefaults } from ".
     });
   }
 
+  function groupedTagKeys(group, untaggedLabel) {
+    const tags = new Map();
+    group.connections.forEach((connection) => {
+      const rawTags = Array.isArray(connection.tags) ? connection.tags : [];
+      rawTags.forEach((tagValue) => {
+        const normalized = String(tagValue || "").trim();
+        if (!normalized) {
+          return;
+        }
+        const key = normalized.toLowerCase();
+        if (!tags.has(key)) {
+          tags.set(key, normalized);
+        }
+      });
+    });
+    if (tags.size === 0) {
+      return [untaggedLabel];
+    }
+    return Array.from(tags.values());
+  }
+
   function renderGroupedTree(groups) {
-    treeEl.innerHTML = "";
+    const untaggedLabel = t("tree.untagged");
+    const tagGroups = new Map();
+
     groups.forEach((group) => {
+      const tags = groupedTagKeys(group, untaggedLabel);
+      tags.forEach((tag) => {
+        const key = tag.trim() || untaggedLabel;
+        if (!tagGroups.has(key)) {
+          tagGroups.set(key, []);
+        }
+        tagGroups.get(key).push(group);
+      });
+    });
+
+    const sortedTags = Array.from(tagGroups.keys()).sort((a, b) => a.localeCompare(b));
+    treeEl.innerHTML = "";
+    sortedTags.forEach((tag) => {
       const treeGroup = document.createElement("div");
       treeGroup.className = "tree-group open";
 
-      const countLabel = t("grouped.connections", { count: group.connections.length });
+      const hostsInTag = tagGroups.get(tag) || [];
+      const countLabel = t("grouped.connections", { count: hostsInTag.length });
       const header = document.createElement("div");
       header.className = "tree-header";
 
       const hostEl = document.createElement("div");
       hostEl.className = "tree-tag";
-      hostEl.textContent = group.host;
+      hostEl.textContent = tag;
 
       const toggle = document.createElement("div");
       toggle.className = "tree-toggle";
@@ -485,11 +522,12 @@ import { detectSystemLanguage, getIntervalMinutes, getSettingsDefaults } from ".
       const list = document.createElement("div");
       list.className = "tree-list";
 
-      const node = document.createElement("div");
-      node.className = "tree-node";
-      node.appendChild(buildGroupedConnectionCard(group));
-
-      list.appendChild(node);
+      hostsInTag.forEach((hostGroup) => {
+        const node = document.createElement("div");
+        node.className = "tree-node";
+        node.appendChild(buildGroupedConnectionCard(hostGroup));
+        list.appendChild(node);
+      });
       treeGroup.append(header, list);
 
       header.addEventListener("click", () => {
