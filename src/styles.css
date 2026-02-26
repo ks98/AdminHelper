@@ -40,15 +40,19 @@ body {
   inset: 0;
   overflow: hidden;
   z-index: 0;
+  pointer-events: none;
+  contain: paint;
 }
 
 .orb {
   position: absolute;
   border-radius: 50%;
-  filter: blur(0px);
-  opacity: 0.45;
-  mix-blend-mode: screen;
+  opacity: 0.36;
+  mix-blend-mode: normal;
   animation: drift 18s ease-in-out infinite;
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 .orb-one {
@@ -83,7 +87,8 @@ body {
   background-image: linear-gradient(rgba(148, 163, 184, 0.08) 1px, transparent 1px),
     linear-gradient(90deg, rgba(148, 163, 184, 0.08) 1px, transparent 1px);
   background-size: 48px 48px;
-  opacity: 0.25;
+  opacity: 0.2;
+  will-change: opacity;
 }
 
 @keyframes drift {
@@ -254,6 +259,8 @@ body {
   overflow-y: auto;
   padding-right: 6px;
   max-height: 70vh;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 }
 
 .tree {
@@ -263,6 +270,8 @@ body {
   max-height: 70vh;
   overflow-y: auto;
   padding-right: 6px;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 }
 
 .tree-group {
@@ -869,6 +878,7 @@ body {
   width: min(960px, 92vw);
   max-height: 90vh;
   overflow-y: auto;
+  scrollbar-gutter: stable;
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
@@ -934,5 +944,11 @@ body {
   .card-actions {
     flex-direction: row;
     justify-content: flex-start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orb {
+    animation: none;
   }
 }
