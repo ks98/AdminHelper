@@ -988,6 +988,12 @@
     await initiateConnect(connection, true);
   }
 
+  async function connectWithStoredPassword(connection, keepEditorOpen) {
+    if (isTauri) {
+      await tauriInvoke("open_connection_stored", { connection, client: getClientInfo() });
+    }
+  }
+
   async function handleRdpAuth(connection, keepEditorOpen) {
     if (!isTauri) {
       return false;
@@ -995,16 +1001,12 @@
 
     if (isPasswordStoreEnabled()) {
       try {
-        const state = await passwordApi.state(connection);
-        if (!state.canStore) {
+        const pwState = await passwordApi.state(connection);
+        if (!pwState.canStore) {
           return false;
         }
-        if (state.stored) {
-          if (state.password) {
-            await performConnect(connection, state.password, keepEditorOpen);
-          } else {
-            await performConnect(connection, null, keepEditorOpen);
-          }
+        if (pwState.stored) {
+          await performConnectStored(connection, keepEditorOpen);
           return true;
         }
         openPasswordPrompt(connection, keepEditorOpen, { allowRemember: true });
@@ -1058,6 +1060,53 @@
         });
       } else {
         await api.connect(connection);
+      }
+      const index = state.connections.findIndex((item) => item.id === connection.id);
+      const updated = { ...connection, lastUsed: new Date().toISOString() };
+      if (index >= 0) {
+        state.connections[index] = updated;
+      } else {
+        state.connections.push(updated);
+      }
+      await api.save(state.connections);
+      state.selectedId = updated.id;
+      setForm(updated);
+      renderConnections();
+      if (connection.kind === "rdp") {
+        if (rdpId !== null) {
+          scheduleRdpStatus(rdpId);
+        }
+      } else {
+        showStatus(t("status.connected"));
+      }
+      if (!keepEditorOpen) {
+        closeEditor({ preserveStatus: connection.kind === "rdp" });
+      }
+    } catch (error) {
+      const message = String(error?.message || error || "");
+      reportError(t("error.generic", { message }));
+    }
+  }
+
+  async function performConnectStored(connection, keepEditorOpen) {
+    try {
+      let rdpId = null;
+      if (connection.kind === "rdp") {
+        rdpId = startRdpStatus();
+        const promise = connectWithStoredPassword(connection, keepEditorOpen);
+        promise.catch((error) => {
+          if (rdpId !== null) {
+            clearRdpStatusTimer();
+            if (rdpPendingId === rdpId) {
+              rdpErroredId = rdpId;
+              rdpPendingId = null;
+            }
+          }
+          const message = String(error?.message || error || "");
+          reportError(t("error.generic", { message }));
+        });
+      } else {
+        await connectWithStoredPassword(connection, keepEditorOpen);
       }
       const index = state.connections.findIndex((item) => item.id === connection.id);
       const updated = { ...connection, lastUsed: new Date().toISOString() };

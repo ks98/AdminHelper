@@ -78,7 +78,6 @@ struct ClientInfo {
 #[serde(rename_all = "camelCase")]
 struct PasswordState {
   stored: bool,
-  password: Option<String>,
   can_store: bool,
 }
 
@@ -125,6 +124,7 @@ fn sync_connections(app: tauri::AppHandle, url: String) -> Result<Vec<Connection
     return Err(format!("HTTP {}", response.status()));
   }
   let connections: Vec<Connection> = response.json().map_err(|err| err.to_string())?;
+  let connections = sanitize_synced_connections(connections);
   write_connections(&app, &connections)?;
   Ok(connections)
 }
@@ -142,6 +142,7 @@ fn open_connection(
   password: Option<String>,
   client: Option<ClientInfo>,
 ) -> Result<(), String> {
+  validate_connection_input(&connection)?;
   match connection.kind.as_str() {
     "ssh" => open_ssh(&connection),
     "rdp" => open_rdp(&connection, password.as_deref(), client.as_ref(), &app),
@@ -155,7 +156,6 @@ fn password_state(connection: Connection) -> Result<PasswordState, String> {
   if connection.kind != "rdp" {
     return Ok(PasswordState {
       stored: false,
-      password: None,
       can_store: false,
     });
   }
@@ -166,7 +166,6 @@ fn password_state(connection: Connection) -> Result<PasswordState, String> {
     let stored = windows_credential_exists(&target)?;
     return Ok(PasswordState {
       stored,
-      password: None,
       can_store: true,
     });
   }
@@ -176,7 +175,6 @@ fn password_state(connection: Connection) -> Result<PasswordState, String> {
     let password = load_password_keyring(&connection)?;
     return Ok(PasswordState {
       stored: password.is_some(),
-      password,
       can_store: true,
     });
   }
@@ -185,9 +183,36 @@ fn password_state(connection: Connection) -> Result<PasswordState, String> {
   {
     return Ok(PasswordState {
       stored: false,
-      password: None,
       can_store: false,
     });
+  }
+}
+
+#[tauri::command]
+fn open_connection_stored(
+  app: tauri::AppHandle,
+  connection: Connection,
+  client: Option<ClientInfo>,
+) -> Result<(), String> {
+  validate_connection_input(&connection)?;
+  if connection.kind != "rdp" {
+    return open_connection(app, connection, None, client);
+  }
+
+  #[cfg(target_os = "windows")]
+  {
+    return open_rdp(&connection, None, client.as_ref(), &app);
+  }
+
+  #[cfg(unix)]
+  {
+    let password = load_password_keyring(&connection)?;
+    return open_rdp(&connection, password.as_deref(), client.as_ref(), &app);
+  }
+
+  #[cfg(not(any(target_os = "windows", unix)))]
+  {
+    return open_connection(app, connection, None, client);
   }
 }
 
@@ -237,6 +262,67 @@ fn delete_password(connection: Connection) -> Result<(), String> {
   {
     return Ok(());
   }
+}
+
+fn validate_host(host: &str) -> Result<(), String> {
+  let trimmed = host.trim();
+  if trimmed.is_empty() {
+    return Err("Host fehlt".to_string());
+  }
+  if trimmed.starts_with('-') {
+    return Err("Ungueltiger Hostname".to_string());
+  }
+  if trimmed.contains(|c: char| {
+    c.is_control() || c.is_whitespace() || ";|&$`'\"\\{}()!#".contains(c)
+  }) {
+    return Err("Ungueltiger Hostname".to_string());
+  }
+  Ok(())
+}
+
+fn validate_no_control_chars(value: &str, label: &str) -> Result<(), String> {
+  if value.contains(|c: char| c.is_control()) {
+    return Err(format!("{label} enthaelt ungueltige Zeichen"));
+  }
+  Ok(())
+}
+
+fn validate_connection_input(connection: &Connection) -> Result<(), String> {
+  match connection.kind.as_str() {
+    "ssh" | "rdp" | "web" => {}
+    other => return Err(format!("Unbekannter Typ: {other}")),
+  }
+  if let Some(ref host) = connection.host {
+    let trimmed = host.trim();
+    if !trimmed.is_empty() {
+      validate_host(trimmed)?;
+    }
+  }
+  if let Some(ref username) = connection.username {
+    validate_no_control_chars(username, "Benutzer")?;
+  }
+  if let Some(ref domain) = connection.domain {
+    validate_no_control_chars(domain, "Domaene")?;
+  }
+  if let Some(ref key_path) = connection.key_path {
+    let trimmed = key_path.trim();
+    if !trimmed.is_empty() && trimmed.contains("..") {
+      return Err("Ungueltiger SSH Key Pfad".to_string());
+    }
+  }
+  if let Some(ref url) = connection.url {
+    if connection.kind == "web" && !url.trim().is_empty() {
+      validate_web_url(url)?;
+    }
+  }
+  Ok(())
+}
+
+fn sanitize_synced_connections(connections: Vec<Connection>) -> Vec<Connection> {
+  connections
+    .into_iter()
+    .filter(|c| validate_connection_input(c).is_ok())
+    .collect()
 }
 
 fn normalized(value: &Option<String>) -> String {
@@ -487,14 +573,29 @@ fn harden_permissions(path: &Path) {
   }
 }
 
-#[cfg(not(unix))]
+#[cfg(target_os = "windows")]
+fn harden_permissions(path: &Path) {
+  if let Ok(user) = std::env::var("USERNAME") {
+    let path_str = path.to_string_lossy();
+    let _ = Command::new("icacls")
+      .args([
+        path_str.as_ref(),
+        "/inheritance:r",
+        "/grant:r",
+        &format!("{user}:F"),
+      ])
+      .stdout(std::process::Stdio::null())
+      .stderr(std::process::Stdio::null())
+      .status();
+  }
+}
+
+#[cfg(not(any(unix, target_os = "windows")))]
 fn harden_permissions(_path: &Path) {}
 
 fn open_ssh(connection: &Connection) -> Result<(), String> {
-  let host = connection
-    .host
-    .as_ref()
-    .ok_or_else(|| "Host fehlt".to_string())?;
+  let host = required(&connection.host, "Host")?;
+  validate_host(&host)?;
   let port = connection.port.unwrap_or(22);
   let mut args: Vec<String> = Vec::new();
   if port != 22 {
@@ -502,20 +603,27 @@ fn open_ssh(connection: &Connection) -> Result<(), String> {
     args.push(port.to_string());
   }
   if let Some(key_path) = connection.key_path.as_ref() {
-    if !key_path.trim().is_empty() {
+    let trimmed = key_path.trim();
+    if !trimmed.is_empty() {
+      if trimmed.contains("..") {
+        return Err("Ungueltiger SSH Key Pfad".to_string());
+      }
       args.push("-i".to_string());
-      args.push(key_path.clone());
+      args.push(trimmed.to_string());
     }
   }
   let target = if let Some(username) = connection.username.as_ref() {
-    if !username.trim().is_empty() {
-      format!("{username}@{host}")
+    let u = username.trim();
+    if !u.is_empty() {
+      validate_no_control_chars(u, "Benutzer")?;
+      format!("{u}@{host}")
     } else {
       host.to_string()
     }
   } else {
     host.to_string()
   };
+  args.push("--".to_string());
   args.push(target);
 
   if cfg!(target_os = "windows") {
@@ -940,25 +1048,12 @@ fn check_rdp_auth(
 }
 
 fn open_web(connection: &Connection) -> Result<(), String> {
-  let url = connection
+  let raw = connection
     .url
     .as_ref()
     .ok_or_else(|| "URL fehlt".to_string())?;
-  let url = ensure_scheme(url.trim());
-
-  if cfg!(target_os = "windows") {
-    Command::new("cmd")
-      .args(["/C", "start", "", &url])
-      .spawn()
-      .map_err(|err| err.to_string())?;
-    return Ok(());
-  }
-
-  Command::new("xdg-open")
-    .arg(&url)
-    .spawn()
-    .map_err(|err| err.to_string())?;
-  Ok(())
+  let url = validate_web_url(raw)?;
+  open::that(&url).map_err(|err| err.to_string())
 }
 
 fn open_windows_terminal(command: &str, args: &[String]) -> Result<(), String> {
@@ -1027,11 +1122,17 @@ fn open_linux_terminal(command: &str, args: &[String]) -> Result<(), String> {
   Err("Kein Terminal gefunden".to_string())
 }
 
-fn ensure_scheme(url: &str) -> String {
-  if url.contains("://") {
-    url.to_string()
+fn validate_web_url(raw: &str) -> Result<String, String> {
+  let trimmed = raw.trim();
+  let with_scheme = if !trimmed.contains("://") {
+    format!("https://{trimmed}")
   } else {
-    format!("https://{url}")
+    trimmed.to_string()
+  };
+  let parsed = Url::parse(&with_scheme).map_err(|e| e.to_string())?;
+  match parsed.scheme() {
+    "https" | "http" => Ok(parsed.to_string()),
+    other => Err(format!("Unerlaubtes URL-Schema: {other}")),
   }
 }
 
@@ -1064,10 +1165,17 @@ fn build_windows_cmdline(command: &str, args: &[String]) -> String {
 
 fn windows_quote(value: &str) -> String {
   if value.chars().all(|ch| ch.is_ascii_alphanumeric() || "-._/:@\\".contains(ch)) {
-    value.to_string()
-  } else {
-    format!("\"{}\"", value.replace('"', "\\\""))
+    return value.to_string();
   }
+  let escaped: String = value
+    .chars()
+    .flat_map(|c| match c {
+      '"' => vec!['^', '"'],
+      '%' | '!' | '^' | '&' | '|' | '<' | '>' | '(' | ')' => vec!['^', c],
+      _ => vec![c],
+    })
+    .collect();
+  format!("\"{escaped}\"")
 }
 
 #[cfg(target_os = "windows")]
@@ -1099,6 +1207,13 @@ fn write_rdp_file(
   }
   let contents = lines.join("\r\n");
   fs::write(&path, contents).map_err(|err| err.to_string())?;
+
+  let cleanup_path = path.clone();
+  std::thread::spawn(move || {
+    std::thread::sleep(std::time::Duration::from_secs(30));
+    let _ = std::fs::remove_file(&cleanup_path);
+  });
+
   Ok(path)
 }
 
@@ -1130,7 +1245,8 @@ fn main() {
       delete_password,
       sync_connections,
       save_connections,
-      open_connection
+      open_connection,
+      open_connection_stored
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
