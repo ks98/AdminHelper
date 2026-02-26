@@ -1,6 +1,6 @@
 {
   "productName": "simple-remote-manager",
-  "version": "0.3.1",
+  "version": "0.3.3",
   "identifier": "com.simpleremote.manager",
   "build": {
     "frontendDist": "../src"
