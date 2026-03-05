@@ -47,3 +47,6 @@ Desktop.ini
 
 # Server-Datendverzeichnis (bind mount statt Docker-Volume)
 /data/
+
+# nginx: auto-generierte oder eigene TLS-Zertifikate nicht committen
+/nginx/certs/
