@@ -8,6 +8,7 @@ from . import models
 from .auth import hash_password
 from .database import SessionLocal
 from .config import ADMIN_PASSWORD
+from .middleware import IPFilterMiddleware
 from .routers import auth, connections, users, api_keys
 
 models.Base.metadata.create_all(bind=engine)
@@ -30,6 +31,9 @@ def _ensure_admin():
         db.close()
 
 _ensure_admin()
+
+# Middleware
+app.add_middleware(IPFilterMiddleware)
 
 # Router einbinden
 app.include_router(auth.router)

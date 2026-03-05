@@ -8,4 +8,9 @@ services:
     environment:
       - SECRET_KEY=change-me-in-production
       - ADMIN_PASSWORD=admin
+      # IP-Zugangsbeschränkung (leer = kein Filter)
+      # Beispiel: ALLOWED_IPS=192.168.1.0/24,10.0.0.5
+      - ALLOWED_IPS=
+      # Auf true setzen wenn hinter Reverse-Proxy (X-Forwarded-For auswerten)
+      - TRUST_PROXY_HEADERS=false
     restart: unless-stopped
