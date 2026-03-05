@@ -1,3 +1,4 @@
+import uuid
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import Any
 
@@ -22,6 +23,7 @@ def create_connection(connection: dict[str, Any], auth=Depends(write_dep)):
     # Nur Admins dürfen über JWT schreiben; API-Keys mit read_write auch
     if user and not user.is_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin-Rechte erforderlich")
+    connection["id"] = str(uuid.uuid4())
     connections = load_connections()
     connections.append(connection)
     save_connections(connections)
