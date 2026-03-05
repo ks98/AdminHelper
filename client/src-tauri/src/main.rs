@@ -13,15 +13,11 @@ use commands::{
     password_state, save_connections, save_password, save_settings, sync_connections,
 };
 use tauri::Manager;
-use tauri_plugin_window_state::{AppHandleExt, StateFlags};
 
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .setup(|app| {
-            // Fensterposition und -größe aus letzter Sitzung wiederherstellen
-            let _ = app.handle().restore_state(StateFlags::all());
-
             // Ensure a concrete runtime window icon in dev and production.
             let icon_bytes = include_bytes!("../icons/icon.png");
             if let Ok(icon) = tauri::image::Image::from_bytes(icon_bytes) {
