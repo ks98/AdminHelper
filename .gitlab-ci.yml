@@ -1,6 +1,6 @@
 stages:
-  - build
   - docker
+  - build
   - publish
 
 variables:
@@ -56,6 +56,7 @@ cache:
 
 build_deb_trixie:
   extends: .tauri_trixie_base
+  needs: []
   script:
     - . "$CARGO_HOME/env"
     - cd client/src-tauri
@@ -72,6 +73,7 @@ build_deb_trixie:
 
 build_binary_trixie:
   extends: .tauri_trixie_base
+  needs: []
   script:
     - . "$CARGO_HOME/env"
     - cd client/src-tauri
