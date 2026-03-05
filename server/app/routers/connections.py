@@ -1,6 +1,9 @@
+import json
 import uuid
 from fastapi import APIRouter, Depends, HTTPException, status
-from typing import Any
+from fastapi.responses import Response
+from pydantic import BaseModel
+from typing import Any, Literal
 
 from ..auth import ApiKeyOrUser, get_current_admin
 from ..storage import load_connections, save_connections
@@ -51,3 +54,30 @@ def delete_connection(conn_id: str, current_user: models.User = Depends(get_curr
     if len(new_connections) == len(connections):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Verbindung nicht gefunden")
     save_connections(new_connections)
+
+
+@router.get("/export", response_class=Response)
+def export_connections(current_user: models.User = Depends(get_current_admin)):
+    data = json.dumps(load_connections(), ensure_ascii=False, indent=2)
+    return Response(
+        content=data,
+        media_type="application/json",
+        headers={"Content-Disposition": 'attachment; filename="connections.json"'},
+    )
+
+
+class ImportRequest(BaseModel):
+    connections: list[dict[str, Any]]
+    mode: Literal["merge", "replace"]
+
+
+@router.post("/import")
+def import_connections(req: ImportRequest, current_user: models.User = Depends(get_current_admin)):
+    imported = [dict(conn, id=str(uuid.uuid4())) for conn in req.connections]
+    if req.mode == "replace":
+        save_connections(imported)
+    else:
+        existing = load_connections()
+        existing.extend(imported)
+        save_connections(existing)
+    return {"imported": len(imported), "mode": req.mode}

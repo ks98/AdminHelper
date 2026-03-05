@@ -95,6 +95,8 @@ async function initApp() {
   if (state.user.is_admin) {
     document.getElementById('adminNav').classList.remove('hidden');
     document.getElementById('addConnBtn').classList.remove('hidden');
+    document.getElementById('exportConnBtn').classList.remove('hidden');
+    document.getElementById('importConnBtn').classList.remove('hidden');
     document.getElementById('connActionsHeader').textContent = 'Aktionen';
   }
 
@@ -428,6 +430,78 @@ async function deleteApiKey(id) {
     toast(err.message, 'error');
   }
 }
+
+// ── Export / Import ────────────────────────────────────────────────────────
+document.getElementById('exportConnBtn').addEventListener('click', async () => {
+  try {
+    const res = await fetch('/api/connections/export', {
+      headers: { Authorization: `Bearer ${state.token}` },
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'connections.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    toast(err.message, 'error');
+  }
+});
+
+document.getElementById('importConnBtn').addEventListener('click', () => {
+  document.getElementById('importFile').value = '';
+  document.getElementById('importMode').value = 'merge';
+  document.getElementById('importInfo').textContent = '';
+  showModal('importModal');
+});
+
+document.getElementById('importFile').addEventListener('change', () => {
+  const file = document.getElementById('importFile').files[0];
+  if (!file) { document.getElementById('importInfo').textContent = ''; return; }
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!Array.isArray(data)) throw new Error('Keine Liste');
+      document.getElementById('importInfo').textContent =
+        `${data.length} Verbindung${data.length !== 1 ? 'en' : ''} gefunden.`;
+    } catch {
+      document.getElementById('importInfo').textContent = 'Ungültige JSON-Datei.';
+    }
+  };
+  reader.readAsText(file);
+});
+
+document.getElementById('importSubmitBtn').addEventListener('click', async () => {
+  const file = document.getElementById('importFile').files[0];
+  if (!file) { toast('Bitte eine Datei auswählen', 'error'); return; }
+  const mode = document.getElementById('importMode').value;
+
+  let connections;
+  try {
+    connections = JSON.parse(await file.text());
+    if (!Array.isArray(connections)) throw new Error();
+  } catch {
+    toast('Ungültige JSON-Datei', 'error');
+    return;
+  }
+
+  const msg = mode === 'replace'
+    ? `Alle bestehenden Verbindungen werden gelöscht und durch ${connections.length} importierte ersetzt. Fortfahren?`
+    : `${connections.length} Verbindung${connections.length !== 1 ? 'en' : ''} hinzufügen?`;
+  if (!confirm(msg)) return;
+
+  try {
+    const result = await post('/api/connections/import', { connections, mode });
+    toast(`${result.imported} Verbindung${result.imported !== 1 ? 'en' : ''} importiert`);
+    closeModal('importModal');
+    await loadConnections();
+  } catch (err) {
+    toast(err.message, 'error');
+  }
+});
 
 // ── Modal helpers ──────────────────────────────────────────────────────────
 function showModal(id) {

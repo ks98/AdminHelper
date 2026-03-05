@@ -96,6 +96,8 @@
           </div>
           <div style="display:flex;gap:10px;align-items:center">
             <input id="connSearch" type="search" placeholder="Suchen…" style="padding:8px 12px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--card);color:var(--text);font-family:var(--font);font-size:14px" />
+            <button id="exportConnBtn" class="btn ghost hidden">Exportieren</button>
+            <button id="importConnBtn" class="btn ghost hidden">Importieren</button>
             <button id="addConnBtn" class="btn primary hidden">+ Verbindung</button>
           </div>
         </div>
@@ -308,6 +310,34 @@
           <button type="submit" class="btn primary">Erstellen</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Modal: Verbindungen importieren -->
+  <div id="importModal" class="modal-backdrop hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">Verbindungen importieren</div>
+        <button class="modal-close" data-close="importModal">✕</button>
+      </div>
+      <div class="modal-form">
+        <div class="field">
+          <label>JSON-Datei *</label>
+          <input id="importFile" type="file" accept=".json,application/json" style="padding:6px 0;color:var(--text)" />
+        </div>
+        <div class="field">
+          <label>Import-Modus</label>
+          <select id="importMode">
+            <option value="merge">Hinzufügen – bestehende Verbindungen behalten</option>
+            <option value="replace">Ersetzen – alle bestehenden Verbindungen löschen</option>
+          </select>
+        </div>
+        <p id="importInfo" style="font-size:13px;color:var(--text-soft);margin:0"></p>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn ghost" data-close="importModal">Abbrechen</button>
+        <button type="button" id="importSubmitBtn" class="btn primary">Importieren</button>
+      </div>
     </div>
   </div>
 
