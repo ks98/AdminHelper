@@ -87,7 +87,65 @@ Notes:
 - **Store passwords locally**: Optional, per-device, OS keychain (RDP only)
 - **RDP scaling mode**: `auto`, `normal`, `hdpi`
 
-## Build & Run
+## Server (Team-Modus)
+
+Der optionale **Simple Remote Manager Server** ermöglicht zentrale Verwaltung und gemeinsamen Zugriff auf Verbindungen im Team.
+
+### Features
+
+- **Web-Interface** im gleichen Design wie der Desktop-Client
+- **Benutzerrollen**: Admin (vollständige CRUD) und User (nur lesen)
+- **API-Keys** für programmatischen Zugriff und Client-Sync
+- **JWT-Authentifizierung** für das Web-Interface
+- **Docker**-Deployment
+
+### Schnellstart
+
+```bash
+# Im Projektroot:
+docker compose up --build
+```
+
+Der Server ist dann unter `http://localhost:8080` erreichbar.
+
+**Standard-Zugangsdaten:** `admin` / `admin` (über `ADMIN_PASSWORD` Env-Variable änderbar)
+
+> **Wichtig:** `SECRET_KEY` in der `docker-compose.yml` vor dem Produktiveinsatz ändern.
+
+### Client-Sync konfigurieren
+
+1. Im Server-Web-Interface: API-Key mit Berechtigung **"Nur lesen"** anlegen
+2. Im Desktop-Client: Einstellungen → Modus: **Sync** → URL:
+   ```
+   http://<server>:8080/api/connections?api_key=<key>
+   ```
+
+### Server-API
+
+```
+POST   /api/auth/login          # Login → JWT
+GET    /api/auth/me             # Aktueller Benutzer
+
+GET    /api/connections         # Verbindungen (User + API-Key)
+POST   /api/connections         # Erstellen (Admin)
+PUT    /api/connections/{id}    # Bearbeiten (Admin)
+DELETE /api/connections/{id}    # Löschen (Admin)
+
+GET    /api/users               # Benutzer-Liste (Admin)
+POST   /api/users               # Benutzer anlegen (Admin)
+PUT    /api/users/{id}          # Benutzer bearbeiten (Admin)
+DELETE /api/users/{id}          # Benutzer löschen (Admin)
+
+GET    /api/api-keys            # API-Keys (Admin)
+POST   /api/api-keys            # API-Key anlegen (Admin)
+DELETE /api/api-keys/{id}       # API-Key löschen (Admin)
+```
+
+API-Dokumentation: `http://localhost:8080/api/docs`
+
+---
+
+## Client – Build & Run
 
 ### Requirements
 
@@ -100,12 +158,14 @@ Notes:
 ### Dev
 
 ```bash
+cd client/src-tauri
 cargo tauri dev
 ```
 
 ### Build
 
 ```bash
+cd client/src-tauri
 cargo tauri build
 ```
 
@@ -115,25 +175,50 @@ cargo tauri build
 
 ```text
 .
-├─ src/
-│  ├─ index.html
-│  ├─ styles.css
-│  ├─ app.js
-│  ├─ connectionModel.js
-│  ├─ platformApi.js
-│  ├─ settingsModel.js
-│  └─ i18n.js
-└─ src-tauri/
-   └─ src/
-      ├─ main.rs
-      ├─ commands.rs
-      ├─ connection/
-      ├─ storage.rs
-      ├─ sync.rs
-      ├─ password.rs
-      ├─ models.rs
-      ├─ validation.rs
-      └─ terminal.rs
+├─ client/
+│  ├─ src/                   # Frontend (HTML/CSS/JS)
+│  │  ├─ index.html
+│  │  ├─ styles.css
+│  │  ├─ app.js
+│  │  ├─ connectionModel.js
+│  │  ├─ platformApi.js
+│  │  ├─ settingsModel.js
+│  │  └─ i18n.js
+│  ├─ src-tauri/             # Rust-Backend (Tauri)
+│  │  └─ src/
+│  │     ├─ main.rs
+│  │     ├─ commands.rs
+│  │     ├─ connection/
+│  │     ├─ storage.rs
+│  │     ├─ sync.rs
+│  │     ├─ password.rs
+│  │     ├─ models.rs
+│  │     ├─ validation.rs
+│  │     └─ terminal.rs
+│  └─ scripts/
+├─ server/
+│  ├─ app/                   # FastAPI-Backend
+│  │  ├─ main.py
+│  │  ├─ config.py
+│  │  ├─ database.py
+│  │  ├─ models.py
+│  │  ├─ schemas.py
+│  │  ├─ auth.py
+│  │  ├─ storage.py
+│  │  └─ routers/
+│  │     ├─ auth.py
+│  │     ├─ connections.py
+│  │     ├─ users.py
+│  │     └─ api_keys.py
+│  ├─ static/                # Web-Interface
+│  │  ├─ index.html
+│  │  ├─ styles.css
+│  │  ├─ app.js
+│  │  └─ logo.svg
+│  ├─ data/                  # Persistente Daten (Volume)
+│  ├─ Dockerfile
+│  └─ requirements.txt
+└─ docker-compose.yml
 ```
 
 ---

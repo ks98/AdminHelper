@@ -1,0 +1,11 @@
+services:
+  server:
+    build: ./server
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./server/data:/app/data
+    environment:
+      - SECRET_KEY=change-me-in-production
+      - ADMIN_PASSWORD=admin
+    restart: unless-stopped
