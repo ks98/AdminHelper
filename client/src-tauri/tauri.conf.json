@@ -14,7 +14,8 @@
         "title": "Simple Remote Manager",
         "width": 1280,
         "height": 820,
-        "resizable": true
+        "resizable": true,
+        "maximized": true
       }
     ],
     "security": {

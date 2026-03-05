@@ -57,6 +57,8 @@ pub struct Settings {
     pub store_passwords: bool,
     #[serde(default)]
     pub rdp_scaling_mode: RdpScalingMode,
+    #[serde(default)]
+    pub allow_self_signed_certs: bool,
 }
 
 impl Default for Settings {

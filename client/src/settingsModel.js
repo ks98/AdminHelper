@@ -10,7 +10,8 @@ export function getSettingsDefaults() {
     intervalMinutes: 1,
     language: detectSystemLanguage(),
     storePasswords: false,
-    rdpScalingMode: "auto"
+    rdpScalingMode: "auto",
+    allowSelfSignedCerts: false
   };
 }
 

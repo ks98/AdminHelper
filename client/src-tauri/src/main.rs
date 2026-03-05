@@ -16,6 +16,7 @@ use tauri::Manager;
 
 fn main() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_window_state::Builder::default().build())
         .setup(|app| {
             // Ensure a concrete runtime window icon in dev and production.
             let icon_bytes = include_bytes!("../icons/icon.png");

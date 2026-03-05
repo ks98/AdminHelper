@@ -63,6 +63,8 @@ import { detectSystemLanguage, getIntervalMinutes, getSettingsDefaults } from ".
   const syncIntervalInput = document.getElementById("syncIntervalInput");
   const rdpScalingSelect = document.getElementById("rdpScalingSelect");
   const storePasswordsInput = document.getElementById("storePasswordsInput");
+  const allowSelfSignedField = document.getElementById("allowSelfSignedField");
+  const allowSelfSignedInput = document.getElementById("allowSelfSignedInput");
   const languageSelect = document.getElementById("languageSelect");
 
   const fieldName = document.getElementById("fieldName");
@@ -182,6 +184,7 @@ import { detectSystemLanguage, getIntervalMinutes, getSettingsDefaults } from ".
     });
     syncUrlField.classList.toggle("hidden", mode !== "sync");
     syncIntervalField.classList.toggle("hidden", mode !== "sync");
+    if (allowSelfSignedField) allowSelfSignedField.classList.toggle("hidden", mode !== "sync");
   }
 
   function updateSettingsBadge(mode) {
@@ -241,6 +244,9 @@ import { detectSystemLanguage, getIntervalMinutes, getSettingsDefaults } from ".
     }
     if (storePasswordsInput) {
       storePasswordsInput.checked = Boolean(settings.storePasswords);
+    }
+    if (allowSelfSignedInput) {
+      allowSelfSignedInput.checked = Boolean(settings.allowSelfSignedCerts);
     }
     if (rdpScalingSelect) {
       const mode = settings.rdpScalingMode || "auto";
@@ -1095,6 +1101,7 @@ import { detectSystemLanguage, getIntervalMinutes, getSettingsDefaults } from ".
     const intervalMinutes = Number(syncIntervalInput.value);
     const language = languageSelect ? languageSelect.value : "de";
     const storePasswords = storePasswordsInput ? storePasswordsInput.checked : false;
+    const allowSelfSignedCerts = allowSelfSignedInput ? allowSelfSignedInput.checked : false;
     const rdpScalingMode = rdpScalingSelect ? rdpScalingSelect.value : "auto";
     const settings = {
       mode,
@@ -1102,6 +1109,7 @@ import { detectSystemLanguage, getIntervalMinutes, getSettingsDefaults } from ".
       intervalMinutes: getIntervalMinutes({ intervalMinutes }),
       language,
       storePasswords,
+      allowSelfSignedCerts,
       rdpScalingMode: ["auto", "normal", "hdpi"].includes(rdpScalingMode)
         ? rdpScalingMode
         : "auto"

@@ -18,9 +18,13 @@ fn validate_https_url(raw: &str) -> Result<(), AppError> {
 pub async fn sync_connections(
     app: tauri::AppHandle,
     url: String,
+    allow_self_signed: bool,
 ) -> Result<Vec<Connection>, AppError> {
     validate_https_url(&url)?;
-    let response = reqwest::get(&url).await?.error_for_status()?;
+    let client = reqwest::Client::builder()
+        .danger_accept_invalid_certs(allow_self_signed)
+        .build()?;
+    let response = client.get(&url).send().await?.error_for_status()?;
     let connections: Vec<Connection> = response.json().await?;
     let connections = sanitize_synced_connections(connections);
     write_connections(&app, &connections)?;

@@ -14,7 +14,10 @@ else
     openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
         -keyout "$KEY" -out "$CERT" \
         -subj "/CN=${DOMAIN}" \
-        -addext "subjectAltName=DNS:${DOMAIN},DNS:localhost,IP:127.0.0.1"
+        -addext "subjectAltName=DNS:${DOMAIN},DNS:localhost,IP:127.0.0.1" \
+        -addext "basicConstraints=critical,CA:FALSE" \
+        -addext "keyUsage=critical,digitalSignature,keyEncipherment" \
+        -addext "extendedKeyUsage=serverAuth"
     echo "[entrypoint] Zertifikat generiert."
 fi
 

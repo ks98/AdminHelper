@@ -25,7 +25,10 @@ pub async fn sync_connections(
     app: tauri::AppHandle,
     url: String,
 ) -> Result<Vec<Connection>, AppError> {
-    sync::sync_connections(app, url).await
+    let allow_self_signed = storage::load_settings(&app)
+        .map(|s| s.allow_self_signed_certs)
+        .unwrap_or(false);
+    sync::sync_connections(app, url, allow_self_signed).await
 }
 
 #[tauri::command]

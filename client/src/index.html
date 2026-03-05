@@ -283,6 +283,13 @@
             <input id="syncIntervalInput" type="number" min="1" max="1440" step="1" value="1" />
             <small data-i18n="settings.interval.help">Mindestens 1 Minute, maximal 24 Stunden.</small>
           </label>
+          <label class="field checkbox" id="allowSelfSignedField">
+            <input id="allowSelfSignedInput" type="checkbox" />
+            <div>
+              <span data-i18n="settings.selfSigned.label">Self-signed Zertifikate erlauben</span>
+              <small data-i18n="settings.selfSigned.help">Nur aktivieren wenn der Server ein selbstsigniertes Zertifikat verwendet. Sicherheitsrisiko!</small>
+            </div>
+          </label>
           <label class="field" id="rdpScalingField">
             <span data-i18n="settings.rdpScaling.label">RDP Skalierung</span>
             <select id="rdpScalingSelect">
