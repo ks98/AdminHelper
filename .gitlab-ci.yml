@@ -91,6 +91,7 @@ build_binary_trixie:
 docker_server:
   stage: docker
   image: docker:27
+  needs: []
   variables:
     DOCKER_HOST: unix:///var/run/docker.sock
     DOCKER_TLS_CERTDIR: ""
