@@ -217,9 +217,11 @@ docker compose up -d</code></pre>
               <li>Bei Änderungen Script versioniert im Repository führen.</li>
             </ol>
 
-            <h3>Beispielscript</h3>
+            <h3>Aufruf-Beispiel</h3>
             <p>
-              Referenz im Projekt: <a href="./examples/webhook_add_connection.py"><span class="inline-code">docs/examples/webhook_add_connection.py</span></a>
+              Referenz-Scripts im Projekt:
+              <a href="./examples/webhook_add_connection.py"><span class="inline-code">docs/examples/webhook_add_connection.py</span></a>,
+              <a href="./examples/webhook_http_import.py"><span class="inline-code">docs/examples/webhook_http_import.py</span></a>
             </p>
             <pre class="code-block"><code>curl -X POST "https://&lt;server&gt;/api/webhooks/trigger/&lt;token&gt;" \
   -H "Content-Type: application/json" \
@@ -232,9 +234,24 @@ docker compose up -d</code></pre>
     }
   }'</code></pre>
 
+            <h3>Python-Imports in Scripts</h3>
+            <p>
+              Scripts haben vollen Python-Interpreter-Zugriff — <span class="inline-code">import</span> ist uneingeschränkt erlaubt.
+              Beispiel für einen HTTP-Aufruf aus einem Script heraus:
+            </p>
+            <pre class="code-block"><code>import requests
+
+r = requests.get("https://cmdb.example.com/api/servers", timeout=10)
+connections = load_connections()
+for srv in r.json():
+    connections.append({"id": uuid4(), "name": srv["hostname"], "host": srv["ip"], "kind": "ssh"})
+save_connections(connections)
+result["imported"] = len(r.json())</code></pre>
+
             <div class="callout warn">
               <strong>Sicherheit:</strong> Webhook-Tokens funktionieren ohne JWT.
               Deshalb Token wie Passwörter behandeln und bei Verdacht sofort rotieren.
+              Da Scripts vollen Interpreter-Zugriff haben, dürfen Webhooks nur von Admins angelegt werden.
             </div>
           </section>
 

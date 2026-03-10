@@ -195,9 +195,11 @@ docker compose up -d</code></pre>
               <li>Rotate token on schedule and on any potential leak.</li>
             </ol>
 
-            <h3>Reference example</h3>
+            <h3>Trigger example</h3>
             <p>
-              File: <a href="../examples/webhook_add_connection.py"><span class="inline-code">docs/examples/webhook_add_connection.py</span></a>
+              Reference scripts:
+              <a href="../examples/webhook_add_connection.py"><span class="inline-code">docs/examples/webhook_add_connection.py</span></a>,
+              <a href="../examples/webhook_http_import.py"><span class="inline-code">docs/examples/webhook_http_import.py</span></a>
             </p>
             <pre class="code-block"><code>curl -X POST "https://&lt;server&gt;/api/webhooks/trigger/&lt;token&gt;" \
   -H "Content-Type: application/json" \
@@ -210,9 +212,24 @@ docker compose up -d</code></pre>
     }
   }'</code></pre>
 
+            <h3>Python imports in scripts</h3>
+            <p>
+              Scripts have full Python interpreter access — <span class="inline-code">import</span> is unrestricted.
+              Example of an HTTP call from a script:
+            </p>
+            <pre class="code-block"><code>import requests
+
+r = requests.get("https://cmdb.example.com/api/servers", timeout=10)
+connections = load_connections()
+for srv in r.json():
+    connections.append({"id": uuid4(), "name": srv["hostname"], "host": srv["ip"], "kind": "ssh"})
+save_connections(connections)
+result["imported"] = len(r.json())</code></pre>
+
             <div class="callout warn">
-              <strong>Security:</strong> webhook tokens are bearer secrets.
-              Treat them like passwords and rotate immediately if exposed.
+              <strong>Security:</strong> webhook tokens are bearer secrets — treat them like passwords.
+              Scripts have full interpreter access, so only admins can create or modify webhooks.
+              Rotate tokens immediately on any suspected exposure.
             </div>
           </section>
 

@@ -228,7 +228,7 @@ docker compose up -d</code></pre>
                 <tr>
                   <td>Webhooks</td>
                   <td><span class="inline-code">routers/webhooks.py</span>, <span class="inline-code">script_runner.py</span></td>
-                  <td>Script execution using constrained runtime.</td>
+                  <td>Python script execution; full builtins including <span class="inline-code">import</span> are available (admin-only feature).</td>
                 </tr>
               </tbody>
             </table>
@@ -292,7 +292,9 @@ docker compose up -d</code></pre>
             <h2>8) Webhook Scripting</h2>
             <p>
               Trigger endpoint: <span class="inline-code">POST /api/webhooks/trigger/&lt;token&gt;</span>.
-              Script runtime exposes connection storage helpers plus request context.
+              Scripts run server-side with full Python builtins — including <span class="inline-code">import</span> —
+              plus injected storage helpers and request context. Because webhooks are admin-only,
+              no builtin restrictions apply.
             </p>
             <table>
               <thead>
@@ -328,10 +330,15 @@ docker compose up -d</code></pre>
                   <td>dict/list/function</td>
                   <td>Build response payload and runtime logs.</td>
                 </tr>
+                <tr>
+                  <td><span class="inline-code">import ...</span></td>
+                  <td>statement</td>
+                  <td>All Python modules available, e.g. <span class="inline-code">import requests</span>, <span class="inline-code">import json</span>, <span class="inline-code">import re</span>.</td>
+                </tr>
               </tbody>
             </table>
 
-            <h3>Reference example script</h3>
+            <h3>Example: create or update a connection</h3>
             <p>
               Repository file: <a href="../examples/webhook_add_connection.py"><span class="inline-code">docs/examples/webhook_add_connection.py</span></a>
             </p>
@@ -345,6 +352,39 @@ if not isinstance(incoming, dict):
 save_connections(connections)
 result["mode"] = mode
 result["connectionId"] = connection_id</code></pre>
+
+            <h3>Example: import connections from an HTTP API</h3>
+            <p>
+              Repository file: <a href="../examples/webhook_http_import.py"><span class="inline-code">docs/examples/webhook_http_import.py</span></a>
+            </p>
+            <pre class="code-block"><code>import requests
+
+api_url = payload.get("api_url", "https://cmdb.example.com/api/servers")
+r = requests.get(api_url, timeout=10)
+r.raise_for_status()
+
+connections = load_connections()
+added = 0
+for srv in r.json():
+    if not any(c.get("host") == srv["ip"] for c in connections):
+        connections.append({
+            "id": uuid4(),
+            "name": srv["hostname"],
+            "host": srv["ip"],
+            "kind": "ssh",
+            "port": 22,
+            "tags": srv.get("tags", []),
+        })
+        added += 1
+
+save_connections(connections)
+result["added"] = added
+log(f"{added} connections imported from {api_url}")</code></pre>
+
+            <div class="callout">
+              <strong>Note:</strong> Scripts run synchronously in the request thread.
+              Always set a <span class="inline-code">timeout</span> on HTTP calls to avoid blocking the webhook endpoint indefinitely.
+            </div>
           </section>
 
           <section id="models" class="panel reveal">
@@ -383,7 +423,7 @@ result["connectionId"] = connection_id</code></pre>
               <li>API keys are stored as SHA-256 hashes on server side.</li>
               <li>IP filtering supports CIDR and trusted proxy chains.</li>
               <li>Client sync accepts HTTPS URLs only.</li>
-              <li>Webhook scripts run with constrained builtins.</li>
+              <li>Webhook scripts run with full Python builtins (including <span class="inline-code">import</span>) inside an isolated namespace with only injected storage functions exposed.</li>
             </ul>
             <div class="callout">
               <strong>Recommendation:</strong> in proxy setups, set

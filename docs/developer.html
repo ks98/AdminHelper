@@ -238,7 +238,7 @@ docker compose up -d</code></pre>
                 <tr>
                   <td>Webhooks</td>
                   <td><span class="inline-code">routers/webhooks.py</span>, <span class="inline-code">script_runner.py</span></td>
-                  <td>Python-Script-Ausführung mit eingeschränkten Builtins.</td>
+                  <td>Python-Script-Ausführung; vollständige Builtins inkl. <span class="inline-code">import</span> (Admin-only).</td>
                 </tr>
               </tbody>
             </table>
@@ -306,8 +306,10 @@ docker compose up -d</code></pre>
             <h2>8) Webhook-Scripting</h2>
             <p>
               Webhooks werden über <span class="inline-code">POST /api/webhooks/trigger/&lt;token&gt;</span>
-              ausgelöst. Das Script läuft serverseitig im eingeschränkten Runner
+              ausgelöst. Das Script läuft serverseitig im Runner
               (<span class="inline-code">server/app/script_runner.py</span>).
+              Da Webhooks ausschließlich von Admins angelegt werden können, stehen
+              vollständige Python-Builtins inklusive <span class="inline-code">import</span> zur Verfügung.
             </p>
             <table>
               <thead>
@@ -343,10 +345,15 @@ docker compose up -d</code></pre>
                   <td>dict/list/Funktion</td>
                   <td>Antwort und Logging für den Trigger-Response.</td>
                 </tr>
+                <tr>
+                  <td><span class="inline-code">import ...</span></td>
+                  <td>Statement</td>
+                  <td>Alle Python-Module nutzbar, z. B. <span class="inline-code">import requests</span>, <span class="inline-code">import json</span>, <span class="inline-code">import re</span>.</td>
+                </tr>
               </tbody>
             </table>
 
-            <h3>Beispielscript (Anlegen/Updaten einer Verbindung)</h3>
+            <h3>Beispielscript: Verbindung anlegen/updaten</h3>
             <p>
               Datei im Repository: <a href="./examples/webhook_add_connection.py"><span class="inline-code">docs/examples/webhook_add_connection.py</span></a>
             </p>
@@ -368,9 +375,38 @@ save_connections(connections)
 result["mode"] = mode
 result["connectionId"] = connection_id</code></pre>
 
+            <h3>Beispielscript: Verbindungen per HTTP-API importieren</h3>
+            <p>
+              Datei im Repository: <a href="./examples/webhook_http_import.py"><span class="inline-code">docs/examples/webhook_http_import.py</span></a>
+            </p>
+            <pre class="code-block"><code>import requests
+
+api_url = payload.get("api_url", "https://cmdb.example.com/api/servers")
+r = requests.get(api_url, timeout=10)
+r.raise_for_status()
+
+connections = load_connections()
+added = 0
+for srv in r.json():
+    if not any(c.get("host") == srv["ip"] for c in connections):
+        connections.append({
+            "id": uuid4(),
+            "name": srv["hostname"],
+            "host": srv["ip"],
+            "kind": "ssh",
+            "port": 22,
+            "tags": srv.get("tags", []),
+        })
+        added += 1
+
+save_connections(connections)
+result["added"] = added
+log(f"{added} Verbindungen aus {api_url} importiert")</code></pre>
+
             <div class="callout">
-              <strong>Hinweis:</strong> Der Runner erlaubt nur einen begrenzten Satz an Builtins.
-              Für komplexe Integrationen sollten Scripts klein gehalten und klar validiert werden.
+              <strong>Hinweis:</strong> Scripts laufen synchron im Request-Thread.
+              Langläufer (Timeouts, große Datenmengen) können den Trigger-Call blockieren.
+              Für produktive Integrationen deshalb Timeouts setzen (<span class="inline-code">requests.get(..., timeout=10)</span>).
             </div>
           </section>
 
@@ -410,7 +446,7 @@ result["connectionId"] = connection_id</code></pre>
               <li>Server-API-Keys werden gehasht (SHA-256) in der DB gespeichert.</li>
               <li>IP-Filter unterstützt CIDR und optionale Proxy-Ketten-Auswertung.</li>
               <li>Sync akzeptiert clientseitig ausschließlich <span class="inline-code">https://</span> URLs.</li>
-              <li>Webhook-Scripts laufen mit eingeschränkten Builtins und explizitem Namespace.</li>
+              <li>Webhook-Scripts laufen mit vollständigen Builtins (inkl. <span class="inline-code">import</span>) in einem isolierten Namespace; Zugriff nur über explizit injizierte Funktionen möglich.</li>
             </ul>
             <div class="callout">
               <strong>Empfehlung:</strong> Für Reverse-Proxy-Betrieb immer
