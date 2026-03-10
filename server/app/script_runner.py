@@ -1,7 +1,9 @@
 """
-Sicherer Script-Runner für Webhook-Scripts.
+Script-Runner für Webhook-Scripts.
 
-Jedes Script wird via exec() in einem isolierten Namespace ausgeführt.
+Jedes Script wird via exec() ausgeführt. Imports sind vollständig erlaubt,
+da Webhooks nur von Admins angelegt werden können.
+
 Verfügbare Variablen im Script:
     load_connections()  -> list[dict]   Verbindungen laden
     save_connections(list[dict])        Verbindungen speichern
@@ -12,6 +14,15 @@ Verfügbare Variablen im Script:
     result              dict            Rückgabe an den Aufrufer (hier reinschreiben)
     logs                list            Log-Ausgaben (logs.append("..."))
     log(msg)                            Kurzform für logs.append(str(msg))
+
+Beispiel mit HTTP-Aufruf:
+    import requests
+    r = requests.get("https://api.example.com/servers")
+    for srv in r.json():
+        connections = load_connections()
+        connections.append({"id": uuid4(), "name": srv["name"], "kind": "ssh", "host": srv["ip"]})
+        save_connections(connections)
+    result["imported"] = len(r.json())
 """
 
 import builtins
@@ -19,34 +30,6 @@ import uuid as _uuid
 from typing import Any
 
 from .storage import load_connections, save_connections
-
-_ALLOWED_BUILTINS = [
-    # Typen
-    "bool", "bytes", "dict", "float", "frozenset", "int", "list", "set",
-    "str", "tuple", "type",
-    # Itertools / Sequenzen
-    "all", "any", "enumerate", "filter", "map", "max", "min", "next",
-    "range", "reversed", "sorted", "sum", "zip",
-    # Strings / Repr
-    "chr", "format", "hex", "len", "oct", "ord", "repr",
-    # Mathe
-    "abs", "divmod", "pow", "round",
-    # Checks
-    "callable", "hasattr", "isinstance", "issubclass",
-    # Exceptions
-    "AttributeError", "Exception", "IndexError", "KeyError",
-    "RuntimeError", "StopIteration", "TypeError", "ValueError",
-    # Konstanten
-    "False", "None", "True",
-    # print (für Debugging; landet in logs via _log)
-    "print",
-]
-
-_SAFE_BUILTINS = {
-    name: getattr(builtins, name)
-    for name in _ALLOWED_BUILTINS
-    if hasattr(builtins, name)
-}
 
 
 def run_webhook_script(
@@ -62,15 +45,16 @@ def run_webhook_script(
     def _log(msg: Any) -> None:
         logs.append(str(msg))
 
-    # print() in den Log umleiten
+    # print() in den Log umleiten statt auf stdout
     def _print(*args, sep=" ", end="\n", **_kwargs):  # noqa: ANN001
         logs.append(sep.join(str(a) for a in args))
 
-    safe_builtins = dict(_SAFE_BUILTINS)
-    safe_builtins["print"] = _print
+    # Vollständige Builtins inkl. __import__ — Webhooks sind Admin-only
+    full_builtins = vars(builtins).copy()
+    full_builtins["print"] = _print
 
     namespace: dict[str, Any] = {
-        "__builtins__": safe_builtins,
+        "__builtins__": full_builtins,
         # Storage-Funktionen
         "load_connections": load_connections,
         "save_connections": save_connections,
