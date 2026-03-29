@@ -71,6 +71,26 @@ build_deb_trixie:
     - if: $CI_COMMIT_TAG
     - if: $CI_COMMIT_BRANCH
 
+build_rpm_trixie:
+  extends: .tauri_trixie_base
+  needs: []
+  before_script:
+    - !reference [.tauri_trixie_base, before_script]
+    - apt-get install -y --no-install-recommends rpm
+  script:
+    - . "$CARGO_HOME/env"
+    - cd client/src-tauri
+    - cargo tauri build --bundles rpm
+    - ls -lah target/release/bundle/rpm
+  artifacts:
+    name: "simple-remote-manager-rpm-$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHORT_SHA"
+    expire_in: 14 days
+    paths:
+      - client/src-tauri/target/release/bundle/rpm/*.rpm
+  rules:
+    - if: $CI_COMMIT_TAG
+    - if: $CI_COMMIT_BRANCH
+
 build_binary_trixie:
   extends: .tauri_trixie_base
   needs: []
