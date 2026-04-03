@@ -8,9 +8,11 @@ import {
 } from "./connectionModel.js";
 import { translations } from "./i18n.js";
 import {
+  createAuthApi,
   createConnectionsApi,
   createPasswordApi,
   createSettingsApi,
+  createTunnelApi,
   getClientInfo,
   getTauriBridge
 } from "./platformApi.js";
@@ -22,13 +24,17 @@ import { detectSystemLanguage, getIntervalMinutes, getSettingsDefaults } from ".
     selectedId: null,
     filter: "single",
     search: "",
-    view: "list"
+    view: "list",
+    session: null,
+    tunnels: []
   };
 
   let currentLanguage = "de";
 
   const bridge = getTauriBridge(window);
   const { isTauri, tauriEvent } = bridge;
+  const authApi = createAuthApi(bridge);
+  const tunnelApi = createTunnelApi(bridge);
 
   const listEl = document.getElementById("list");
   const treeEl = document.getElementById("tree");
@@ -66,6 +72,22 @@ import { detectSystemLanguage, getIntervalMinutes, getSettingsDefaults } from ".
   const allowSelfSignedField = document.getElementById("allowSelfSignedField");
   const allowSelfSignedInput = document.getElementById("allowSelfSignedInput");
   const languageSelect = document.getElementById("languageSelect");
+  const serverUrlField = document.getElementById("serverUrlField");
+  const serverUrlInput = document.getElementById("serverUrlInput");
+  const tunnelIndicator = document.getElementById("tunnelIndicator");
+  const tunnelLabel = document.getElementById("tunnelLabel");
+  const serverLogoutField = document.getElementById("serverLogoutField");
+  const serverSessionUser = document.getElementById("serverSessionUser");
+  const serverLogoutBtn = document.getElementById("serverLogoutBtn");
+  const loginScreen = document.getElementById("loginScreen");
+  const appMain = document.getElementById("appMain");
+  const loginForm = document.getElementById("loginForm");
+  const loginServerUrl = document.getElementById("loginServerUrl");
+  const loginUsername = document.getElementById("loginUsername");
+  const loginPassword = document.getElementById("loginPassword");
+  const loginError = document.getElementById("loginError");
+  const loginBtn = document.getElementById("loginBtn");
+  const loginBackBtn = document.getElementById("loginBackBtn");
 
   const fieldName = document.getElementById("fieldName");
   const fieldKind = document.getElementById("fieldKind");
@@ -185,19 +207,26 @@ import { detectSystemLanguage, getIntervalMinutes, getSettingsDefaults } from ".
     syncUrlField.classList.toggle("hidden", mode !== "sync");
     syncIntervalField.classList.toggle("hidden", mode !== "sync");
     if (allowSelfSignedField) allowSelfSignedField.classList.toggle("hidden", mode !== "sync");
+    if (serverUrlField) serverUrlField.classList.toggle("hidden", mode !== "server");
+    if (serverLogoutField) serverLogoutField.classList.toggle("hidden", mode !== "server" || !state.session);
+    if (serverSessionUser && state.session) {
+      serverSessionUser.textContent = state.session.username;
+    }
   }
 
   function updateSettingsBadge(mode) {
+    const labels = { local: t("settings.mode.local"), sync: t("settings.mode.sync"), server: "Server" };
     if (settingsModeBadge) {
-      settingsModeBadge.textContent = mode === "sync" ? t("settings.mode.sync") : t("settings.mode.local");
+      settingsModeBadge.textContent = labels[mode] || labels.local;
     }
     if (settingsBtn) {
-      settingsBtn.dataset.mode = mode === "sync" ? "sync" : "local";
+      settingsBtn.dataset.mode = mode;
     }
   }
 
   function isSyncLocked() {
-    return (state.settings || getSettingsDefaults()).mode === "sync";
+    const mode = (state.settings || getSettingsDefaults()).mode;
+    return mode === "sync" || mode === "server";
   }
 
   function isPasswordStoreEnabled() {
@@ -251,6 +280,9 @@ import { detectSystemLanguage, getIntervalMinutes, getSettingsDefaults } from ".
     if (rdpScalingSelect) {
       const mode = settings.rdpScalingMode || "auto";
       rdpScalingSelect.value = ["auto", "normal", "hdpi"].includes(mode) ? mode : "auto";
+    }
+    if (serverUrlInput) {
+      serverUrlInput.value = settings.serverUrl || "";
     }
     settingsPromptEl.classList.remove("hidden");
     settingsPromptEl.setAttribute("aria-hidden", "false");
@@ -385,6 +417,18 @@ import { detectSystemLanguage, getIntervalMinutes, getSettingsDefaults } from ".
     typeTag.textContent = connection.kind.toUpperCase();
 
     cardMain.append(title, meta, typeTag);
+
+    // Tunnel badge
+    const tunnelMatch = state.tunnels.find(
+      t => t.enabled && t.connectionId === connection.id
+    );
+    if (tunnelMatch) {
+      const tunnelBadge = document.createElement("div");
+      tunnelBadge.className = "card-tag tunnel-badge";
+      tunnelBadge.textContent = t("tunnel.badge");
+      tunnelBadge.title = tunnelMatch.name;
+      cardMain.appendChild(tunnelBadge);
+    }
 
     const tags = connection.tags || [];
     if (tags.length > 0) {
@@ -893,12 +937,21 @@ import { detectSystemLanguage, getIntervalMinutes, getSettingsDefaults } from ".
   async function performConnect(connection, keepEditorOpen, options = {}) {
     const { password = null, useStoredPassword = false } = options;
     try {
+      // Resolve connection through tunnel if available
+      let resolved = connection;
+      if (state.tunnels.length > 0) {
+        try {
+          const result = await tunnelApi.resolveConnection(connection, state.tunnels);
+          resolved = result.connection;
+        } catch (_) { /* fallback to original */ }
+      }
+
       let rdpId = null;
-      if (connection.kind === "rdp") {
+      if (resolved.kind === "rdp") {
         rdpId = startRdpStatus();
         const promise = useStoredPassword
-          ? api.connectStored(connection)
-          : api.connect(connection, password || undefined);
+          ? api.connectStored(resolved)
+          : api.connect(resolved, password || undefined);
         promise.catch((error) => {
           if (rdpId !== null) {
             clearRdpStatusTimer();
@@ -911,9 +964,9 @@ import { detectSystemLanguage, getIntervalMinutes, getSettingsDefaults } from ".
           reportError(t("error.generic", { message }));
         });
       } else if (useStoredPassword) {
-        await api.connectStored(connection);
+        await api.connectStored(resolved);
       } else {
-        await api.connect(connection, password || undefined);
+        await api.connect(resolved, password || undefined);
       }
       const index = state.connections.findIndex((item) => item.id === connection.id);
       const updated = { ...connection, lastUsed: new Date().toISOString() };
@@ -950,6 +1003,86 @@ import { detectSystemLanguage, getIntervalMinutes, getSettingsDefaults } from ".
     renderConnections();
   }
 
+  function updateTunnelIndicator(status) {
+    if (!tunnelIndicator) return;
+    const mode = (state.settings || getSettingsDefaults()).mode;
+    if (mode !== "server") {
+      tunnelIndicator.classList.add("hidden");
+      return;
+    }
+    tunnelIndicator.classList.remove("hidden");
+    if (status === "connecting") {
+      tunnelIndicator.dataset.status = "connecting";
+      tunnelLabel.textContent = t("tunnel.connecting");
+      tunnelIndicator.title = t("tunnel.connecting");
+    } else if (status?.running) {
+      tunnelIndicator.dataset.status = "connected";
+      const label = status.visitorName
+        ? `Tunnel: ${status.visitorName}`
+        : t("tunnel.connected");
+      tunnelLabel.textContent = t("tunnel.connected");
+      tunnelIndicator.title = label;
+    } else {
+      tunnelIndicator.dataset.status = "disconnected";
+      tunnelLabel.textContent = t("tunnel.disconnected");
+      tunnelIndicator.title = t("tunnel.disconnected");
+    }
+  }
+
+  async function startTunnelIfServerMode() {
+    if (!state.session) return;
+    const mode = (state.settings || getSettingsDefaults()).mode;
+    if (mode !== "server") {
+      updateTunnelIndicator(null);
+      return;
+    }
+    updateTunnelIndicator("connecting");
+    try {
+      const status = await tunnelApi.start(
+        state.session.serverUrl,
+        state.session.token,
+        state.session.username
+      );
+      updateTunnelIndicator(status);
+    } catch (error) {
+      updateTunnelIndicator({ running: false });
+      reportError(t("tunnel.error", { message: error.message || error }));
+    }
+  }
+
+  function showLoginScreen(serverUrl) {
+    loginScreen.classList.remove("hidden");
+    appMain.classList.add("hidden");
+    loginError.classList.add("hidden");
+    if (serverUrl) loginServerUrl.value = serverUrl;
+    loginUsername.focus();
+  }
+
+  function hideLoginScreen() {
+    loginScreen.classList.add("hidden");
+    appMain.classList.remove("hidden");
+  }
+
+  async function loadConnectionsForMode() {
+    const mode = state.settings.mode || "local";
+    if (mode === "server" && state.session) {
+      const conns = await authApi.fetchConnections(state.session.serverUrl, state.session.token);
+      try {
+        state.tunnels = await tunnelApi.fetchTunnels(state.session.serverUrl, state.session.token);
+      } catch (_) {
+        state.tunnels = [];
+      }
+      return Array.isArray(conns) ? conns.map(c => normalizeConnection(c || {})) : [];
+    }
+    state.tunnels = [];
+    if (mode === "sync") {
+      await syncNow(false);
+      startSyncTimer();
+    }
+    const conns = await api.load();
+    return Array.isArray(conns) ? conns.map(c => normalizeConnection(c || {})) : [];
+  }
+
   async function init() {
     setLanguage(getSettingsDefaults().language);
     try {
@@ -962,14 +1095,22 @@ import { detectSystemLanguage, getIntervalMinutes, getSettingsDefaults } from ".
       setLanguage(state.settings.language || "de");
       setSyncMode(state.settings.mode || "local");
       updateSettingsBadge(state.settings.mode || "local");
-      if (state.settings.mode === "sync") {
-        await syncNow(false);
-        startSyncTimer();
+
+      if (state.settings.mode === "server") {
+        const session = await authApi.checkSession();
+        if (session) {
+          state.session = session;
+          hideLoginScreen();
+          state.connections = await loadConnectionsForMode();
+          startTunnelIfServerMode();
+        } else {
+          showLoginScreen(state.settings.serverUrl || "");
+          return;
+        }
+      } else {
+        hideLoginScreen();
+        state.connections = await loadConnectionsForMode();
       }
-      state.connections = await api.load();
-      state.connections = Array.isArray(state.connections)
-        ? state.connections.map((connection) => normalizeConnection(connection || {}))
-        : [];
     } catch (error) {
       showStatus(t("error.loadConnections"), true);
       state.connections = [];
@@ -979,6 +1120,13 @@ import { detectSystemLanguage, getIntervalMinutes, getSettingsDefaults } from ".
   }
 
   if (tauriEvent?.listen) {
+    tauriEvent.listen("frpc-terminated", () => {
+      updateTunnelIndicator({ running: false });
+    });
+    tauriEvent.listen("frpc-error", (event) => {
+      updateTunnelIndicator({ running: false });
+      reportError(t("tunnel.error", { message: event?.payload || "frpc error" }));
+    });
     tauriEvent.listen("rdp-error", (event) => {
       clearRdpStatusTimer();
       if (rdpPendingId !== null) {
@@ -1094,6 +1242,58 @@ import { detectSystemLanguage, getIntervalMinutes, getSettingsDefaults } from ".
     }
   });
 
+  if (serverLogoutBtn) {
+    serverLogoutBtn.addEventListener("click", async () => {
+      try {
+        await tunnelApi.stop();
+      } catch (_) { /* ignore */ }
+      try {
+        await authApi.logout();
+      } catch (_) { /* ignore */ }
+      state.session = null;
+      state.connections = [];
+      updateTunnelIndicator(null);
+      renderConnections();
+      closeSettingsPrompt();
+      showLoginScreen(state.settings?.serverUrl || "");
+    });
+  }
+
+  loginForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const serverUrl = loginServerUrl.value.trim();
+    const username = loginUsername.value.trim();
+    const password = loginPassword.value;
+    if (!serverUrl) {
+      loginError.textContent = t("login.serverUrlRequired");
+      loginError.classList.remove("hidden");
+      return;
+    }
+    loginError.classList.add("hidden");
+    loginBtn.disabled = true;
+    loginBtn.textContent = t("login.connecting");
+    try {
+      const session = await authApi.login(serverUrl, username, password);
+      state.session = session;
+      loginPassword.value = "";
+      hideLoginScreen();
+      state.connections = await loadConnectionsForMode();
+      renderConnections();
+      startTunnelIfServerMode();
+    } catch (error) {
+      loginError.textContent = t("login.error", { message: error.message || error });
+      loginError.classList.remove("hidden");
+    } finally {
+      loginBtn.disabled = false;
+      loginBtn.textContent = t("login.submit");
+    }
+  });
+
+  loginBackBtn.addEventListener("click", () => {
+    hideLoginScreen();
+    openSettingsPrompt();
+  });
+
   settingsSaveBtn.addEventListener("click", async (event) => {
     event.preventDefault();
     const mode = getSyncMode();
@@ -1103,6 +1303,7 @@ import { detectSystemLanguage, getIntervalMinutes, getSettingsDefaults } from ".
     const storePasswords = storePasswordsInput ? storePasswordsInput.checked : false;
     const allowSelfSignedCerts = allowSelfSignedInput ? allowSelfSignedInput.checked : false;
     const rdpScalingMode = rdpScalingSelect ? rdpScalingSelect.value : "auto";
+    const serverUrl = serverUrlInput ? serverUrlInput.value.trim() : "";
     const settings = {
       mode,
       url,
@@ -1112,7 +1313,8 @@ import { detectSystemLanguage, getIntervalMinutes, getSettingsDefaults } from ".
       allowSelfSignedCerts,
       rdpScalingMode: ["auto", "normal", "hdpi"].includes(rdpScalingMode)
         ? rdpScalingMode
-        : "auto"
+        : "auto",
+      serverUrl
     };
     try {
       if (mode === "sync" && !url) {
@@ -1127,16 +1329,37 @@ import { detectSystemLanguage, getIntervalMinutes, getSettingsDefaults } from ".
         reportError(t("sync.intervalInvalid"));
         return;
       }
+      if (mode === "server" && !serverUrl) {
+        reportError(t("login.serverUrlRequired"));
+        return;
+      }
       state.settings = settings;
       await settingsApi.save(settings);
       setLanguage(settings.language || "de");
       updateSettingsBadge(settings.mode);
       closeSettingsPrompt();
-      if (mode === "sync") {
+      if (mode === "server") {
+        stopSyncTimer();
+        if (!state.session) {
+          showLoginScreen(serverUrl);
+        }
+      } else if (mode === "sync") {
+        if (state.session) {
+          try { await tunnelApi.stop(); } catch (_) { /* ignore */ }
+        }
+        state.session = null;
+        updateTunnelIndicator(null);
         await syncNow(true);
         startSyncTimer();
       } else {
+        if (state.session) {
+          try { await tunnelApi.stop(); } catch (_) { /* ignore */ }
+        }
+        state.session = null;
+        updateTunnelIndicator(null);
         stopSyncTimer();
+        state.connections = await loadConnectionsForMode();
+        renderConnections();
       }
     } catch (error) {
       reportError(t("sync.error", { message: error.message || error }));

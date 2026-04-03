@@ -111,6 +111,68 @@ export function createPasswordApi(bridge) {
   };
 }
 
+export function createAuthApi(bridge) {
+  return {
+    async login(serverUrl, username, password) {
+      if (bridge.isTauri) {
+        return await bridge.tauriInvoke("login", { serverUrl, username, password });
+      }
+      throw new Error("Nur in Tauri verfügbar");
+    },
+    async logout() {
+      if (bridge.isTauri) {
+        await bridge.tauriInvoke("logout");
+      }
+    },
+    async checkSession() {
+      if (bridge.isTauri) {
+        return await bridge.tauriInvoke("check_session");
+      }
+      return null;
+    },
+    async fetchConnections(serverUrl, token) {
+      if (bridge.isTauri) {
+        return await bridge.tauriInvoke("fetch_connections_jwt", { serverUrl, token });
+      }
+      throw new Error("Nur in Tauri verfügbar");
+    }
+  };
+}
+
+export function createTunnelApi(bridge) {
+  return {
+    async start(serverUrl, token, username) {
+      if (bridge.isTauri) {
+        return await bridge.tauriInvoke("start_tunnel", { serverUrl, token, username });
+      }
+      throw new Error("Nur in Tauri verfügbar");
+    },
+    async stop() {
+      if (bridge.isTauri) {
+        await bridge.tauriInvoke("stop_tunnel");
+      }
+    },
+    async status() {
+      if (bridge.isTauri) {
+        return await bridge.tauriInvoke("tunnel_status");
+      }
+      return { running: false, visitorName: null, connectedSince: null };
+    },
+    async fetchTunnels(serverUrl, token) {
+      if (bridge.isTauri) {
+        return await bridge.tauriInvoke("fetch_tunnels", { serverUrl, token });
+      }
+      return [];
+    },
+    async resolveConnection(connection, tunnels) {
+      if (bridge.isTauri) {
+        return await bridge.tauriInvoke("resolve_connection", { connection, tunnels });
+      }
+      return { connection, viaTunnel: false, tunnelName: null, tunnelType: null };
+    }
+  };
+}
+
 export function getClientInfo(win = window) {
   const scaleFactor = win.devicePixelRatio || 1;
   return {

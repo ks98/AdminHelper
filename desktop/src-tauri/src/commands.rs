@@ -1,6 +1,11 @@
+use tauri::State;
+
+use crate::auth;
 use crate::connection;
 use crate::error::AppError;
-use crate::models::{ClientInfo, Connection, PasswordState, Settings};
+use crate::frpc;
+use crate::models::{AuthSession, ClientInfo, Connection, PasswordState, Settings, TunnelStatus};
+use crate::tunnel;
 use crate::password;
 use crate::storage;
 use crate::sync;
@@ -86,4 +91,70 @@ pub fn save_password(connection: Connection, password: String) -> Result<(), App
 #[tauri::command]
 pub fn delete_password(connection: Connection) -> Result<(), AppError> {
     password::delete_password(&connection)
+}
+
+#[tauri::command]
+pub async fn login(
+    server_url: String,
+    username: String,
+    password: String,
+) -> Result<AuthSession, AppError> {
+    auth::login(&server_url, &username, &password).await
+}
+
+#[tauri::command]
+pub async fn check_session() -> Result<Option<AuthSession>, AppError> {
+    auth::check_session().await
+}
+
+#[tauri::command]
+pub fn logout() -> Result<(), AppError> {
+    auth::logout()
+}
+
+#[tauri::command]
+pub async fn fetch_connections_jwt(
+    app: tauri::AppHandle,
+    server_url: String,
+    token: String,
+) -> Result<Vec<Connection>, AppError> {
+    sync::fetch_connections_jwt(app, &server_url, &token).await
+}
+
+#[tauri::command]
+pub async fn start_tunnel(
+    app: tauri::AppHandle,
+    state: State<'_, frpc::FrpcState>,
+    server_url: String,
+    token: String,
+    username: String,
+) -> Result<TunnelStatus, AppError> {
+    let frpc_state = state.inner().clone();
+    frpc::start_tunnel(app, frpc_state, &server_url, &token, &username).await
+}
+
+#[tauri::command]
+pub fn stop_tunnel(state: State<'_, frpc::FrpcState>) -> Result<(), AppError> {
+    frpc::stop_frpc(state.inner())
+}
+
+#[tauri::command]
+pub fn tunnel_status(state: State<'_, frpc::FrpcState>) -> TunnelStatus {
+    frpc::tunnel_status(state.inner())
+}
+
+#[tauri::command]
+pub async fn fetch_tunnels(
+    server_url: String,
+    token: String,
+) -> Result<Vec<tunnel::TunnelMapping>, AppError> {
+    tunnel::fetch_tunnels(&server_url, &token).await
+}
+
+#[tauri::command]
+pub fn resolve_connection(
+    connection: Connection,
+    tunnels: Vec<tunnel::TunnelMapping>,
+) -> tunnel::ResolvedConnection {
+    tunnel::resolve_connection(&connection, &tunnels)
 }

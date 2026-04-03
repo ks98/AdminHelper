@@ -14,7 +14,35 @@
       <div class="mesh"></div>
     </div>
 
-    <div class="app">
+    <!-- Login Screen (Server-Modus) -->
+    <div id="loginScreen" class="login-screen hidden">
+      <div class="login-card">
+        <div class="login-logo" aria-label="Simple Remote Logo">
+          <img src="logo.svg" alt="SRM" width="48" height="48" />
+        </div>
+        <h2>Simple Remote Manager</h2>
+        <p class="login-subtitle" data-i18n="login.subtitle">Mit Server verbinden</p>
+        <form id="loginForm" autocomplete="off">
+          <label class="field">
+            <span data-i18n="login.serverUrl">Server URL</span>
+            <input id="loginServerUrl" type="url" placeholder="https://srm.example.com" required />
+          </label>
+          <label class="field">
+            <span data-i18n="login.username">Benutzername</span>
+            <input id="loginUsername" type="text" required />
+          </label>
+          <label class="field">
+            <span data-i18n="login.password">Passwort</span>
+            <input id="loginPassword" type="password" required />
+          </label>
+          <div id="loginError" class="login-error hidden"></div>
+          <button id="loginBtn" type="submit" class="btn accent login-btn" data-i18n="login.submit">Anmelden</button>
+        </form>
+        <button id="loginBackBtn" class="btn ghost login-back" data-i18n="login.back">Zur\u00fcck zu Einstellungen</button>
+      </div>
+    </div>
+
+    <div id="appMain" class="app">
       <header class="topbar">
         <div class="brand">
           <div class="logo" aria-label="Simple Remote Logo">
@@ -26,6 +54,10 @@
           </div>
         </div>
         <div class="top-actions">
+          <div id="tunnelIndicator" class="tunnel-indicator hidden" title="">
+            <span class="tunnel-dot"></span>
+            <span id="tunnelLabel" class="tunnel-label">Tunnel</span>
+          </div>
           <label class="search">
             <span data-i18n="search.label">Suchen</span>
             <input id="searchInput" type="search" placeholder="Name, Host, URL" data-i18n-placeholder="search.placeholder" />
@@ -264,8 +296,24 @@
                 <input type="radio" name="syncMode" value="sync" />
                 <span data-i18n="settings.mode.sync">Sync</span>
               </label>
+              <label class="radio-option">
+                <input type="radio" name="syncMode" value="server" />
+                <span data-i18n="settings.mode.server">Server</span>
+              </label>
             </div>
           </label>
+          <label class="field" id="serverUrlField">
+            <span data-i18n="settings.serverUrl.label">Server URL</span>
+            <input id="serverUrlInput" type="url" placeholder="https://srm.example.com" />
+            <small data-i18n="settings.serverUrl.help">SRM-Server f&uuml;r Login, Connections und Tunnel.</small>
+          </label>
+          <div class="field" id="serverLogoutField">
+            <span data-i18n="settings.server.status">Verbunden als</span>
+            <div class="server-session-info">
+              <span id="serverSessionUser" class="meta-value"></span>
+              <button id="serverLogoutBtn" type="button" class="btn ghost small" data-i18n="settings.server.logout">Abmelden</button>
+            </div>
+          </div>
           <label class="field" id="languageField">
             <span data-i18n="settings.language.label">Sprache</span>
             <select id="languageSelect">

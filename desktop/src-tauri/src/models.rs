@@ -13,6 +13,7 @@ pub enum ConnectionKind {
 pub enum SyncMode {
     Local,
     Sync,
+    Server,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
@@ -59,6 +60,8 @@ pub struct Settings {
     pub rdp_scaling_mode: RdpScalingMode,
     #[serde(default)]
     pub allow_self_signed_certs: bool,
+    #[serde(default)]
+    pub server_url: Option<String>,
 }
 
 impl Default for Settings {
@@ -71,8 +74,26 @@ impl Default for Settings {
             store_passwords: false,
             rdp_scaling_mode: RdpScalingMode::Auto,
             allow_self_signed_certs: false,
+            server_url: None,
         }
     }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AuthSession {
+    pub server_url: String,
+    pub token: String,
+    pub username: String,
+    pub is_admin: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TunnelStatus {
+    pub running: bool,
+    pub visitor_name: Option<String>,
+    pub connected_since: Option<String>,
 }
 
 fn default_sync_interval_minutes() -> u32 {

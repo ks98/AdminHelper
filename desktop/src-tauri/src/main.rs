@@ -1,7 +1,10 @@
+mod auth;
 mod commands;
 mod connection;
 mod error;
+mod frpc;
 mod models;
+mod tunnel;
 mod password;
 mod storage;
 mod sync;
@@ -9,13 +12,20 @@ mod terminal;
 mod validation;
 
 use commands::{
-    delete_password, load_connections, load_settings, open_connection, open_connection_stored,
-    password_state, save_connections, save_password, save_settings, sync_connections,
+    check_session, delete_password, fetch_connections_jwt, fetch_tunnels, load_connections,
+    load_settings, login, logout, open_connection, open_connection_stored, password_state,
+    resolve_connection, save_connections, save_password, save_settings, start_tunnel, stop_tunnel,
+    sync_connections, tunnel_status,
 };
 use tauri::Manager;
 
 fn main() {
+    let frpc_state = frpc::new_frpc_state();
+    let frpc_state_exit = frpc_state.clone();
+
     tauri::Builder::default()
+        .plugin(tauri_plugin_shell::init())
+        .manage(frpc_state)
         .setup(|app| {
             // Ensure a concrete runtime window icon in dev and production.
             let icon_bytes = include_bytes!("../icons/icon.png");
@@ -36,8 +46,22 @@ fn main() {
             sync_connections,
             save_connections,
             open_connection,
-            open_connection_stored
+            open_connection_stored,
+            login,
+            logout,
+            check_session,
+            fetch_connections_jwt,
+            start_tunnel,
+            stop_tunnel,
+            tunnel_status,
+            fetch_tunnels,
+            resolve_connection
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(move |_app, event| {
+            if let tauri::RunEvent::Exit = event {
+                let _ = frpc::stop_frpc(&frpc_state_exit);
+            }
+        });
 }

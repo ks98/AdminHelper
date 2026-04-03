@@ -4,6 +4,9 @@
 /target/
 **/*.rs.bk
 
+# Tauri sidecar binaries (downloaded during CI/build)
+/desktop/src-tauri/binaries/
+
 # Tauri generated
 /src-tauri/gen/
 /desktop/src-tauri/gen/

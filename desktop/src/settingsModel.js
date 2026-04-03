@@ -11,7 +11,8 @@ export function getSettingsDefaults() {
     language: detectSystemLanguage(),
     storePasswords: false,
     rdpScalingMode: "auto",
-    allowSelfSignedCerts: false
+    allowSelfSignedCerts: false,
+    serverUrl: ""
   };
 }
 

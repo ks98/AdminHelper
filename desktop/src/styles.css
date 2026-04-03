@@ -980,3 +980,128 @@ body {
     animation: none;
   }
 }
+
+/* ── Login Screen ────────────────────────────────────────────────────── */
+.login-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+}
+.login-screen.hidden { display: none; }
+.login-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 40px 36px 32px;
+  width: min(420px, 90vw);
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+.login-card h2 {
+  color: var(--text);
+  font-size: 22px;
+  margin: 12px 0 4px;
+}
+.login-subtitle {
+  color: var(--text-soft);
+  font-size: 13px;
+  margin-bottom: 24px;
+}
+.login-card .field {
+  text-align: left;
+  margin-bottom: 14px;
+}
+.login-card .field span {
+  display: block;
+  font-size: 12px;
+  color: var(--text-soft);
+  margin-bottom: 4px;
+}
+.login-card input {
+  width: 100%;
+}
+.login-btn {
+  width: 100%;
+  margin-top: 8px;
+  padding: 10px;
+  font-size: 14px;
+}
+.login-error {
+  color: #f87171;
+  font-size: 12px;
+  margin: 8px 0;
+  text-align: left;
+}
+.login-error.hidden { display: none; }
+.login-back {
+  margin-top: 16px;
+  font-size: 12px;
+}
+.login-logo {
+  margin-bottom: 4px;
+}
+.tunnel-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: default;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.tunnel-indicator[data-status="connected"] {
+  border-color: rgba(34, 197, 94, 0.3);
+}
+.tunnel-indicator[data-status="disconnected"] {
+  border-color: rgba(248, 113, 113, 0.3);
+}
+.tunnel-indicator[data-status="connecting"] {
+  border-color: rgba(250, 204, 21, 0.3);
+}
+.tunnel-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-muted, #6b7280);
+}
+.tunnel-indicator[data-status="connected"] .tunnel-dot {
+  background: #22c55e;
+}
+.tunnel-indicator[data-status="disconnected"] .tunnel-dot {
+  background: #f87171;
+}
+.tunnel-indicator[data-status="connecting"] .tunnel-dot {
+  background: #facc15;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+.tunnel-label {
+  color: var(--text-muted, #9ca3af);
+}
+.tunnel-badge {
+  background: rgba(34, 197, 94, 0.15);
+  color: #86efac;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+.server-session-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 4px;
+}
+.server-session-info .meta-value {
+  font-weight: 500;
+  color: var(--text);
+}
