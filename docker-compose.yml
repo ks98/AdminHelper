@@ -30,7 +30,6 @@ services:
       - "${FRP_HTTPS_PORT:-7443}:443"
     volumes:
       - frp-config:/etc/frp:ro
-    command: ["-c", "/etc/frp/frps.toml"]
     restart: unless-stopped
     depends_on:
       - server
