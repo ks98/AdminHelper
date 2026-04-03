@@ -13,6 +13,10 @@ CONNECTIONS_FILE = DATA_DIR / "connections.json"
 
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin")
 
+# FRP-Konfigurationsverzeichnis (Shared Volume mit frps-Container)
+FRP_CONFIG_DIR = Path(os.environ.get("FRP_CONFIG_DIR", str(DATA_DIR / "frp-config")))
+FRP_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+
 # IP-Zugangsbeschränkung
 # Kommagetrennte Liste von IPs und/oder CIDR-Netzen, z.B.:
 #   ALLOWED_IPS=192.168.1.0/24,10.0.0.5,172.16.0.0/12

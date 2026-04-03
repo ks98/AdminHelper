@@ -6,10 +6,12 @@ services:
     volumes:
       - ./data:/app/data
       - ./certs:/app/certs
+      - frp-config:/app/frp-config
     environment:
       - DOMAIN=${DOMAIN:-localhost}
       - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}
+      - FRP_CONFIG_DIR=/app/frp-config
       # IP-Zugangsbeschränkung (leer = kein Filter)
       # Beispiel: ALLOWED_IPS=192.168.1.0/24,10.0.0.5
       - ALLOWED_IPS=
@@ -20,3 +22,18 @@ services:
       # Beispiel: TRUSTED_PROXIES=172.17.0.1,10.0.0.0/8
       - TRUSTED_PROXIES=
     restart: unless-stopped
+
+  frps:
+    image: snowdreamtech/frps:latest
+    ports:
+      - "${FRP_BIND_PORT:-7000}:7000"
+      - "${FRP_HTTPS_PORT:-7443}:443"
+    volumes:
+      - frp-config:/etc/frp:ro
+    command: ["-c", "/etc/frp/frps.toml"]
+    restart: unless-stopped
+    depends_on:
+      - server
+
+volumes:
+  frp-config:

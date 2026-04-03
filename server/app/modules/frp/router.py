@@ -17,6 +17,7 @@ from app.modules.frp.schemas import (
 from app.modules.frp.config_generator import (
     generate_frps_toml, generate_frpc_toml, generate_visitor_toml,
 )
+from app.modules.frp.docker_manager import write_frps_config, remove_frps_config
 from app.modules.servers.models import Server
 
 router = APIRouter(prefix="/api/frp", tags=["frp"])
@@ -49,6 +50,7 @@ def create_server_config(data: FrpServerConfigCreate, db: Session = Depends(get_
     db.add(config)
     db.commit()
     db.refresh(config)
+    write_frps_config(config)
     fire_event("frp.config.created", {"id": config.id, "name": config.name})
     return config.to_dict()
 
@@ -79,6 +81,7 @@ def update_server_config(config_id: str, data: FrpServerConfigUpdate, db: Sessio
 
     db.commit()
     db.refresh(config)
+    write_frps_config(config)
     fire_event("frp.config.updated", {"id": config.id, "name": config.name})
     return config.to_dict()
 
@@ -91,6 +94,7 @@ def delete_server_config(config_id: str, db: Session = Depends(get_db), _admin=D
     fire_event("frp.config.deleted", {"id": config.id, "name": config.name})
     db.delete(config)
     db.commit()
+    remove_frps_config()
 
 
 # --------------- FRP Tunnels ---------------
