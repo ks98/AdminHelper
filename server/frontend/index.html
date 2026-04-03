@@ -255,6 +255,8 @@
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
             <h3 style="margin:0;font-size:16px;color:var(--text)">FRP-Server Konfiguration</h3>
             <div style="display:flex;gap:8px">
+              <button id="frpStatusBtn" class="btn small ghost" style="display:none" title="Tunnel-Status abfragen">Status</button>
+              <button id="pkiBtn" class="btn small ghost" style="display:none" title="PKI verwalten">PKI</button>
               <button id="downloadFrpsBtn" class="btn small ghost" title="frps.toml herunterladen" style="display:none">frps.toml</button>
               <button id="downloadVisitorBtn" class="btn small ghost" title="Visitor-Config herunterladen" style="display:none">visitor.toml</button>
               <button id="frpConfigBtn" class="btn small primary">Konfigurieren</button>
@@ -321,6 +323,13 @@
           <div class="field">
             <label>Dashboard Passwort</label>
             <input id="fcDashPass" type="password" placeholder="Passwort" />
+          </div>
+          <div class="field full">
+            <label class="checkbox-label">
+              <input id="fcTlsForce" type="checkbox" />
+              mTLS erzwingen (Mutual TLS)
+            </label>
+            <p style="font-size:11px;color:var(--text-soft);margin:4px 0 0">Aktiviert TLS-Verschl&#xFC;sselung mit Client-Zertifikaten. PKI muss zuerst generiert werden.</p>
           </div>
         </div>
         <div class="modal-actions">

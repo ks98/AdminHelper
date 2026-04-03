@@ -23,6 +23,7 @@ from app.modules.frp.config_generator import (
     generate_frps_toml, generate_frpc_toml, generate_visitor_toml,
 )
 from app.modules.frp.docker_manager import write_frps_config, remove_frps_config
+from app.modules.frp import pki as pki_manager
 from app.modules.servers.models import Server
 
 router = APIRouter(prefix="/api/frp", tags=["frp"])
@@ -51,6 +52,7 @@ def create_server_config(data: FrpServerConfigCreate, db: Session = Depends(get_
         dashboard_user=data.dashboard_user,
         dashboard_password=data.dashboard_password,
         extra_config=json.dumps(data.extra_config) if data.extra_config else None,
+        tls_force=data.tls_force,
     )
     db.add(config)
     db.commit()
@@ -76,7 +78,7 @@ def update_server_config(config_id: str, data: FrpServerConfigUpdate, db: Sessio
 
     for field in ["name", "server_addr", "bind_port", "vhost_https_port", "auth_token",
                    "subdomain_host", "max_ports_per_client", "dashboard_port",
-                   "dashboard_user", "dashboard_password"]:
+                   "dashboard_user", "dashboard_password", "tls_force"]:
         value = getattr(data, field)
         if value is not None:
             setattr(config, field, value)
@@ -338,6 +340,123 @@ def gen_bulk_zip(
         media_type="application/zip",
         headers={"Content-Disposition": "attachment; filename=frp-configs.zip"},
     )
+
+
+# --------------- Status Monitoring ---------------
+
+@router.get("/status")
+async def frps_status(db: Session = Depends(get_db), _admin=Depends(get_current_admin)):
+    """Fragt den frps-Dashboard-API ab und liefert den Status aller Proxies."""
+    import httpx
+
+    config = db.query(FrpServerConfig).first()
+    if not config:
+        raise HTTPException(status_code=404, detail="Keine FRP-Config vorhanden")
+    if not config.dashboard_port:
+        raise HTTPException(status_code=400, detail="Dashboard-Port nicht konfiguriert")
+
+    # frps Dashboard ist im Docker-Netzwerk unter dem Service-Namen erreichbar,
+    # lokal unter 127.0.0.1
+    base_url = f"http://frps:{config.dashboard_port}"
+    fallback_url = f"http://127.0.0.1:{config.dashboard_port}"
+    auth = (config.dashboard_user or "", config.dashboard_password or "")
+
+    proxies = []
+    reachable = False
+    async with httpx.AsyncClient(timeout=5.0) as client:
+        for proxy_type in ["stcp", "https", "tcp", "udp"]:
+            for url in [base_url, fallback_url]:
+                try:
+                    resp = await client.get(
+                        f"{url}/api/proxy/{proxy_type}",
+                        auth=auth,
+                    )
+                    if resp.status_code == 200:
+                        reachable = True
+                        data = resp.json()
+                        for p in data.get("proxies", []):
+                            proxies.append({
+                                "name": p.get("name", ""),
+                                "type": proxy_type,
+                                "status": p.get("status", "unknown"),
+                                "curConns": p.get("curConns", 0),
+                                "clientVersion": p.get("clientVersion", ""),
+                                "todayTrafficIn": p.get("todayTrafficIn", 0),
+                                "todayTrafficOut": p.get("todayTrafficOut", 0),
+                                "lastStartTime": p.get("lastStartTime", ""),
+                                "lastCloseTime": p.get("lastCloseTime", ""),
+                            })
+                        break  # URL funktioniert, keine Fallback noetig
+                except Exception:
+                    continue  # naechste URL probieren
+
+    if not reachable:
+        return {"proxies": [], "total": 0, "error": "frps-Dashboard nicht erreichbar"}
+
+    # Status den lokalen Tunnel-Daten zuordnen
+    tunnels = db.query(FrpTunnel).all()
+    tunnel_map = {t.name: t.to_dict() for t in tunnels}
+
+    result = []
+    for p in proxies:
+        # frps Proxy-Name ist "user.proxyName", z.B. "k01-lnx1.k01-lnx1-ssh"
+        proxy_name = p["name"].split(".")[-1] if "." in p["name"] else p["name"]
+        tunnel = tunnel_map.get(proxy_name)
+        result.append({
+            **p,
+            "tunnel": tunnel,
+        })
+
+    return {"proxies": result, "total": len(result)}
+
+
+# --------------- PKI Management ---------------
+
+@router.get("/pki/status")
+def pki_status(_admin=Depends(get_current_admin)):
+    return pki_manager.get_pki_status()
+
+
+@router.post("/pki/ca")
+def create_ca(common_name: str = Query("SRM FRP CA"), _admin=Depends(get_current_admin)):
+    """Generiert eine neue CA. ACHTUNG: Ueberschreibt bestehende CA!"""
+    return pki_manager.generate_ca(common_name)
+
+
+@router.post("/pki/server-cert")
+def create_server_cert(
+    db: Session = Depends(get_db),
+    _admin=Depends(get_current_admin),
+):
+    """Generiert ein Server-Zertifikat fuer frps und aktualisiert die Config."""
+    status = pki_manager.get_pki_status()
+    if not status["caExists"]:
+        raise HTTPException(status_code=400, detail="Zuerst eine CA generieren")
+
+    config = db.query(FrpServerConfig).first()
+    if not config:
+        raise HTTPException(status_code=404, detail="Keine FRP-Config vorhanden")
+
+    result = pki_manager.generate_server_cert(config.server_addr)
+
+    # Pfade in der Config speichern
+    config.tls_cert_file = result["certPath"]
+    config.tls_key_file = result["keyPath"]
+    config.tls_ca_file = str(pki_manager.PKI_DIR / "ca.crt")
+    db.commit()
+    db.refresh(config)
+    write_frps_config(config)
+
+    return result
+
+
+@router.post("/pki/client-cert/{client_name}")
+def create_client_cert(client_name: str, _admin=Depends(get_current_admin)):
+    """Generiert ein Client-Zertifikat fuer einen frpc-Host."""
+    status = pki_manager.get_pki_status()
+    if not status["caExists"]:
+        raise HTTPException(status_code=400, detail="Zuerst eine CA generieren")
+    return pki_manager.generate_client_cert(client_name)
 
 
 # --------------- Customer Groups ---------------

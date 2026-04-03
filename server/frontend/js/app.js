@@ -918,14 +918,19 @@ function renderFrp() {
         ${cfg.vhostHttpsPort ? `<div><strong>HTTPS Port:</strong> ${cfg.vhostHttpsPort}</div>` : ''}
         ${cfg.subdomainHost ? `<div><strong>Subdomain:</strong> ${esc(cfg.subdomainHost)}</div>` : ''}
         ${cfg.dashboardPort ? `<div><strong>Dashboard:</strong> :${cfg.dashboardPort}</div>` : ''}
+        ${cfg.tlsForce ? `<div><strong>mTLS:</strong> <span style="color:#22c55e">Aktiv</span></div>` : ''}
       </div>
     `;
     downloadFrps.style.display = '';
     downloadVisitor.style.display = '';
+    document.getElementById('frpStatusBtn').style.display = '';
+    document.getElementById('pkiBtn').style.display = '';
   } else {
     infoEl.textContent = 'Noch keine FRP-Server Konfiguration vorhanden. Klicke auf "Konfigurieren" um zu starten.';
     downloadFrps.style.display = 'none';
     downloadVisitor.style.display = 'none';
+    document.getElementById('frpStatusBtn').style.display = 'none';
+    document.getElementById('pkiBtn').style.display = 'none';
   }
 
   // Kundengruppen rendern
@@ -1036,6 +1041,7 @@ function openFrpConfigModal() {
   document.getElementById('fcDashPort').value     = cfg?.dashboardPort  || '';
   document.getElementById('fcDashUser').value     = cfg?.dashboardUser  || '';
   document.getElementById('fcDashPass').value     = cfg?.dashboardPassword || '';
+  document.getElementById('fcTlsForce').checked   = cfg?.tlsForce || false;
   showModal('frpConfigModal');
 }
 
@@ -1052,6 +1058,7 @@ document.getElementById('frpConfigForm').addEventListener('submit', async (e) =>
     dashboard_port:      parseInt(document.getElementById('fcDashPort').value) || null,
     dashboard_user:      document.getElementById('fcDashUser').value.trim() || null,
     dashboard_password:  document.getElementById('fcDashPass').value.trim() || null,
+    tls_force:           document.getElementById('fcTlsForce').checked,
   };
   try {
     if (state.frpConfig) {
@@ -1202,8 +1209,20 @@ async function downloadFrpcToml(serverId) {
 }
 
 function _showConfigPreview(title, content) {
+  const el = document.getElementById('frpPreviewContent');
   document.getElementById('frpPreviewTitle').textContent = title;
-  document.getElementById('frpPreviewContent').textContent = content;
+  el.textContent = content;
+  el.style.whiteSpace = 'pre-wrap';
+  document.getElementById('copyFrpConfigBtn').style.display = '';
+  showModal('frpPreviewModal');
+}
+
+function _showHtmlPreview(title, html) {
+  const el = document.getElementById('frpPreviewContent');
+  document.getElementById('frpPreviewTitle').textContent = title;
+  el.innerHTML = html;
+  el.style.whiteSpace = 'normal';
+  document.getElementById('copyFrpConfigBtn').style.display = 'none';
   showModal('frpPreviewModal');
 }
 
@@ -1234,6 +1253,132 @@ document.getElementById('bulkZipBtn').addEventListener('click', async () => {
     toast(err.message, 'error');
   }
 });
+
+// ── PKI Management ──────────────────────────────────────────────────────
+document.getElementById('pkiBtn').addEventListener('click', async () => {
+  try {
+    const status = await get('/api/frp/pki/status');
+    let html = '<div style="display:flex;flex-direction:column;gap:16px">';
+
+    // CA Status
+    html += '<div style="background:var(--surface);padding:12px;border-radius:var(--radius-sm)">';
+    html += '<h4 style="margin:0 0 8px">Certificate Authority (CA)</h4>';
+    if (status.caExists) {
+      html += `<p style="margin:0;color:var(--text-soft)">Gueltig bis: <strong>${new Date(status.caExpiry).toLocaleDateString('de-DE')}</strong></p>`;
+    } else {
+      html += '<p style="margin:0;color:var(--text-soft)">Keine CA vorhanden.</p>';
+    }
+    html += `<button class="btn small primary" style="margin-top:8px" onclick="pkiGenerateCA()">${status.caExists ? 'CA neu generieren' : 'CA erstellen'}</button>`;
+    html += '</div>';
+
+    // Server Cert
+    html += '<div style="background:var(--surface);padding:12px;border-radius:var(--radius-sm)">';
+    html += '<h4 style="margin:0 0 8px">Server-Zertifikat (frps)</h4>';
+    if (status.serverCertExists) {
+      html += `<p style="margin:0;color:var(--text-soft)">Gueltig bis: <strong>${new Date(status.serverCertExpiry).toLocaleDateString('de-DE')}</strong></p>`;
+    } else {
+      html += '<p style="margin:0;color:var(--text-soft)">Kein Server-Zertifikat vorhanden.</p>';
+    }
+    if (status.caExists) {
+      html += `<button class="btn small" style="margin-top:8px" onclick="pkiGenerateServerCert()">Server-Cert generieren</button>`;
+    }
+    html += '</div>';
+
+    // Client Certs
+    html += '<div style="background:var(--surface);padding:12px;border-radius:var(--radius-sm)">';
+    html += '<h4 style="margin:0 0 8px">Client-Zertifikate</h4>';
+    if (status.clientCerts.length > 0) {
+      html += '<table class="data-table" style="margin:0"><thead><tr><th>Name</th><th>Ablauf</th></tr></thead><tbody>';
+      status.clientCerts.forEach(c => {
+        html += `<tr><td>${esc(c.name)}</td><td>${new Date(c.expiry).toLocaleDateString('de-DE')}</td></tr>`;
+      });
+      html += '</tbody></table>';
+    } else {
+      html += '<p style="margin:0;color:var(--text-soft)">Keine Client-Zertifikate vorhanden.</p>';
+    }
+    if (status.caExists) {
+      html += `<div style="display:flex;gap:8px;margin-top:8px;align-items:center">
+        <input id="pkiClientName" type="text" placeholder="Client-Name (z.B. k01-lnx1)" style="flex:1" />
+        <button class="btn small" onclick="pkiGenerateClientCert()">Generieren</button>
+      </div>`;
+    }
+    html += '</div></div>';
+
+    _showHtmlPreview('PKI-Verwaltung', html);
+  } catch (err) {
+    toast(err.message, 'error');
+  }
+});
+
+async function pkiGenerateCA() {
+  if (!confirm('Neue CA generieren? Bestehende Zertifikate werden ungueltig!')) return;
+  try {
+    const result = await post('/api/frp/pki/ca');
+    toast(`CA erstellt (gueltig bis ${new Date(result.expiry).toLocaleDateString('de-DE')})`);
+    document.getElementById('pkiBtn').click();
+  } catch (err) { toast(err.message, 'error'); }
+}
+
+async function pkiGenerateServerCert() {
+  try {
+    const addr = state.frpConfig?.serverAddr || 'localhost';
+    const result = await post('/api/frp/pki/server-cert', { server_addr: addr });
+    toast(`Server-Cert erstellt fuer ${result.commonName}`);
+    document.getElementById('pkiBtn').click();
+  } catch (err) { toast(err.message, 'error'); }
+}
+
+async function pkiGenerateClientCert() {
+  const name = document.getElementById('pkiClientName')?.value?.trim();
+  if (!name) { toast('Bitte einen Client-Namen eingeben', 'error'); return; }
+  try {
+    const result = await post(`/api/frp/pki/client-cert/${encodeURIComponent(name)}`);
+    toast(`Client-Cert erstellt fuer ${result.commonName}`);
+    document.getElementById('pkiBtn').click();
+  } catch (err) { toast(err.message, 'error'); }
+}
+
+// ── FRP Status Monitoring ───────────────────────────────────────────────
+document.getElementById('frpStatusBtn').addEventListener('click', async () => {
+  try {
+    const status = await get('/api/frp/status');
+    let html = '';
+
+    if (status.error) {
+      html = `<p style="color:var(--danger)">frps nicht erreichbar: ${esc(status.error)}</p>`;
+    } else {
+      // Proxy-Liste
+      const proxies = status.proxies || [];
+      if (proxies.length === 0) {
+        html = '<p style="color:var(--text-soft)">Keine aktiven Proxies auf dem frps-Server.</p>';
+      } else {
+        html += '<table class="data-table" style="margin:0"><thead><tr><th></th><th>Name</th><th>Typ</th><th>Verbindungen</th><th>Traffic In</th><th>Traffic Out</th></tr></thead><tbody>';
+        proxies.forEach(p => {
+          const online = p.status === 'online';
+          const dot = online
+            ? '<span style="color:#22c55e" title="Online">&#x25CF;</span>'
+            : '<span style="color:#ef4444" title="Offline">&#x25CF;</span>';
+          const trafficIn = _formatBytes(p.todayTrafficIn || 0);
+          const trafficOut = _formatBytes(p.todayTrafficOut || 0);
+          html += `<tr><td>${dot}</td><td>${esc(p.name)}</td><td>${esc(p.type || '-')}</td><td>${p.curConns || 0}</td><td>${trafficIn}</td><td>${trafficOut}</td></tr>`;
+        });
+        html += '</tbody></table>';
+      }
+    }
+
+    _showHtmlPreview('frps Tunnel-Status', html);
+  } catch (err) {
+    toast(err.message, 'error');
+  }
+});
+
+function _formatBytes(bytes) {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
 
 // Auto-Connection Checkbox nur bei STCP anzeigen
 document.getElementById('ftType').addEventListener('change', () => {

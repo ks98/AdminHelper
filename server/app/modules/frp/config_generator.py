@@ -7,6 +7,33 @@ if TYPE_CHECKING:
     from app.modules.frp.models import FrpServerConfig, FrpTunnel
 
 
+def _tls_server_block(config: FrpServerConfig) -> list[str]:
+    """Generiert den [transport.tls]-Block fuer frps."""
+    if not config.tls_force:
+        return []
+    lines = ['', '[transport.tls]', 'force = true']
+    if config.tls_cert_file:
+        lines.append(f'certFile = "{config.tls_cert_file}"')
+    if config.tls_key_file:
+        lines.append(f'keyFile = "{config.tls_key_file}"')
+    if config.tls_ca_file:
+        lines.append(f'trustedCaFile = "{config.tls_ca_file}"')
+    return lines
+
+
+def _tls_client_block(config: FrpServerConfig, frpc_user: str = "") -> list[str]:
+    """Generiert den [transport.tls]-Block fuer frpc/visitor."""
+    if not config.tls_force:
+        return []
+    lines = ['', '[transport.tls]', 'enable = true']
+    if config.tls_ca_file:
+        lines.append(f'trustedCaFile = "/etc/frp/pki/ca.crt"')
+    if frpc_user:
+        lines.append(f'certFile = "/etc/frp/pki/{frpc_user}.crt"')
+        lines.append(f'keyFile = "/etc/frp/pki/{frpc_user}.key"')
+    return lines
+
+
 def generate_frps_toml(config: FrpServerConfig) -> str:
     """Generiert eine vollstaendige frps.toml aus der DB-Konfiguration."""
     lines = [
@@ -42,6 +69,8 @@ def generate_frps_toml(config: FrpServerConfig) -> str:
     lines.append('[auth.token]')
     lines.append(f'token = "{config.auth_token}"')
 
+    lines.extend(_tls_server_block(config))
+
     return '\n'.join(lines) + '\n'
 
 
@@ -70,6 +99,8 @@ def generate_frpc_toml(
         '[auth.token]',
         f'token = "{config.auth_token}"',
     ]
+
+    lines.extend(_tls_client_block(config, frpc_user))
 
     active_tunnels = [t for t in tunnels if t.enabled]
 
@@ -123,6 +154,8 @@ def generate_visitor_toml(
         '[auth.token]',
         f'token = "{config.auth_token}"',
     ]
+
+    lines.extend(_tls_client_block(config, visitor_user))
 
     stcp_tunnels = [t for t in tunnels if t.tunnel_type == "stcp" and t.enabled]
     stcp_tunnels.sort(key=lambda t: t.visitor_port or 0)

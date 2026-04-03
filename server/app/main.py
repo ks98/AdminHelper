@@ -98,6 +98,18 @@ def _migrate_add_columns():
     if "customer_group_id" not in columns:
         cursor.execute("ALTER TABLE servers ADD COLUMN customer_group_id TEXT REFERENCES frp_customer_groups(id) ON DELETE SET NULL")
         logger.info("Migration: customer_group_id zu servers hinzugefuegt")
+    # TLS-Felder zu frp_server_config
+    cursor.execute("PRAGMA table_info(frp_server_config)")
+    frp_cols = {row[1] for row in cursor.fetchall()}
+    for col, coldef in [
+        ("tls_force", "BOOLEAN DEFAULT 0"),
+        ("tls_cert_file", "TEXT"),
+        ("tls_key_file", "TEXT"),
+        ("tls_ca_file", "TEXT"),
+    ]:
+        if frp_cols and col not in frp_cols:
+            cursor.execute(f"ALTER TABLE frp_server_config ADD COLUMN {col} {coldef}")
+            logger.info("Migration: %s zu frp_server_config hinzugefuegt", col)
     conn.commit()
     conn.close()
 

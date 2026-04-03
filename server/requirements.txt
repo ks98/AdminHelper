@@ -6,3 +6,5 @@ bcrypt>=4.0
 python-multipart>=0.0.20
 requests>=2.32
 apscheduler>=3.10
+httpx>=0.28
+cryptography>=42.0

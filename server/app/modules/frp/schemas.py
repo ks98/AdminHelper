@@ -32,6 +32,7 @@ class FrpServerConfigCreate(BaseModel):
     dashboard_user: Optional[str] = None
     dashboard_password: Optional[str] = None
     extra_config: Optional[dict] = None
+    tls_force: bool = False
 
 
 class FrpServerConfigUpdate(BaseModel):
@@ -45,6 +46,7 @@ class FrpServerConfigUpdate(BaseModel):
     dashboard_port: Optional[int] = None
     dashboard_user: Optional[str] = None
     dashboard_password: Optional[str] = None
+    tls_force: Optional[bool] = None
     extra_config: Optional[dict] = None
 
 
