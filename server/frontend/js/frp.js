@@ -251,6 +251,7 @@ function openTunnelModal(tunnel) {
   document.getElementById('ftVisitorPort').value = tunnel?.visitorPort || '';
   document.getElementById('ftDomains').value    = tunnel?.customDomains || '';
   document.getElementById('ftTags').value       = (tunnel?.tags || []).join(', ');
+  document.getElementById('ftAutoConn').checked = false;
 
   _updateTunnelFormFields();
   showModal('frpTunnelModal');
@@ -262,6 +263,7 @@ function _updateTunnelFormFields() {
   document.getElementById('ftSecretField').style.display  = isStcp ? '' : 'none';
   document.getElementById('ftVisitorField').style.display = isStcp ? '' : 'none';
   document.getElementById('ftDomainsField').style.display = isStcp ? 'none' : '';
+  document.getElementById('ftAutoConnField').style.display = '';
 }
 
 document.getElementById('ftType').addEventListener('change', _updateTunnelFormFields);
@@ -446,12 +448,6 @@ document.getElementById('bulkZipBtn').addEventListener('click', async () => {
   }
 });
 
-// Auto-Connection Checkbox nur bei STCP
-document.getElementById('ftType').addEventListener('change', () => {
-  const isStcp = document.getElementById('ftType').value === 'stcp';
-  document.getElementById('ftAutoConnField').style.display = isStcp ? '' : 'none';
-  if (!isStcp) document.getElementById('ftAutoConn').checked = false;
-});
 
 // ── PKI Management ─────────────────────────────────────────────────────────
 document.getElementById('pkiBtn').addEventListener('click', async () => {
