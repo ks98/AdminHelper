@@ -101,12 +101,15 @@ def _migrate_add_columns():
     # TLS-Felder zu frp_server_config
     cursor.execute("PRAGMA table_info(frp_server_config)")
     frp_cols = {row[1] for row in cursor.fetchall()}
-    for col, coldef in [
-        ("tls_force", "BOOLEAN DEFAULT 0"),
-        ("tls_cert_file", "TEXT"),
-        ("tls_key_file", "TEXT"),
-        ("tls_ca_file", "TEXT"),
-    ]:
+    # SAFETY: col/coldef sind hardcoded Literale, keine User-Eingaben
+    _frp_new_cols = {
+        "tls_force": "BOOLEAN DEFAULT 0",
+        "tls_cert_file": "TEXT",
+        "tls_key_file": "TEXT",
+        "tls_ca_file": "TEXT",
+    }
+    for col, coldef in _frp_new_cols.items():
+        assert col.isidentifier(), f"Ungültiger Spaltenname: {col}"
         if frp_cols and col not in frp_cols:
             cursor.execute(f"ALTER TABLE frp_server_config ADD COLUMN {col} {coldef}")
             logger.info("Migration: %s zu frp_server_config hinzugefuegt", col)

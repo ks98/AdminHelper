@@ -50,16 +50,12 @@ def update_server(server_id: str, data: ServerUpdate, db: Session = Depends(get_
     if not server:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Server nicht gefunden")
 
-    if data.name is not None:
-        server.name = data.name
-    if data.hostname is not None:
-        server.hostname = data.hostname
-    if data.os_type is not None:
-        server.os_type = data.os_type
-    if data.tags is not None:
+    sent = data.model_fields_set
+    for field in ["name", "hostname", "os_type", "notes"]:
+        if field in sent:
+            setattr(server, field, getattr(data, field))
+    if "tags" in sent:
         server.tags = json.dumps(data.tags) if data.tags else None
-    if data.notes is not None:
-        server.notes = data.notes
     db.commit()
     db.refresh(server)
     fire_event("server.updated", {"id": server.id, "name": server.name})

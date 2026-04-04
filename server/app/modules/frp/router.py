@@ -90,15 +90,15 @@ def update_server_config(config_id: str, data: FrpServerConfigUpdate, db: Sessio
     if not config:
         raise HTTPException(status_code=404, detail="FRP-Config nicht gefunden")
 
+    sent = data.model_fields_set
     for field in ["name", "server_addr", "bind_port", "vhost_https_port", "auth_token",
                    "subdomain_host", "max_ports_per_client", "dashboard_port",
                    "dashboard_user", "dashboard_password", "tls_force"]:
-        value = getattr(data, field)
-        if value is not None:
-            setattr(config, field, value)
+        if field in sent:
+            setattr(config, field, getattr(data, field))
 
-    if data.extra_config is not None:
-        config.extra_config = json.dumps(data.extra_config)
+    if "extra_config" in sent:
+        config.extra_config = json.dumps(data.extra_config) if data.extra_config else None
 
     db.commit()
     db.refresh(config)
@@ -214,22 +214,23 @@ def update_tunnel(tunnel_id: str, data: FrpTunnelUpdate, db: Session = Depends(g
     if not tunnel:
         raise HTTPException(status_code=404, detail="Tunnel nicht gefunden")
 
+    sent = data.model_fields_set
+
     # Name-Unique-Check
-    if data.name is not None and data.name != tunnel.name:
+    if "name" in sent and data.name != tunnel.name:
         existing = db.query(FrpTunnel).filter(FrpTunnel.name == data.name).first()
         if existing:
             raise HTTPException(status_code=409, detail=f"Proxy-Name '{data.name}' existiert bereits")
 
     for field in ["name", "tunnel_type", "protocol", "local_ip", "local_port",
                    "secret_key", "custom_domains", "visitor_port", "connection_id", "enabled"]:
-        value = getattr(data, field)
-        if value is not None:
-            setattr(tunnel, field, value)
+        if field in sent:
+            setattr(tunnel, field, getattr(data, field))
 
-    if data.extra_config is not None:
-        tunnel.extra_config = json.dumps(data.extra_config)
+    if "extra_config" in sent:
+        tunnel.extra_config = json.dumps(data.extra_config) if data.extra_config else None
 
-    if data.tags is not None:
+    if "tags" in sent:
         tunnel.tags = json.dumps(data.tags) if data.tags else None
 
     db.commit()
