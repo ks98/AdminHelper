@@ -17,7 +17,7 @@ import uuid
 from sqlalchemy.orm import Session
 
 from app.models import (
-    MonitorAlertRule, MonitorCheck, MonitorState,
+    MonitorAgentKey, MonitorAlertRule, MonitorCheck, MonitorState,
     MonitorTemplate, MonitorTemplateAssignment,
 )
 from app.scheduler import add_check, remove_check
@@ -359,6 +359,9 @@ def cleanup_server(db: Session, server_id: str) -> dict:
     db.query(MonitorTemplateAssignment).filter(
         MonitorTemplateAssignment.server_id == server_id,
     ).delete()
+
+    # Agent-Key loeschen
+    db.query(MonitorAgentKey).filter(MonitorAgentKey.server_id == server_id).delete()
 
     db.commit()
     logger.info("Server %s cleanup: %d checks, %d alerts deleted", server_id, len(checks), len(alerts))

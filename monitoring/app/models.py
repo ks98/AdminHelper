@@ -193,3 +193,20 @@ class MonitorTemplateAssignment(Base):
             "serverHostname": self.server_hostname,
             "serverName": self.server_name,
         }
+
+
+class MonitorAgentKey(Base):
+    __tablename__ = "monitor_agent_keys"
+
+    id = Column(String, primary_key=True)
+    server_id = Column(String, nullable=False, unique=True, index=True)
+    api_key = Column(String, nullable=False, unique=True, index=True)
+    created_at = Column(DateTime, server_default=func.now())
+
+    def to_dict(self, mask: bool = True) -> dict:
+        return {
+            "id": self.id,
+            "serverId": self.server_id,
+            "apiKey": ("***" + self.api_key[-8:]) if mask else self.api_key,
+            "createdAt": self.created_at.isoformat() if self.created_at else None,
+        }

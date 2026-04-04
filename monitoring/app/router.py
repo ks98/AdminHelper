@@ -240,9 +240,13 @@ def get_check_metrics(
 # Agent Push (direkter Zugriff von Remote-Servern)
 # ---------------------------------------------------------------------------
 
-@router.post("/agent/{server_id}/report", dependencies=[Depends(require_agent)])
-def agent_report(server_id: str, report: dict, db: Session = Depends(get_db)):
+@router.post("/agent/{server_id}/report")
+def agent_report(server_id: str, report: dict, db: Session = Depends(get_db), auth_server_id: str = Depends(require_agent)):
     """Agent pusht Metriken direkt zum Monitoring-Service."""
+    # Pruefen ob der Key zum Server passt
+    if auth_server_id != "__internal__" and auth_server_id != server_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="API-Key gehoert nicht zu diesem Server")
+
     import time as _time
     from datetime import datetime, timezone
     from app.checkers.agent import AgentResourcesChecker, ServiceProcessChecker, record_agent_report
@@ -715,18 +719,34 @@ def unassign_template(template_id: str, server_id: str, db: Session = Depends(ge
 # Server Cleanup (bei Server-Loeschung)
 # ---------------------------------------------------------------------------
 
-@router.get("/agent-setup", dependencies=[Depends(require_internal)])
-def get_agent_setup():
-    """Gibt die Agent-Setup-Informationen zurueck (API-Key + Hinweise)."""
-    import os
-    from app.core.config import AGENT_API_KEYS
-    agent_key = next(iter(AGENT_API_KEYS), None)
-    agent_port = os.environ.get("MONITOR_AGENT_PORT", "8480")
-    return {
-        "agentApiKey": agent_key,
-        "agentPort": agent_port,
-        "hasAgentKey": bool(agent_key),
-    }
+@router.post("/agent-keys/{server_id}", dependencies=[Depends(require_internal)])
+def create_agent_key(server_id: str, db: Session = Depends(get_db)):
+    """Generiert einen neuen Agent-API-Key fuer einen Server (oder gibt bestehenden zurueck)."""
+    import secrets
+    from app.models import MonitorAgentKey
+
+    existing = db.query(MonitorAgentKey).filter(MonitorAgentKey.server_id == server_id).first()
+    if existing:
+        return existing.to_dict(mask=False)
+
+    key = MonitorAgentKey(
+        id=str(uuid.uuid4()),
+        server_id=server_id,
+        api_key=secrets.token_urlsafe(48),
+    )
+    db.add(key)
+    db.commit()
+    db.refresh(key)
+    return key.to_dict(mask=False)
+
+
+@router.delete("/agent-keys/{server_id}", dependencies=[Depends(require_internal)])
+def delete_agent_key(server_id: str, db: Session = Depends(get_db)):
+    """Loescht den Agent-API-Key eines Servers."""
+    from app.models import MonitorAgentKey
+    db.query(MonitorAgentKey).filter(MonitorAgentKey.server_id == server_id).delete()
+    db.commit()
+    return {"deleted": True}
 
 
 @router.delete("/servers/{server_id}/cleanup", dependencies=[Depends(require_internal)])

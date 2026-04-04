@@ -1,6 +1,8 @@
 from fastapi import Depends, HTTPException, Request, status
+from sqlalchemy.orm import Session
 
-from app.core.config import AGENT_API_KEYS, INTERNAL_API_KEY
+from app.core.config import INTERNAL_API_KEY
+from app.core.database import get_db
 
 
 def require_internal(request: Request) -> None:
@@ -10,11 +12,21 @@ def require_internal(request: Request) -> None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Ungültiger interner API-Key")
 
 
-def require_agent(request: Request) -> None:
-    """Validiert den Agent API-Key (Remote-Server -> Monitoring)."""
+def require_agent(request: Request, db: Session = Depends(get_db)) -> str:
+    """Validiert den Agent API-Key gegen die DB. Gibt die server_id zurueck."""
+    from app.models import MonitorAgentKey
+
     key = request.headers.get("X-API-Key", "")
     if not key:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="API-Key fehlt")
-    # Akzeptiere sowohl Agent-Keys als auch den internen Key
-    if key != INTERNAL_API_KEY and key not in AGENT_API_KEYS:
+
+    # Interner Key hat Zugriff auf alle Server
+    if key == INTERNAL_API_KEY:
+        return "__internal__"
+
+    # Agent-Key in DB suchen
+    agent_key = db.query(MonitorAgentKey).filter(MonitorAgentKey.api_key == key).first()
+    if not agent_key:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Ungültiger API-Key")
+
+    return agent_key.server_id

@@ -23,10 +23,6 @@ if not INTERNAL_API_KEY:
         key_file.chmod(0o600)
         logger.info("MONITOR_API_KEY auto-generiert und in %s gespeichert", key_file)
 
-# Agent API-Keys (kommagetrennt, fuer Push-Authentifizierung)
-AGENT_API_KEYS_RAW = os.environ.get("MONITOR_AGENT_API_KEYS", "").strip()
-AGENT_API_KEYS: set[str] = set()
-if AGENT_API_KEYS_RAW:
-    AGENT_API_KEYS = {k.strip() for k in AGENT_API_KEYS_RAW.split(",") if k.strip()}
+    # Agent-API-Keys werden jetzt pro Server in der DB gespeichert (monitor_agent_keys)
 
 DATABASE_URL = f"sqlite:///{DATA_DIR}/monitor.sqlite3"
