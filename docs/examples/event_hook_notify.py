@@ -7,8 +7,10 @@
 #   event_data  dict  – die betroffene Verbindung
 #
 # Beispiel-Payload für eine Chat-Benachrichtigung (z. B. Slack, Teams, Mattermost):
-
-import requests
+#
+# Verfügbare HTTP-Helfer: http_get(url, headers=None, timeout=10)
+#                          http_post(url, json=None, headers=None, timeout=10)
+# Rückgabe: {"status": int, "body": str, "json": Any|None}
 
 WEBHOOK_URL = "https://hooks.example.com/services/YOUR/SLACK/WEBHOOK"
 
@@ -26,8 +28,9 @@ action = action_labels.get(event_type, event_type)
 msg = f"[SRM] Verbindung {action}: *{name}* ({kind}, `{host}`)"
 
 try:
-    r = requests.post(WEBHOOK_URL, json={"text": msg}, timeout=5)
-    r.raise_for_status()
+    r = http_post(WEBHOOK_URL, json={"text": msg}, timeout=5)
+    if r["status"] >= 400:
+        raise ValueError(f"HTTP-Fehler {r['status']}: {r['body'][:200]}")
     result["notified"] = True
     log(f"Benachrichtigung gesendet: {msg}")
 except Exception as e:

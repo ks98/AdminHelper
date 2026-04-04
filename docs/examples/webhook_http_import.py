@@ -19,8 +19,10 @@
 #   {"hostname": "web-01", "ip": "10.0.0.1", "tags": ["prod", "web"]},
 #   {"hostname": "db-01",  "ip": "10.0.0.2", "tags": ["prod", "db"]}
 # ]
-
-import requests
+#
+# Verfügbare HTTP-Helfer: http_get(url, headers=None, timeout=10)
+#                          http_post(url, json=None, headers=None, timeout=10)
+# Rückgabe: {"status": int, "body": str, "json": Any|None}
 
 DEFAULT_API_URL = "https://cmdb.example.com/api/servers"
 DEFAULT_KIND = "ssh"
@@ -35,10 +37,11 @@ if kind not in ("ssh", "rdp", "web"):
 if not isinstance(extra_tags, list):
     extra_tags = []
 
-r = requests.get(api_url, timeout=10)
-r.raise_for_status()
+r = http_get(api_url, timeout=10)
+if r["status"] >= 400:
+    raise ValueError(f"HTTP-Fehler {r['status']}: {r['body'][:200]}")
 
-servers = r.json()
+servers = r["json"]
 if not isinstance(servers, list):
     raise ValueError("Externe API muss ein JSON-Array zurückliefern")
 
