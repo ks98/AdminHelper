@@ -44,6 +44,16 @@ const post = (path, body)  => api('POST',   path, body);
 const put  = (path, body)  => api('PUT',    path, body);
 const del  = (path)        => api('DELETE', path);
 
+// ── Helpers ───────────────────────────────────────────────────────────────
+function parseTags(value) {
+  const seen = new Set();
+  return value.split(',').map(t => t.trim().slice(0, 50)).filter(t => {
+    if (!t || seen.has(t)) return false;
+    seen.add(t);
+    return true;
+  });
+}
+
 // ── Toast ──────────────────────────────────────────────────────────────────
 let toastTimer;
 function toast(msg, type = 'success') {
@@ -138,7 +148,7 @@ document.querySelectorAll('.nav-item[data-page]').forEach(btn => {
 async function loadConnections() {
   try {
     state.connections = await get('/api/connections');
-    renderConnTagFilter();
+    renderTagFilter('connTagSelect', state.connections, 'connTagFilter');
     renderConnections();
   } catch (err) {
     toast(err.message, 'error');
@@ -148,12 +158,12 @@ async function loadConnections() {
 const connSearch = document.getElementById('connSearch');
 connSearch.addEventListener('input', renderConnections);
 
-function renderConnTagFilter() {
-  const select = document.getElementById('connTagSelect');
+function renderTagFilter(selectId, items, stateKey) {
+  const select = document.getElementById(selectId);
   if (!select) return;
-  const allTags = [...new Set(state.connections.flatMap(c => c.tags || []))].sort();
+  const allTags = [...new Set(items.flatMap(i => i.tags || []))].sort();
   select.classList.remove('hidden');
-  const prev = state.connTagFilter;
+  const prev = state[stateKey];
   select.innerHTML = '<option value="">Alle Tags</option>' +
     allTags.map(t => `<option value="${esc(t)}"${prev === t ? ' selected' : ''}>${esc(t)}</option>`).join('');
 }
@@ -282,7 +292,7 @@ document.getElementById('connForm').addEventListener('submit', async (e) => {
     domain:    document.getElementById('cfDomain').value.trim(),
     url:       document.getElementById('cfUrl').value.trim(),
     keyPath:   document.getElementById('cfKey').value.trim(),
-    tags:      document.getElementById('cfTags').value.split(',').map(t => t.trim()).filter(Boolean),
+    tags:      parseTags(document.getElementById('cfTags').value),
     notes:     document.getElementById('cfNotes').value.trim(),
     trustCert: false,
     serverId:  document.getElementById('cfServer').value || null,
@@ -737,21 +747,11 @@ document.getElementById('copyWebhookTokenBtn').addEventListener('click', () => {
 async function loadServers() {
   try {
     state.servers = await get('/api/servers');
-    renderServerTagFilter();
+    renderTagFilter('serverTagSelect', state.servers, 'serverTagFilter');
     renderServers();
   } catch (err) {
     toast(err.message, 'error');
   }
-}
-
-function renderServerTagFilter() {
-  const select = document.getElementById('serverTagSelect');
-  if (!select) return;
-  const allTags = [...new Set(state.servers.flatMap(s => s.tags || []))].sort();
-  select.classList.remove('hidden');
-  const prev = state.serverTagFilter;
-  select.innerHTML = '<option value="">Alle Tags</option>' +
-    allTags.map(t => `<option value="${esc(t)}"${prev === t ? ' selected' : ''}>${esc(t)}</option>`).join('');
 }
 
 document.getElementById('serverTagSelect').addEventListener('change', function() {
@@ -889,7 +889,7 @@ document.getElementById('serverForm').addEventListener('submit', async (e) => {
     name:     document.getElementById('sfName').value.trim(),
     hostname: document.getElementById('sfHostname').value.trim(),
     os_type:  document.getElementById('sfOsType').value || null,
-    tags:     document.getElementById('sfTags').value.split(',').map(t => t.trim()).filter(Boolean),
+    tags:     parseTags(document.getElementById('sfTags').value),
     notes:    document.getElementById('sfNotes').value.trim(),
   };
   try {
@@ -933,21 +933,11 @@ async function loadFrp() {
     if (state.servers.length === 0) {
       state.servers = await get('/api/servers');
     }
-    renderTunnelTagFilter();
+    renderTagFilter('tunnelTagSelect', state.frpTunnels, 'tunnelTagFilter');
     renderFrp();
   } catch (err) {
     toast(err.message, 'error');
   }
-}
-
-function renderTunnelTagFilter() {
-  const select = document.getElementById('tunnelTagSelect');
-  if (!select) return;
-  const allTags = [...new Set(state.frpTunnels.flatMap(t => t.tags || []))].sort();
-  select.classList.remove('hidden');
-  const prev = state.tunnelTagFilter;
-  select.innerHTML = '<option value="">Alle Tags</option>' +
-    allTags.map(t => `<option value="${esc(t)}"${prev === t ? ' selected' : ''}>${esc(t)}</option>`).join('');
 }
 
 document.getElementById('tunnelTagSelect').addEventListener('change', function() {
@@ -1234,7 +1224,7 @@ document.getElementById('frpTunnelForm').addEventListener('submit', async (e) =>
     custom_domains: document.getElementById('ftDomains').value.trim() || null,
     visitor_port:  parseInt(document.getElementById('ftVisitorPort').value) || null,
     auto_create_connection: document.getElementById('ftAutoConn').checked,
-    tags: document.getElementById('ftTags').value.split(',').map(t => t.trim()).filter(Boolean),
+    tags: parseTags(document.getElementById('ftTags').value),
   };
   try {
     if (state.editingTunnelId) {

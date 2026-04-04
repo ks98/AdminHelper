@@ -1,5 +1,18 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from typing import Optional
+
+
+def _validate_tags(tags: list[str] | None) -> list[str] | None:
+    if tags is None:
+        return None
+    seen = set()
+    result = []
+    for t in tags:
+        t = t.strip()[:50]
+        if t and t not in seen:
+            seen.add(t)
+            result.append(t)
+    return result
 
 
 # --- FRP Server Config ---
@@ -53,6 +66,8 @@ class FrpTunnelCreate(BaseModel):
     tags: list[str] = []
     auto_create_connection: bool = False  # automatisch passende Connection erstellen
 
+    _clean_tags = field_validator("tags", mode="before")(_validate_tags)
+
 
 class FrpTunnelUpdate(BaseModel):
     name: Optional[str] = None
@@ -67,6 +82,8 @@ class FrpTunnelUpdate(BaseModel):
     enabled: Optional[bool] = None
     extra_config: Optional[dict] = None
     tags: Optional[list[str]] = None
+
+    _clean_tags = field_validator("tags", mode="before")(_validate_tags)
 
 
 # --- Visitors ---

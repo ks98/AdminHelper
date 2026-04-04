@@ -1,5 +1,7 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from typing import Optional
+
+from app.modules.frp.schemas import _validate_tags
 
 
 class ServerCreate(BaseModel):
@@ -9,6 +11,8 @@ class ServerCreate(BaseModel):
     tags: list[str] = []
     notes: Optional[str] = ""
 
+    _clean_tags = field_validator("tags", mode="before")(_validate_tags)
+
 
 class ServerUpdate(BaseModel):
     name: Optional[str] = None
@@ -16,3 +20,5 @@ class ServerUpdate(BaseModel):
     os_type: Optional[str] = None
     tags: Optional[list[str]] = None
     notes: Optional[str] = None
+
+    _clean_tags = field_validator("tags", mode="before")(_validate_tags)

@@ -477,6 +477,20 @@ body {
   color: var(--text-soft);
 }
 
+.search-input {
+  font-family: var(--font);
+  font-size: 14px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+}
+.search-input:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
 .filter-select {
   font-family: var(--font);
   font-size: 14px;
