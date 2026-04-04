@@ -92,9 +92,10 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-from app.router import router  # noqa: E402
+from app.routers import all_routers  # noqa: E402
 
-app.include_router(router)
+for _router in all_routers:
+    app.include_router(_router)
 
 
 @app.get("/health")

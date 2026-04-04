@@ -1,0 +1,145 @@
+"""Agent-Push Endpoint — empfaengt Metriken von Remote-Servern."""
+
+from __future__ import annotations
+
+import json
+import logging
+from datetime import datetime, timezone
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+
+from app.alerter import process_alert
+from app.core.auth import require_agent
+from app.core.database import get_db
+from app.core.victoria import victoria
+from app.models import MonitorCheck, MonitorState
+
+logger = logging.getLogger(__name__)
+
+router = APIRouter()
+
+
+@router.post("/agent/{server_id}/report")
+def agent_report(server_id: str, report: dict, db: Session = Depends(get_db), auth_server_id: str = Depends(require_agent)):
+    """Agent pusht Metriken direkt zum Monitoring-Service."""
+    if auth_server_id != "__internal__" and auth_server_id != server_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="API-Key gehoert nicht zu diesem Server")
+
+    import time as _time
+    from app.checkers.agent import AgentResourcesChecker, ServiceProcessChecker, record_agent_report
+    from app.checkers.plugins import ProxmoxBackupChecker, ZfsHealthChecker, DockerHealthChecker
+
+    record_agent_report(server_id)
+
+    ts = int(_time.time())
+    tags = f'server_id="{server_id}"'
+    lines = []
+
+    resources = report.get("resources", {})
+    if resources:
+        for key in ("cpu_percent", "memory_percent", "load_1m", "load_5m", "load_15m"):
+            val = resources.get(key)
+            if val is not None:
+                lines.append(f"monitor_agent_{key}{{{tags}}} {val} {ts}")
+
+        for disk in resources.get("disks", []):
+            mount = disk.get("mount", "/")
+            disk_tags = f'{tags},mount="{mount}"'
+            if disk.get("percent") is not None:
+                pct = disk["percent"]
+                lines.append(f'monitor_agent_disk_percent{{{disk_tags}}} {pct} {ts}')
+
+    uptime = report.get("uptime_seconds")
+    if uptime is not None:
+        lines.append(f"monitor_agent_uptime_seconds{{{tags}}} {uptime} {ts}")
+
+    if lines:
+        victoria.write(lines)
+
+    # Agent-basierte Checks fuer diesen Server auswerten
+    checks_updated = 0
+    agent_checks = (
+        db.query(MonitorCheck)
+        .filter(
+            MonitorCheck.server_id == server_id,
+            MonitorCheck.enabled == True,  # noqa: E712
+            MonitorCheck.check_type.in_(["agent_ping", "agent_resources", "service_process",
+                                        "proxmox_backup", "zfs_health", "docker_health"]),
+        )
+        .all()
+    )
+
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+
+    for check in agent_checks:
+        config = json.loads(check.config) if check.config else {}
+
+        if check.check_type == "agent_ping":
+            from app.checkers.agent import AgentPingChecker
+            result_status, message, metrics = AgentPingChecker().run(config)
+        elif check.check_type == "agent_resources":
+            result_status, message, metrics = AgentResourcesChecker().evaluate(config, report)
+        elif check.check_type == "service_process":
+            result_status, message, metrics = ServiceProcessChecker().evaluate(config, report)
+        elif check.check_type == "proxmox_backup":
+            result_status, message, metrics = ProxmoxBackupChecker().evaluate(config, report)
+        elif check.check_type == "zfs_health":
+            result_status, message, metrics = ZfsHealthChecker().evaluate(config, report)
+        elif check.check_type == "docker_health":
+            result_status, message, metrics = DockerHealthChecker().evaluate(config, report)
+        else:
+            continue
+
+        if metrics:
+            victoria.write_check_result(
+                check_id=check.id,
+                check_type=check.check_type,
+                server_id=server_id,
+                name=check.name,
+                status=result_status,
+                duration_ms=0,
+                extra_metrics=metrics,
+            )
+
+        # State aktualisieren
+        state = db.query(MonitorState).filter(MonitorState.check_id == check.id).first()
+        old_status = state.status if state else "pending"
+
+        if result_status != "ok":
+            new_fail_count = (state.fail_count + 1) if state else 1
+        else:
+            new_fail_count = 0
+
+        if result_status != "ok" and new_fail_count < check.consecutive_fails:
+            effective_status = old_status if old_status != "pending" else "ok"
+        else:
+            effective_status = result_status
+
+        if not state:
+            state = MonitorState(
+                check_id=check.id, status=effective_status, since=now,
+                last_check=now, fail_count=new_fail_count, message=message,
+            )
+            db.add(state)
+        else:
+            if effective_status != state.status:
+                state.since = now
+            state.status = effective_status
+            state.fail_count = new_fail_count
+            state.last_check = now
+            state.message = message
+
+        # Alerting bei Status-Wechsel
+        if old_status != effective_status:
+            try:
+                process_alert(db, check, old_status, effective_status)
+            except Exception:
+                logger.exception("Alerting fuer Check '%s' fehlgeschlagen", check.name)
+
+        checks_updated += 1
+
+    if checks_updated:
+        db.commit()
+
+    return {"status": "ok", "metricsWritten": len(lines), "checksUpdated": checks_updated}
