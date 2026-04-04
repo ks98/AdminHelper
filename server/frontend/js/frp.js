@@ -253,6 +253,21 @@ function openTunnelModal(tunnel) {
   document.getElementById('ftTags').value       = (tunnel?.tags || []).join(', ');
   document.getElementById('ftAutoConn').checked = !!(tunnel?.connectionId);
 
+  // Visitor-Checkboxen rendern
+  const serverId = tunnel?.serverId || '';
+  const visitorListEl = document.getElementById('ftVisitorList');
+  if (state.visitors.length > 0) {
+    visitorListEl.innerHTML = state.visitors.map(v => {
+      const assigned = v.serverIds.includes(serverId);
+      return `<label class="checkbox-label" style="font-size:13px">
+        <input type="checkbox" value="${esc(v.id)}" ${assigned ? 'checked' : ''} />
+        ${esc(v.displayName || v.name)}
+      </label>`;
+    }).join('');
+  } else {
+    visitorListEl.innerHTML = '<span style="color:var(--text-soft);font-size:12px">Keine Visitors vorhanden</span>';
+  }
+
   _updateTunnelFormFields();
   showModal('frpTunnelModal');
 }
@@ -260,22 +275,32 @@ function openTunnelModal(tunnel) {
 function _updateTunnelFormFields() {
   const type = document.getElementById('ftType').value;
   const isStcp = type === 'stcp';
-  document.getElementById('ftSecretField').style.display  = isStcp ? '' : 'none';
-  document.getElementById('ftVisitorField').style.display = isStcp ? '' : 'none';
-  document.getElementById('ftDomainsField').style.display = isStcp ? 'none' : '';
+  document.getElementById('ftSecretField').style.display   = isStcp ? '' : 'none';
+  document.getElementById('ftVisitorField').style.display  = isStcp ? '' : 'none';
+  document.getElementById('ftDomainsField').style.display  = isStcp ? 'none' : '';
+  document.getElementById('ftVisitorsField').style.display = isStcp ? '' : 'none';
   document.getElementById('ftAutoConnField').style.display = '';
 }
 
 document.getElementById('ftType').addEventListener('change', _updateTunnelFormFields);
 
 document.getElementById('ftServer').addEventListener('change', () => {
-  const tagsEl = document.getElementById('ftTags');
-  if (tagsEl.value.trim()) return;
   const serverId = document.getElementById('ftServer').value;
-  const server = state.servers.find(s => s.id === serverId);
-  if (server && server.tags && server.tags.length > 0) {
-    tagsEl.value = server.tags.join(', ');
+
+  // Tags vorbelegen
+  const tagsEl = document.getElementById('ftTags');
+  if (!tagsEl.value.trim()) {
+    const server = state.servers.find(s => s.id === serverId);
+    if (server && server.tags && server.tags.length > 0) {
+      tagsEl.value = server.tags.join(', ');
+    }
   }
+
+  // Visitor-Checkboxen aktualisieren
+  document.querySelectorAll('#ftVisitorList input[type="checkbox"]').forEach(cb => {
+    const visitor = state.visitors.find(v => v.id === cb.value);
+    if (visitor) cb.checked = visitor.serverIds.includes(serverId);
+  });
 });
 
 document.getElementById('ftProtocol').addEventListener('change', () => {
@@ -312,6 +337,24 @@ document.getElementById('frpTunnelForm').addEventListener('submit', async (e) =>
       await post('/api/frp/tunnels', data);
       toast('Tunnel erstellt');
     }
+
+    // Visitor-Zuordnungen zum Server aktualisieren
+    const selectedVisitorIds = new Set(
+      Array.from(document.querySelectorAll('#ftVisitorList input[type="checkbox"]:checked')).map(cb => cb.value)
+    );
+    if (data.server_id && state.visitors.length > 0) {
+      for (const v of state.visitors) {
+        const wasAssigned = v.serverIds.includes(data.server_id);
+        const nowSelected = selectedVisitorIds.has(v.id);
+        if (wasAssigned !== nowSelected) {
+          const newServerIds = nowSelected
+            ? [...v.serverIds, data.server_id]
+            : v.serverIds.filter(sid => sid !== data.server_id);
+          await put(`/api/frp/visitors/${v.id}`, { server_ids: newServerIds });
+        }
+      }
+    }
+
     closeModal('frpTunnelModal');
     await loadFrp();
   } catch (err) {
