@@ -30,6 +30,11 @@ const state = {
   editingTemplateId: null,
   templateCheckDefs: [],
   templateAlertDefs: [],
+  monitorServerFilter: '',
+  monitorTypeFilter: '',
+  monitorStatusFilter: '',
+  monitorTagFilter: '',
+  monitorSearch: '',
 };
 
 // ── API helpers ────────────────────────────────────────────────────────────

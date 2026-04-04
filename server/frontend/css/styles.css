@@ -1686,6 +1686,45 @@ body {
 
 /* ── Monitoring ──────────────────────────────────────────────────────────── */
 
+.monitor-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+.monitor-tab {
+  padding: 10px 20px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-soft);
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 14px;
+  transition: color 0.2s, border-color 0.2s;
+}
+.monitor-tab:hover { color: var(--text); }
+.monitor-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.monitor-tab-content {
+  display: none;
+  flex-direction: column;
+  gap: 16px;
+}
+.monitor-tab-content.active {
+  display: flex;
+}
+
+.monitor-filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
 .monitor-dot {
   width: 10px;
   height: 10px;

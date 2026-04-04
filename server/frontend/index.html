@@ -293,45 +293,67 @@
             <div class="page-title">Monitoring</div>
             <div class="page-subtitle">Server- und Service-Ueberwachung</div>
           </div>
-          <div style="display:flex;gap:10px;align-items:center">
-            <button id="addMonitorCheckBtn" class="btn primary">+ Check</button>
+        </div>
+
+        <!-- Tab-Leiste -->
+        <div class="monitor-tabs">
+          <button class="monitor-tab active" data-mtab="overview">Uebersicht</button>
+          <button class="monitor-tab" data-mtab="alerts">Alert-Rules</button>
+          <button class="monitor-tab" data-mtab="log">Alert-Log</button>
+          <button class="monitor-tab" data-mtab="templates">Templates</button>
+        </div>
+
+        <!-- Tab: Uebersicht -->
+        <div class="monitor-tab-content active" data-mtab="overview">
+          <div class="monitor-filters">
+            <select id="monitorServerFilter" class="filter-select"><option value="">Alle Server</option></select>
+            <select id="monitorTypeFilter" class="filter-select"><option value="">Alle Typen</option></select>
+            <select id="monitorStatusFilter" class="filter-select">
+              <option value="">Alle Status</option>
+              <option value="ok">OK</option>
+              <option value="warning">Warnung</option>
+              <option value="critical">Kritisch</option>
+              <option value="unknown">Unbekannt</option>
+            </select>
+            <select id="monitorTagFilter" class="filter-select"><option value="">Alle Tags</option></select>
+            <input id="monitorSearch" class="search-input" placeholder="Suche..." />
+            <button id="addMonitorCheckBtn" class="btn primary" style="margin-left:auto">+ Check</button>
           </div>
+          <div id="monitorOverview" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px"></div>
+          <div id="monitorCheckList" style="display:flex;flex-direction:column;gap:12px"></div>
+          <div id="monitorEmpty" class="empty-state hidden"><p>Keine Checks vorhanden.</p></div>
         </div>
 
-        <!-- Status-Uebersicht -->
-        <div id="monitorOverview" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px"></div>
-
-        <!-- Check-Liste gruppiert nach Server -->
-        <div id="monitorCheckList" style="display:flex;flex-direction:column;gap:12px"></div>
-        <div id="monitorEmpty" class="empty-state hidden"><p>Keine Checks vorhanden.</p></div>
-
-        <!-- Alert-Rules -->
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:30px;margin-bottom:12px">
-          <h3 style="margin:0">Alert-Rules</h3>
-          <button id="addAlertRuleBtn" class="btn primary">+ Alert-Rule</button>
+        <!-- Tab: Alert-Rules -->
+        <div class="monitor-tab-content" data-mtab="alerts">
+          <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+            <button id="addAlertRuleBtn" class="btn primary">+ Alert-Rule</button>
+          </div>
+          <div id="monitorAlertList"></div>
+          <div id="monitorAlertEmpty" class="empty-state hidden"><p>Keine Alert-Rules vorhanden.</p></div>
         </div>
-        <div id="monitorAlertList"></div>
-        <div id="monitorAlertEmpty" class="empty-state hidden"><p>Keine Alert-Rules vorhanden.</p></div>
 
-        <!-- Alert-Log -->
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:30px;margin-bottom:12px">
-          <h3 style="margin:0">Alert-Historie</h3>
-          <button class="btn small" onclick="loadAlertLog()">Aktualisieren</button>
+        <!-- Tab: Alert-Log -->
+        <div class="monitor-tab-content" data-mtab="log">
+          <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+            <button class="btn small" onclick="loadAlertLog()">Aktualisieren</button>
+          </div>
+          <table class="data-table">
+            <thead><tr><th>Zeit</th><th>Check</th><th>Von</th><th>Nach</th><th>Status</th><th>Fehler</th></tr></thead>
+            <tbody id="monitorAlertLogBody">
+              <tr><td colspan="6" style="text-align:center;color:var(--text-soft)">Wird beim Tab-Wechsel geladen</td></tr>
+            </tbody>
+          </table>
         </div>
-        <table class="data-table">
-          <thead><tr><th>Zeit</th><th>Check</th><th>Von</th><th>Nach</th><th>Status</th><th>Fehler</th></tr></thead>
-          <tbody id="monitorAlertLogBody">
-            <tr><td colspan="6" style="text-align:center;color:var(--text-soft)">Klicke "Aktualisieren" zum Laden</td></tr>
-          </tbody>
-        </table>
 
-        <!-- Templates -->
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:30px;margin-bottom:12px">
-          <h3 style="margin:0">Templates</h3>
-          <button id="addTemplateBtn" class="btn primary">+ Template</button>
+        <!-- Tab: Templates -->
+        <div class="monitor-tab-content" data-mtab="templates">
+          <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+            <button id="addTemplateBtn" class="btn primary">+ Template</button>
+          </div>
+          <div id="monitorTemplateList"></div>
+          <div id="monitorTemplateEmpty" class="empty-state hidden"><p>Keine Templates vorhanden.</p></div>
         </div>
-        <div id="monitorTemplateList"></div>
-        <div id="monitorTemplateEmpty" class="empty-state hidden"><p>Keine Templates vorhanden.</p></div>
       </div>
 
     </main>

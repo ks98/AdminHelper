@@ -2,6 +2,108 @@
 'use strict';
 
 // ── Load ���─────────────────────────────────────────────────────────────────
+// ── Tab-Switching ────────────────────────────────────────────────────────
+document.querySelectorAll('.monitor-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.monitor-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.monitor-tab-content').forEach(c => c.classList.remove('active'));
+    tab.classList.add('active');
+    const target = document.querySelector(`.monitor-tab-content[data-mtab="${tab.dataset.mtab}"]`);
+    if (target) target.classList.add('active');
+    if (tab.dataset.mtab === 'log') loadAlertLog();
+  });
+});
+
+// ── Filter ───────────────────────────────────────────────────────────────
+['monitorServerFilter', 'monitorTypeFilter', 'monitorStatusFilter', 'monitorTagFilter'].forEach(id => {
+  document.getElementById(id)?.addEventListener('change', function() {
+    state[id] = this.value;
+    _applyMonitorFilters();
+  });
+});
+document.getElementById('monitorSearch')?.addEventListener('input', function() {
+  state.monitorSearch = this.value;
+  _applyMonitorFilters();
+});
+
+function _applyMonitorFilters() {
+  const filtered = _filterChecks();
+  renderMonitorOverview(filtered);
+  renderMonitorChecks(filtered);
+}
+
+function _filterChecks() {
+  let checks = state.monitorChecks;
+  const serverMap = {};
+  (state.servers || []).forEach(s => { serverMap[s.id] = s; });
+
+  if (state.monitorServerFilter) {
+    checks = checks.filter(c => c.serverId === state.monitorServerFilter);
+  }
+  if (state.monitorTypeFilter) {
+    checks = checks.filter(c => c.checkType === state.monitorTypeFilter);
+  }
+  if (state.monitorStatusFilter) {
+    checks = checks.filter(c => (c.state?.status || 'pending') === state.monitorStatusFilter);
+  }
+  if (state.monitorTagFilter) {
+    const tag = state.monitorTagFilter;
+    checks = checks.filter(c => {
+      const srv = serverMap[c.serverId];
+      return srv && (srv.tags || []).includes(tag);
+    });
+  }
+  if (state.monitorSearch) {
+    const q = state.monitorSearch.toLowerCase();
+    checks = checks.filter(c => {
+      const srvName = serverMap[c.serverId]?.name || '';
+      return c.name.toLowerCase().includes(q)
+        || (c.state?.message || '').toLowerCase().includes(q)
+        || srvName.toLowerCase().includes(q);
+    });
+  }
+  return checks;
+}
+
+function _populateMonitorFilters() {
+  const checks = state.monitorChecks;
+  const serverMap = {};
+  (state.servers || []).forEach(s => { serverMap[s.id] = s; });
+
+  // Server-Filter
+  const serverIds = [...new Set(checks.map(c => c.serverId).filter(Boolean))];
+  const serverSelect = document.getElementById('monitorServerFilter');
+  const prevServer = state.monitorServerFilter;
+  serverSelect.innerHTML = '<option value="">Alle Server</option>' +
+    serverIds.map(id => {
+      const name = serverMap[id]?.name || id.substring(0, 8);
+      return `<option value="${id}" ${id === prevServer ? 'selected' : ''}>${esc(name)}</option>`;
+    }).join('');
+
+  // Typ-Filter
+  const types = [...new Set(checks.map(c => c.checkType))].sort();
+  const typeSelect = document.getElementById('monitorTypeFilter');
+  const prevType = state.monitorTypeFilter;
+  typeSelect.innerHTML = '<option value="">Alle Typen</option>' +
+    types.map(t => `<option value="${t}" ${t === prevType ? 'selected' : ''}>${t}</option>`).join('');
+
+  // Tag-Filter
+  const tagSet = new Set();
+  serverIds.forEach(id => {
+    (serverMap[id]?.tags || []).forEach(t => tagSet.add(t));
+  });
+  const tags = [...tagSet].sort();
+  const tagSelect = document.getElementById('monitorTagFilter');
+  const prevTag = state.monitorTagFilter;
+  tagSelect.innerHTML = '<option value="">Alle Tags</option>' +
+    tags.map(t => `<option value="${t}" ${t === prevTag ? 'selected' : ''}>${esc(t)}</option>`).join('');
+
+  // Status-Filter und Suche behalten ihren Wert
+  document.getElementById('monitorStatusFilter').value = state.monitorStatusFilter;
+  document.getElementById('monitorSearch').value = state.monitorSearch;
+}
+
+// ── Load ─────────────────────────────────────────────────────────────────
 async function loadMonitoring() {
   try {
     const [checks, alerts, templates] = await Promise.all([
@@ -12,8 +114,10 @@ async function loadMonitoring() {
     state.monitorChecks = checks;
     state.monitorAlertRules = alerts;
     state.monitorTemplates = templates;
-    renderMonitorOverview();
-    renderMonitorChecks();
+    _populateMonitorFilters();
+    const filtered = _filterChecks();
+    renderMonitorOverview(filtered);
+    renderMonitorChecks(filtered);
     renderMonitorAlerts();
     renderMonitorTemplates();
   } catch (err) {
@@ -22,9 +126,9 @@ async function loadMonitoring() {
 }
 
 // ── Overview Cards ────────────────────────────────────────────────────────
-function renderMonitorOverview() {
+function renderMonitorOverview(checks) {
   const container = document.getElementById('monitorOverview');
-  const checks = state.monitorChecks;
+  if (!checks) checks = state.monitorChecks;
   const counts = { total: checks.length, ok: 0, warning: 0, critical: 0 };
 
   checks.forEach(c => {
@@ -55,12 +159,12 @@ function renderMonitorOverview() {
 }
 
 // ── Check List ────��───────────────────────────────────────────────────────
-function renderMonitorChecks() {
+function renderMonitorChecks(checks) {
   const container = document.getElementById('monitorCheckList');
   const empty = document.getElementById('monitorEmpty');
   container.innerHTML = '';
 
-  const checks = state.monitorChecks;
+  if (!checks) checks = state.monitorChecks;
   if (checks.length === 0) {
     empty.classList.remove('hidden');
     return;
