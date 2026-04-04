@@ -8,6 +8,7 @@ import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from sqlalchemy import inspect, text
 
 from app.core.database import Base, engine
 from app.models import MonitorCheck, MonitorState, MonitorTemplate, MonitorTemplateAssignment  # noqa: F401
@@ -22,6 +23,17 @@ async def lifespan(app: FastAPI):
 
     # Startup
     Base.metadata.create_all(bind=engine)
+
+    # Migrate: neue Spalten auf bestehenden Tabellen hinzufuegen
+    insp = inspect(engine)
+    _migrate_columns(insp, "monitor_checks", [
+        ("template_id", "TEXT"),
+        ("template_def_id", "TEXT"),
+    ])
+    _migrate_columns(insp, "monitor_alert_rules", [
+        ("template_id", "TEXT"),
+        ("template_def_id", "TEXT"),
+    ])
     logger.info("Datenbank initialisiert")
 
     load_all_checks()
@@ -33,6 +45,18 @@ async def lifespan(app: FastAPI):
     # Shutdown
     scheduler.shutdown(wait=False)
     logger.info("Scheduler gestoppt")
+
+
+def _migrate_columns(insp, table_name: str, columns: list[tuple[str, str]]):
+    """Fuegt fehlende Spalten zu bestehenden Tabellen hinzu (SQLite ALTER TABLE)."""
+    if not insp.has_table(table_name):
+        return
+    existing = {c["name"] for c in insp.get_columns(table_name)}
+    with engine.begin() as conn:
+        for col_name, col_type in columns:
+            if col_name not in existing:
+                conn.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {col_name} {col_type}"))
+                logger.info("Spalte %s.%s hinzugefuegt", table_name, col_name)
 
 
 app = FastAPI(
