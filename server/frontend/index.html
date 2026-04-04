@@ -872,6 +872,8 @@
               <option value="ping">Ping</option>
               <option value="tcp">TCP Port</option>
               <option value="http">HTTP(S)</option>
+              <option value="agent_resources">Agent: Ressourcen</option>
+              <option value="service_process">Agent: Services</option>
             </select>
           </div>
           <div class="field">
@@ -957,6 +959,48 @@
             <div class="field full">
               <label>Suchtext (optional)</label>
               <input id="mcHttpSearch" placeholder="Text der in der Antwort vorkommen muss" />
+            </div>
+          </div>
+
+          <!-- Agent Resources Config -->
+          <div id="mcAgentResourcesConfig" class="hidden">
+            <div class="field full" style="color:var(--text-soft);font-size:13px;margin-bottom:8px">
+              Wertet Metriken vom srm-monitor-agent aus. Der Agent muss auf dem Server installiert und konfiguriert sein.
+            </div>
+            <div class="field">
+              <label>CPU Warnung (%)</label>
+              <input id="mcAgentCpuWarn" type="number" value="80" min="0" max="100" />
+            </div>
+            <div class="field">
+              <label>CPU Kritisch (%)</label>
+              <input id="mcAgentCpuCrit" type="number" value="95" min="0" max="100" />
+            </div>
+            <div class="field">
+              <label>RAM Warnung (%)</label>
+              <input id="mcAgentMemWarn" type="number" value="80" min="0" max="100" />
+            </div>
+            <div class="field">
+              <label>RAM Kritisch (%)</label>
+              <input id="mcAgentMemCrit" type="number" value="95" min="0" max="100" />
+            </div>
+            <div class="field">
+              <label>Disk Warnung (%)</label>
+              <input id="mcAgentDiskWarn" type="number" value="85" min="0" max="100" />
+            </div>
+            <div class="field">
+              <label>Disk Kritisch (%)</label>
+              <input id="mcAgentDiskCrit" type="number" value="95" min="0" max="100" />
+            </div>
+          </div>
+
+          <!-- Service Process Config -->
+          <div id="mcServiceProcessConfig" class="hidden">
+            <div class="field full" style="color:var(--text-soft);font-size:13px;margin-bottom:8px">
+              Prueft ob bestimmte systemd-Services laufen. Der Agent muss auf dem Server installiert sein und die Services ueberwachen.
+            </div>
+            <div class="field full">
+              <label>Services (kommagetrennt)</label>
+              <input id="mcServiceNames" placeholder="nginx, docker, frpc, postgresql" />
             </div>
           </div>
 

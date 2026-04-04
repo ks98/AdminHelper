@@ -1,0 +1,366 @@
+#!/usr/bin/env python3
+"""
+srm-monitor-agent — SRM Monitoring Agent
+
+Sammelt System-Metriken und pusht sie an den SRM Monitoring-Service.
+
+Modes:
+  --init --url <URL> --api-key <KEY> --server-id <ID>  (Ersteinrichtung)
+  (keine Args)                                          (periodischer Push)
+
+Abhaengigkeiten: python3 (>= 3.7), optional psutil
+"""
+
+import argparse
+import json
+import os
+import sys
+import time
+from pathlib import Path
+from urllib.request import Request, urlopen
+from urllib.error import URLError, HTTPError
+
+CONF_DIR = Path("/etc/srm")
+CONF_FILE = CONF_DIR / "monitor.conf"
+LOG_TAG = "srm-monitor-agent"
+
+
+def log(msg: str) -> None:
+    print(f"[{LOG_TAG}] {msg}", file=sys.stderr)
+
+
+def die(msg: str) -> None:
+    log(f"ERROR: {msg}")
+    sys.exit(1)
+
+
+# ---------------------------------------------------------------------------
+# System-Metriken sammeln
+# ---------------------------------------------------------------------------
+
+def collect_cpu_percent() -> float | None:
+    """CPU-Auslastung aus /proc/stat berechnen (Delta ueber 1 Sekunde)."""
+    try:
+        import psutil
+        return psutil.cpu_percent(interval=1)
+    except ImportError:
+        pass
+
+    try:
+        def read_stat():
+            with open("/proc/stat") as f:
+                parts = f.readline().split()
+            # user, nice, system, idle, iowait, irq, softirq, steal
+            vals = [int(x) for x in parts[1:9]]
+            idle = vals[3] + vals[4]
+            total = sum(vals)
+            return idle, total
+
+        idle1, total1 = read_stat()
+        time.sleep(1)
+        idle2, total2 = read_stat()
+
+        idle_delta = idle2 - idle1
+        total_delta = total2 - total1
+        if total_delta == 0:
+            return 0.0
+        return round((1 - idle_delta / total_delta) * 100, 1)
+    except Exception:
+        return None
+
+
+def collect_memory() -> dict:
+    """Speicher-Informationen."""
+    try:
+        import psutil
+        mem = psutil.virtual_memory()
+        return {
+            "memory_percent": round(mem.percent, 1),
+            "memory_total_mb": round(mem.total / 1024 / 1024),
+            "memory_used_mb": round(mem.used / 1024 / 1024),
+        }
+    except ImportError:
+        pass
+
+    try:
+        info = {}
+        with open("/proc/meminfo") as f:
+            for line in f:
+                parts = line.split()
+                key = parts[0].rstrip(":")
+                val = int(parts[1])  # kB
+                info[key] = val
+
+        total = info.get("MemTotal", 0)
+        available = info.get("MemAvailable", 0)
+        used = total - available
+        percent = round(used / total * 100, 1) if total > 0 else 0
+        return {
+            "memory_percent": percent,
+            "memory_total_mb": round(total / 1024),
+            "memory_used_mb": round(used / 1024),
+        }
+    except Exception:
+        return {}
+
+
+def collect_load() -> dict:
+    """Load Average."""
+    try:
+        load1, load5, load15 = os.getloadavg()
+        return {
+            "load_1m": round(load1, 2),
+            "load_5m": round(load5, 2),
+            "load_15m": round(load15, 2),
+        }
+    except Exception:
+        return {}
+
+
+def collect_disks() -> list[dict]:
+    """Festplatten-Auslastung."""
+    try:
+        import psutil
+        disks = []
+        for part in psutil.disk_partitions():
+            if part.fstype in ("", "squashfs", "tmpfs", "devtmpfs", "overlay"):
+                continue
+            try:
+                usage = psutil.disk_usage(part.mountpoint)
+                disks.append({
+                    "mount": part.mountpoint,
+                    "percent": round(usage.percent, 1),
+                    "total_gb": round(usage.total / 1024**3, 1),
+                    "used_gb": round(usage.used / 1024**3, 1),
+                })
+            except PermissionError:
+                continue
+        return disks
+    except ImportError:
+        pass
+
+    # Fallback: df
+    try:
+        import subprocess
+        result = subprocess.run(
+            ["df", "-P", "--exclude-type=tmpfs", "--exclude-type=devtmpfs", "--exclude-type=squashfs"],
+            capture_output=True, text=True, timeout=5,
+        )
+        disks = []
+        for line in result.stdout.strip().split("\n")[1:]:
+            parts = line.split()
+            if len(parts) < 6:
+                continue
+            total_kb = int(parts[1])
+            used_kb = int(parts[2])
+            mount = parts[5]
+            percent = round(used_kb / total_kb * 100, 1) if total_kb > 0 else 0
+            disks.append({
+                "mount": mount,
+                "percent": percent,
+                "total_gb": round(total_kb / 1024**2, 1),
+                "used_gb": round(used_kb / 1024**2, 1),
+            })
+        return disks
+    except Exception:
+        return []
+
+
+def collect_services(service_names: list[str]) -> list[dict]:
+    """Prueft ob systemd-Services laufen."""
+    import subprocess
+    services = []
+    for name in service_names:
+        try:
+            result = subprocess.run(
+                ["systemctl", "is-active", name],
+                capture_output=True, text=True, timeout=5,
+            )
+            running = result.stdout.strip() == "active"
+
+            pid = None
+            if running:
+                try:
+                    pid_result = subprocess.run(
+                        ["systemctl", "show", "-p", "MainPID", name],
+                        capture_output=True, text=True, timeout=5,
+                    )
+                    pid_str = pid_result.stdout.strip().split("=")[-1]
+                    pid = int(pid_str) if pid_str.isdigit() and pid_str != "0" else None
+                except Exception:
+                    pass
+
+            services.append({"name": name, "running": running, "pid": pid})
+        except Exception:
+            services.append({"name": name, "running": False, "pid": None})
+    return services
+
+
+def collect_uptime() -> int | None:
+    """Uptime in Sekunden."""
+    try:
+        with open("/proc/uptime") as f:
+            return int(float(f.read().split()[0]))
+    except Exception:
+        return None
+
+
+def build_report(service_names: list[str]) -> dict:
+    """Sammelt alle Metriken und baut den Report."""
+    cpu = collect_cpu_percent()
+    mem = collect_memory()
+    load = collect_load()
+    disks = collect_disks()
+    uptime = collect_uptime()
+
+    resources = {}
+    if cpu is not None:
+        resources["cpu_percent"] = cpu
+    resources.update(mem)
+    resources.update(load)
+    if disks:
+        resources["disks"] = disks
+
+    report = {
+        "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "resources": resources,
+    }
+
+    if service_names:
+        report["services"] = collect_services(service_names)
+
+    if uptime is not None:
+        report["uptime_seconds"] = uptime
+
+    return report
+
+
+# ---------------------------------------------------------------------------
+# HTTP Push
+# ---------------------------------------------------------------------------
+
+def push_report(url: str, api_key: str, server_id: str, report: dict) -> bool:
+    """Sendet den Report an den Monitoring-Service."""
+    endpoint = f"{url}/agent/{server_id}/report"
+    data = json.dumps(report).encode("utf-8")
+
+    req = Request(endpoint, data=data, method="POST")
+    req.add_header("Content-Type", "application/json")
+    req.add_header("X-API-Key", api_key)
+
+    try:
+        with urlopen(req, timeout=15) as resp:
+            if resp.status < 300:
+                return True
+            log(f"Unerwarteter Status: {resp.status}")
+            return False
+    except HTTPError as exc:
+        log(f"HTTP-Fehler: {exc.code} {exc.reason}")
+        return False
+    except URLError as exc:
+        log(f"Verbindungsfehler: {exc.reason}")
+        return False
+    except Exception as exc:
+        log(f"Fehler: {exc}")
+        return False
+
+
+# ---------------------------------------------------------------------------
+# Init Mode
+# ---------------------------------------------------------------------------
+
+def do_init(url: str, api_key: str, server_id: str, services: str) -> None:
+    """Ersteinrichtung: Config schreiben und systemd aktivieren."""
+    url = url.rstrip("/")
+
+    # Config schreiben
+    CONF_DIR.mkdir(parents=True, exist_ok=True)
+    config_lines = [
+        f'MONITOR_URL="{url}"',
+        f'API_KEY="{api_key}"',
+        f'SERVER_ID="{server_id}"',
+    ]
+    if services:
+        config_lines.append(f'SERVICES="{services}"')
+    CONF_FILE.write_text("\n".join(config_lines) + "\n")
+    os.chmod(str(CONF_FILE), 0o600)
+    log(f"Config geschrieben: {CONF_FILE}")
+
+    # Test-Push
+    report = build_report(services.split(",") if services else [])
+    if push_report(url, api_key, server_id, report):
+        log("Test-Push erfolgreich")
+    else:
+        log("WARNUNG: Test-Push fehlgeschlagen — pruefe URL und API-Key")
+
+    # Systemd Units aktivieren (wenn vorhanden)
+    import subprocess
+    for unit in ["srm-monitor-agent.timer"]:
+        try:
+            subprocess.run(["systemctl", "enable", "--now", unit], check=True, timeout=10)
+            log(f"Systemd-Unit aktiviert: {unit}")
+        except Exception as exc:
+            log(f"Konnte {unit} nicht aktivieren: {exc}")
+            log("Bitte manuell aktivieren: systemctl enable --now srm-monitor-agent.timer")
+
+
+def load_config() -> dict:
+    """Liest die Config-Datei."""
+    if not CONF_FILE.exists():
+        return {}
+
+    config = {}
+    for line in CONF_FILE.read_text().strip().split("\n"):
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if "=" in line:
+            key, _, value = line.partition("=")
+            config[key.strip()] = value.strip().strip('"')
+    return config
+
+
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+
+def main():
+    parser = argparse.ArgumentParser(description="SRM Monitoring Agent")
+    parser.add_argument("--init", action="store_true", help="Ersteinrichtung")
+    parser.add_argument("--url", help="Monitoring-Service URL")
+    parser.add_argument("--api-key", help="API-Key fuer Authentifizierung")
+    parser.add_argument("--server-id", help="Server-ID im SRM")
+    parser.add_argument("--services", default="", help="Kommagetrennte Service-Namen (z.B. nginx,frpc,docker)")
+    args = parser.parse_args()
+
+    if args.init:
+        if not args.url or not args.api_key or not args.server_id:
+            die("--init erfordert --url, --api-key und --server-id")
+        do_init(args.url, args.api_key, args.server_id, args.services)
+        return
+
+    # Sync Mode: Config laden und Report pushen
+    config = load_config()
+    if not config:
+        # Kein Fehler — Agent ist noch nicht eingerichtet
+        sys.exit(0)
+
+    url = config.get("MONITOR_URL", "")
+    api_key = config.get("API_KEY", "")
+    server_id = config.get("SERVER_ID", "")
+
+    if not url or not api_key or not server_id:
+        die("Config unvollstaendig — bitte erneut mit --init einrichten")
+
+    service_names = [s.strip() for s in config.get("SERVICES", "").split(",") if s.strip()]
+
+    report = build_report(service_names)
+    if push_report(url, api_key, server_id, report):
+        log("Report gesendet")
+    else:
+        log("Report senden fehlgeschlagen")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

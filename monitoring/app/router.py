@@ -232,9 +232,11 @@ def get_check_metrics(
 # ---------------------------------------------------------------------------
 
 @router.post("/agent/{server_id}/report", dependencies=[Depends(require_agent)])
-def agent_report(server_id: str, report: dict):
+def agent_report(server_id: str, report: dict, db: Session = Depends(get_db)):
     """Agent pusht Metriken direkt zum Monitoring-Service."""
     import time as _time
+    from datetime import datetime, timezone
+    from app.checkers.agent import AgentResourcesChecker, ServiceProcessChecker
 
     ts = int(_time.time())
     tags = f'server_id="{server_id}"'
@@ -251,7 +253,8 @@ def agent_report(server_id: str, report: dict):
             mount = disk.get("mount", "/")
             disk_tags = f'{tags},mount="{mount}"'
             if disk.get("percent") is not None:
-                lines.append(f"monitor_agent_disk_percent{{{disk_tags}}} {disk["percent"]} {ts}")
+                pct = disk["percent"]
+                lines.append(f'monitor_agent_disk_percent{{{disk_tags}}} {pct} {ts}')
 
     uptime = report.get("uptime_seconds")
     if uptime is not None:
@@ -260,4 +263,74 @@ def agent_report(server_id: str, report: dict):
     if lines:
         victoria.write(lines)
 
-    return {"status": "ok", "metricsWritten": len(lines)}
+    # Agent-basierte Checks fuer diesen Server auswerten
+    checks_updated = 0
+    agent_checks = (
+        db.query(MonitorCheck)
+        .filter(
+            MonitorCheck.server_id == server_id,
+            MonitorCheck.enabled == True,  # noqa: E712
+            MonitorCheck.check_type.in_(["agent_resources", "service_process"]),
+        )
+        .all()
+    )
+
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+
+    for check in agent_checks:
+        import json
+        config = json.loads(check.config) if check.config else {}
+
+        if check.check_type == "agent_resources":
+            result_status, message, metrics = AgentResourcesChecker().evaluate(config, report)
+        elif check.check_type == "service_process":
+            result_status, message, metrics = ServiceProcessChecker().evaluate(config, report)
+        else:
+            continue
+
+        # Metriken schreiben
+        if metrics:
+            victoria.write_check_result(
+                check_id=check.id,
+                check_type=check.check_type,
+                server_id=server_id,
+                name=check.name,
+                status=result_status,
+                duration_ms=0,
+                extra_metrics=metrics,
+            )
+
+        # State aktualisieren
+        state = db.query(MonitorState).filter(MonitorState.check_id == check.id).first()
+        old_status = state.status if state else "pending"
+
+        if result_status != "ok":
+            new_fail_count = (state.fail_count + 1) if state else 1
+        else:
+            new_fail_count = 0
+
+        if result_status != "ok" and new_fail_count < check.consecutive_fails:
+            effective_status = old_status if old_status != "pending" else "ok"
+        else:
+            effective_status = result_status
+
+        if not state:
+            state = MonitorState(
+                check_id=check.id, status=effective_status, since=now,
+                last_check=now, fail_count=new_fail_count, message=message,
+            )
+            db.add(state)
+        else:
+            if effective_status != state.status:
+                state.since = now
+            state.status = effective_status
+            state.fail_count = new_fail_count
+            state.last_check = now
+            state.message = message
+
+        checks_updated += 1
+
+    if checks_updated:
+        db.commit()
+
+    return {"status": "ok", "metricsWritten": len(lines), "checksUpdated": checks_updated}

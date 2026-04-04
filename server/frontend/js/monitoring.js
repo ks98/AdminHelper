@@ -164,6 +164,8 @@ document.getElementById('mcCheckType').addEventListener('change', function() {
   document.getElementById('mcPingConfig').classList.toggle('hidden', this.value !== 'ping');
   document.getElementById('mcTcpConfig').classList.toggle('hidden', this.value !== 'tcp');
   document.getElementById('mcHttpConfig').classList.toggle('hidden', this.value !== 'http');
+  document.getElementById('mcAgentResourcesConfig').classList.toggle('hidden', this.value !== 'agent_resources');
+  document.getElementById('mcServiceProcessConfig').classList.toggle('hidden', this.value !== 'service_process');
 });
 
 function openMonitorCheckModal(check) {
@@ -198,11 +200,24 @@ function openMonitorCheckModal(check) {
   document.getElementById('mcHttpVerifySsl').value = cfg.verify_ssl !== false ? 'true' : 'false';
   document.getElementById('mcHttpSearch').value = cfg.search_string || '';
 
+  // Agent Resources Config
+  document.getElementById('mcAgentCpuWarn').value = cfg.cpu_warn ?? 80;
+  document.getElementById('mcAgentCpuCrit').value = cfg.cpu_crit ?? 95;
+  document.getElementById('mcAgentMemWarn').value = cfg.memory_warn ?? 80;
+  document.getElementById('mcAgentMemCrit').value = cfg.memory_crit ?? 95;
+  document.getElementById('mcAgentDiskWarn').value = cfg.disk_warn ?? 85;
+  document.getElementById('mcAgentDiskCrit').value = cfg.disk_crit ?? 95;
+
+  // Service Process Config
+  document.getElementById('mcServiceNames').value = (cfg.services || []).join(', ');
+
   // Config-Sections umschalten
   const type = check?.checkType || 'ping';
   document.getElementById('mcPingConfig').classList.toggle('hidden', type !== 'ping');
   document.getElementById('mcTcpConfig').classList.toggle('hidden', type !== 'tcp');
   document.getElementById('mcHttpConfig').classList.toggle('hidden', type !== 'http');
+  document.getElementById('mcAgentResourcesConfig').classList.toggle('hidden', type !== 'agent_resources');
+  document.getElementById('mcServiceProcessConfig').classList.toggle('hidden', type !== 'service_process');
 
   showModal('monitorCheckModal');
 }
@@ -233,6 +248,22 @@ function _buildCheckConfig() {
     const search = document.getElementById('mcHttpSearch').value.trim();
     if (search) cfg.search_string = search;
     return cfg;
+  }
+  if (type === 'agent_resources') {
+    return {
+      cpu_warn: parseInt(document.getElementById('mcAgentCpuWarn').value) || 80,
+      cpu_crit: parseInt(document.getElementById('mcAgentCpuCrit').value) || 95,
+      memory_warn: parseInt(document.getElementById('mcAgentMemWarn').value) || 80,
+      memory_crit: parseInt(document.getElementById('mcAgentMemCrit').value) || 95,
+      disk_warn: parseInt(document.getElementById('mcAgentDiskWarn').value) || 85,
+      disk_crit: parseInt(document.getElementById('mcAgentDiskCrit').value) || 95,
+    };
+  }
+  if (type === 'service_process') {
+    return {
+      services: document.getElementById('mcServiceNames').value
+        .split(',').map(s => s.trim()).filter(Boolean),
+    };
   }
   return {};
 }

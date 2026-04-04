@@ -1,0 +1,139 @@
+"""
+Agent-basierte Checker.
+
+Werten Agent-Push-Daten gegen konfigurierbare Thresholds aus.
+Die Daten kommen vom srm-monitor-agent via POST /agent/{server_id}/report.
+"""
+
+from __future__ import annotations
+
+from datetime import datetime, timezone
+
+
+class AgentResourcesChecker:
+    """Wertet Agent-Ressourcen-Metriken gegen Thresholds aus.
+
+    Config-Beispiel:
+    {
+        "cpu_warn": 80,
+        "cpu_crit": 95,
+        "memory_warn": 80,
+        "memory_crit": 95,
+        "disk_warn": 85,
+        "disk_crit": 95,
+        "stale_minutes": 5
+    }
+    """
+
+    def run(self, config: dict) -> tuple[str, str, dict | None]:
+        # Wird nicht vom Scheduler aufgerufen, sondern direkt bei Agent-Push
+        return "unknown", "Wartet auf Agent-Daten", None
+
+    def evaluate(self, config: dict, report: dict) -> tuple[str, str, dict | None]:
+        """Wertet einen Agent-Report gegen Thresholds aus."""
+        resources = report.get("resources", {})
+        if not resources:
+            return "unknown", "Keine Ressourcen-Daten", None
+
+        problems = []
+        status = "ok"
+        metrics = {}
+
+        # CPU
+        cpu = resources.get("cpu_percent")
+        if cpu is not None:
+            metrics["agent_cpu_percent"] = cpu
+            cpu_crit = config.get("cpu_crit", 95)
+            cpu_warn = config.get("cpu_warn", 80)
+            if cpu >= cpu_crit:
+                problems.append(f"CPU {cpu}% (>={cpu_crit}%)")
+                status = "critical"
+            elif cpu >= cpu_warn:
+                problems.append(f"CPU {cpu}% (>={cpu_warn}%)")
+                if status != "critical":
+                    status = "warning"
+
+        # Memory
+        mem = resources.get("memory_percent")
+        if mem is not None:
+            metrics["agent_memory_percent"] = mem
+            mem_crit = config.get("memory_crit", 95)
+            mem_warn = config.get("memory_warn", 80)
+            if mem >= mem_crit:
+                problems.append(f"RAM {mem}% (>={mem_crit}%)")
+                status = "critical"
+            elif mem >= mem_warn:
+                problems.append(f"RAM {mem}% (>={mem_warn}%)")
+                if status != "critical":
+                    status = "warning"
+
+        # Disks
+        disk_crit = config.get("disk_crit", 95)
+        disk_warn = config.get("disk_warn", 85)
+        for disk in resources.get("disks", []):
+            pct = disk.get("percent", 0)
+            mount = disk.get("mount", "?")
+            metrics[f"agent_disk_percent_{mount}"] = pct
+            if pct >= disk_crit:
+                problems.append(f"Disk {mount} {pct}% (>={disk_crit}%)")
+                status = "critical"
+            elif pct >= disk_warn:
+                problems.append(f"Disk {mount} {pct}% (>={disk_warn}%)")
+                if status != "critical":
+                    status = "warning"
+
+        if problems:
+            message = "; ".join(problems)
+        else:
+            parts = []
+            if cpu is not None:
+                parts.append(f"CPU {cpu}%")
+            if mem is not None:
+                parts.append(f"RAM {mem}%")
+            message = ", ".join(parts) if parts else "OK"
+
+        return status, message, metrics
+
+
+class ServiceProcessChecker:
+    """Prueft ob bestimmte Services laufen (basierend auf Agent-Push).
+
+    Config-Beispiel:
+    {
+        "services": ["nginx", "docker", "frpc"],
+        "stale_minutes": 5
+    }
+    """
+
+    def run(self, config: dict) -> tuple[str, str, dict | None]:
+        return "unknown", "Wartet auf Agent-Daten", None
+
+    def evaluate(self, config: dict, report: dict) -> tuple[str, str, dict | None]:
+        """Wertet die Service-Liste aus dem Agent-Report aus."""
+        expected = config.get("services", [])
+        if not expected:
+            return "ok", "Keine Services konfiguriert", None
+
+        reported = {s["name"]: s for s in report.get("services", [])}
+        down = []
+        up = []
+
+        for name in expected:
+            svc = reported.get(name)
+            if svc and svc.get("running"):
+                up.append(name)
+            else:
+                down.append(name)
+
+        if down:
+            return (
+                "critical",
+                f"Services nicht aktiv: {', '.join(down)}",
+                {"services_down": len(down), "services_up": len(up)},
+            )
+
+        return (
+            "ok",
+            f"Alle {len(up)} Services aktiv",
+            {"services_down": 0, "services_up": len(up)},
+        )
