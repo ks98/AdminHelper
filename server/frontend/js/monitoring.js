@@ -4,9 +4,15 @@
 // ── Load ���─────────────────────────────────────────────────────────────────
 async function loadMonitoring() {
   try {
-    state.monitorChecks = await get('/api/monitoring/status');
+    const [checks, alerts] = await Promise.all([
+      get('/api/monitoring/status'),
+      get('/api/monitoring/alerts'),
+    ]);
+    state.monitorChecks = checks;
+    state.monitorAlertRules = alerts;
     renderMonitorOverview();
     renderMonitorChecks();
+    renderMonitorAlerts();
   } catch (err) {
     toast(err.message, 'error');
   }
@@ -327,6 +333,180 @@ async function deleteMonitorCheck(id) {
     await del(`/api/monitoring/checks/${id}`);
     toast('Check geloescht');
     await loadMonitoring();
+  } catch (err) {
+    toast(err.message, 'error');
+  }
+}
+
+// ── Alert Rules ────────────────────────────────────────────────────────────
+function renderMonitorAlerts() {
+  const container = document.getElementById('monitorAlertList');
+  const empty = document.getElementById('monitorAlertEmpty');
+  if (!container) return;
+  container.innerHTML = '';
+
+  const rules = state.monitorAlertRules || [];
+  if (rules.length === 0) {
+    if (empty) empty.classList.remove('hidden');
+    return;
+  }
+  if (empty) empty.classList.add('hidden');
+
+  const rows = rules.map(r => {
+    const channelLabel = r.channel === 'webhook' ? 'Webhook' : 'E-Mail';
+    const filterParts = [];
+    if (r.matchSeverity) filterParts.push(`Severity: ${r.matchSeverity}`);
+    if (r.matchServerId) {
+      const srv = (state.servers || []).find(s => s.id === r.matchServerId);
+      filterParts.push(`Server: ${srv ? srv.name : r.matchServerId.substring(0, 8)}`);
+    }
+    const filters = filterParts.length > 0 ? filterParts.join(', ') : 'Alle';
+
+    return `<tr class="${r.enabled ? '' : 'disabled-row'}">
+      <td><strong>${esc(r.name)}</strong></td>
+      <td><span class="badge badge-${r.channel}">${channelLabel}</span></td>
+      <td style="color:var(--text-soft)">${esc(filters)}</td>
+      <td style="color:var(--text-soft)">${r.cooldownMinutes} Min.</td>
+      <td style="white-space:nowrap">
+        <button class="btn small" onclick="editAlertRule('${r.id}')">Bearbeiten</button>
+        <button class="btn small ghost" onclick="toggleAlertRule('${r.id}')">
+          ${r.enabled ? 'Deaktivieren' : 'Aktivieren'}
+        </button>
+        <button class="btn small ghost" onclick="deleteAlertRule('${r.id}')">L\u00f6schen</button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  container.innerHTML = `<table class="data-table" style="margin:0">
+    <thead><tr><th>Name</th><th>Kanal</th><th>Filter</th><th>Cooldown</th><th>Aktionen</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+// ── Alert Rule Modal ─────────────────────────────────────────────────────
+document.getElementById('addAlertRuleBtn')?.addEventListener('click', () => openAlertRuleModal(null));
+
+document.getElementById('arChannel')?.addEventListener('change', function() {
+  document.getElementById('arWebhookConfig').classList.toggle('hidden', this.value !== 'webhook');
+  document.getElementById('arEmailConfig').classList.toggle('hidden', this.value !== 'email');
+});
+
+function openAlertRuleModal(rule) {
+  state.editingAlertRuleId = rule ? rule.id : null;
+  document.getElementById('alertRuleModalTitle').textContent = rule ? 'Alert-Rule bearbeiten' : 'Neue Alert-Rule';
+
+  // Server-Dropdown
+  const serverSelect = document.getElementById('arMatchServerId');
+  serverSelect.innerHTML = '<option value="">-- Alle Server --</option>' +
+    (state.servers || []).map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join('');
+
+  document.getElementById('arName').value = rule?.name || '';
+  document.getElementById('arChannel').value = rule?.channel || 'webhook';
+  document.getElementById('arMatchSeverity').value = rule?.matchSeverity || '';
+  document.getElementById('arMatchServerId').value = rule?.matchServerId || '';
+  document.getElementById('arCooldown').value = rule?.cooldownMinutes ?? 30;
+
+  const cfg = rule?.channelConfig || {};
+  document.getElementById('arWebhookUrl').value = cfg.url || '';
+  document.getElementById('arEmailRecipients').value = (cfg.recipients || []).join(', ');
+
+  const channel = rule?.channel || 'webhook';
+  document.getElementById('arWebhookConfig').classList.toggle('hidden', channel !== 'webhook');
+  document.getElementById('arEmailConfig').classList.toggle('hidden', channel !== 'email');
+
+  showModal('alertRuleModal');
+}
+
+function _buildAlertChannelConfig() {
+  const channel = document.getElementById('arChannel').value;
+  if (channel === 'webhook') {
+    return { url: document.getElementById('arWebhookUrl').value.trim() };
+  }
+  if (channel === 'email') {
+    return {
+      recipients: document.getElementById('arEmailRecipients').value
+        .split(',').map(s => s.trim()).filter(Boolean),
+    };
+  }
+  return {};
+}
+
+document.getElementById('alertRuleForm')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const data = {
+    name: document.getElementById('arName').value.trim(),
+    channel: document.getElementById('arChannel').value,
+    match_severity: document.getElementById('arMatchSeverity').value || null,
+    match_server_id: document.getElementById('arMatchServerId').value || null,
+    cooldown_minutes: parseInt(document.getElementById('arCooldown').value) || 30,
+    channel_config: _buildAlertChannelConfig(),
+  };
+  try {
+    if (state.editingAlertRuleId) {
+      await put(`/api/monitoring/alerts/${state.editingAlertRuleId}`, data);
+      toast('Alert-Rule gespeichert');
+    } else {
+      await post('/api/monitoring/alerts', data);
+      toast('Alert-Rule erstellt');
+    }
+    closeModal('alertRuleModal');
+    await loadMonitoring();
+  } catch (err) {
+    toast(err.message, 'error');
+  }
+});
+
+function editAlertRule(id) {
+  const r = (state.monitorAlertRules || []).find(r => r.id === id);
+  if (r) openAlertRuleModal(r);
+}
+
+async function toggleAlertRule(id) {
+  try {
+    await post(`/api/monitoring/alerts/${id}/toggle`);
+    toast('Alert-Rule aktualisiert');
+    await loadMonitoring();
+  } catch (err) {
+    toast(err.message, 'error');
+  }
+}
+
+async function deleteAlertRule(id) {
+  if (!confirm('Alert-Rule wirklich loeschen?')) return;
+  try {
+    await del(`/api/monitoring/alerts/${id}`);
+    toast('Alert-Rule geloescht');
+    await loadMonitoring();
+  } catch (err) {
+    toast(err.message, 'error');
+  }
+}
+
+// ── Alert Log ────────────────────────────────────────────────────────────
+async function loadAlertLog() {
+  try {
+    const logs = await get('/api/monitoring/alerts/log?limit=50');
+    const container = document.getElementById('monitorAlertLogBody');
+    if (!container) return;
+
+    if (logs.length === 0) {
+      container.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-soft)">Keine Alerts versendet</td></tr>';
+      return;
+    }
+
+    container.innerHTML = logs.map(l => {
+      const time = _formatTime(l.sentAt);
+      const check = state.monitorChecks.find(c => c.id === l.checkId);
+      const checkName = check ? check.name : l.checkId.substring(0, 8);
+      return `<tr>
+        <td style="font-size:12px;color:var(--text-soft)">${esc(time)}</td>
+        <td>${esc(checkName)}</td>
+        <td><span class="monitor-dot monitor-${l.oldStatus}"></span> ${esc(l.oldStatus)}</td>
+        <td><span class="monitor-dot monitor-${l.newStatus}"></span> ${esc(l.newStatus)}</td>
+        <td>${l.success ? '<span style="color:var(--green)">Gesendet</span>' : '<span style="color:var(--red)">Fehler</span>'}</td>
+        <td style="font-size:12px;color:var(--text-soft)">${l.error ? esc(l.error) : '\u2013'}</td>
+      </tr>`;
+    }).join('');
   } catch (err) {
     toast(err.message, 'error');
   }

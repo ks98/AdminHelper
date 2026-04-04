@@ -62,3 +62,57 @@ class MonitorState(Base):
             "failCount": self.fail_count,
             "message": self.message,
         }
+
+
+class MonitorAlertRule(Base):
+    __tablename__ = "monitor_alert_rules"
+
+    id = Column(String, primary_key=True)
+    name = Column(String, nullable=False)
+    match_severity = Column(String, nullable=True)
+    match_server_id = Column(String, nullable=True)
+    channel = Column(String, nullable=False)  # webhook, email
+    channel_config = Column(String, nullable=False, default="{}")
+    cooldown_minutes = Column(Integer, default=30)
+    enabled = Column(Boolean, default=True)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "name": self.name,
+            "matchSeverity": self.match_severity,
+            "matchServerId": self.match_server_id,
+            "channel": self.channel,
+            "channelConfig": json.loads(self.channel_config) if self.channel_config else {},
+            "cooldownMinutes": self.cooldown_minutes,
+            "enabled": self.enabled,
+            "createdAt": self.created_at.isoformat() if self.created_at else None,
+            "updatedAt": self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+
+class MonitorAlertLog(Base):
+    __tablename__ = "monitor_alert_log"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    alert_rule_id = Column(String, ForeignKey("monitor_alert_rules.id", ondelete="CASCADE"), nullable=False, index=True)
+    check_id = Column(String, ForeignKey("monitor_checks.id", ondelete="CASCADE"), nullable=False, index=True)
+    old_status = Column(String, nullable=False)
+    new_status = Column(String, nullable=False)
+    sent_at = Column(DateTime, nullable=False, server_default=func.now())
+    success = Column(Boolean, nullable=False)
+    error = Column(String, nullable=True)
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "alertRuleId": self.alert_rule_id,
+            "checkId": self.check_id,
+            "oldStatus": self.old_status,
+            "newStatus": self.new_status,
+            "sentAt": self.sent_at.isoformat() if self.sent_at else None,
+            "success": self.success,
+            "error": self.error,
+        }

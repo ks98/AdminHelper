@@ -9,6 +9,7 @@ import logging
 import time
 from datetime import datetime, timezone
 
+from app.alerter import process_alert
 from app.checkers import get_checker
 from app.core.database import SessionLocal
 from app.core.victoria import victoria
@@ -99,6 +100,13 @@ def execute_check(check_id: str) -> None:
             state.message = message
 
         db.commit()
+
+        # Alerting bei Status-Wechsel
+        if old_status != effective_status:
+            try:
+                process_alert(db, check, old_status, effective_status)
+            except Exception:
+                logger.exception("Alerting fuer Check '%s' fehlgeschlagen", check.name)
 
     except Exception:
         logger.exception("execute_check(%s) fehlgeschlagen", check_id)

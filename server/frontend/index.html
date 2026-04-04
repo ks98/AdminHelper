@@ -304,6 +304,26 @@
         <!-- Check-Liste gruppiert nach Server -->
         <div id="monitorCheckList" style="display:flex;flex-direction:column;gap:12px"></div>
         <div id="monitorEmpty" class="empty-state hidden"><p>Keine Checks vorhanden.</p></div>
+
+        <!-- Alert-Rules -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:30px;margin-bottom:12px">
+          <h3 style="margin:0">Alert-Rules</h3>
+          <button id="addAlertRuleBtn" class="btn primary">+ Alert-Rule</button>
+        </div>
+        <div id="monitorAlertList"></div>
+        <div id="monitorAlertEmpty" class="empty-state hidden"><p>Keine Alert-Rules vorhanden.</p></div>
+
+        <!-- Alert-Log -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:30px;margin-bottom:12px">
+          <h3 style="margin:0">Alert-Historie</h3>
+          <button class="btn small" onclick="loadAlertLog()">Aktualisieren</button>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>Zeit</th><th>Check</th><th>Von</th><th>Nach</th><th>Status</th><th>Fehler</th></tr></thead>
+          <tbody id="monitorAlertLogBody">
+            <tr><td colspan="6" style="text-align:center;color:var(--text-soft)">Klicke "Aktualisieren" zum Laden</td></tr>
+          </tbody>
+        </table>
       </div>
 
     </main>
@@ -1011,6 +1031,71 @@
         </div>
         <div class="modal-actions">
           <button type="button" class="btn ghost" data-close="monitorCheckModal">Abbrechen</button>
+          <button type="submit" class="btn primary">Speichern</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Alert Rule -->
+  <div id="alertRuleModal" class="modal-backdrop hidden">
+    <div class="modal" style="width:min(520px,95vw);max-height:90vh;overflow-y:auto">
+      <div class="modal-header">
+        <div class="modal-title" id="alertRuleModalTitle">Neue Alert-Rule</div>
+        <button class="modal-close" data-close="alertRuleModal">&#x2715;</button>
+      </div>
+      <form id="alertRuleForm" class="modal-form">
+        <div class="conn-form">
+          <div class="field">
+            <label>Name *</label>
+            <input id="arName" required placeholder="z.B. Kritische Alerts an Slack" />
+          </div>
+          <div class="field">
+            <label>Kanal *</label>
+            <select id="arChannel">
+              <option value="webhook">Webhook</option>
+              <option value="email">E-Mail</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Severity-Filter</label>
+            <select id="arMatchSeverity">
+              <option value="">Alle</option>
+              <option value="critical">Critical</option>
+              <option value="warning">Warning</option>
+              <option value="info">Info</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Server-Filter</label>
+            <select id="arMatchServerId">
+              <option value="">Alle Server</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Cooldown (Minuten)</label>
+            <input id="arCooldown" type="number" min="1" value="30" />
+          </div>
+
+          <!-- Webhook Config -->
+          <div id="arWebhookConfig">
+            <div class="field">
+              <label>Webhook-URL *</label>
+              <input id="arWebhookUrl" type="url" placeholder="https://hooks.slack.com/..." />
+            </div>
+          </div>
+
+          <!-- Email Config -->
+          <div id="arEmailConfig" class="hidden">
+            <div class="field">
+              <label>Empfaenger (kommagetrennt) *</label>
+              <input id="arEmailRecipients" placeholder="admin@example.com, ops@example.com" />
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn ghost" data-close="alertRuleModal">Abbrechen</button>
           <button type="submit" class="btn primary">Speichern</button>
         </div>
       </form>

@@ -27,6 +27,28 @@ class CheckUpdate(BaseModel):
     consecutive_fails: int | None = None
 
 
+class AlertRuleCreate(BaseModel):
+    name: str
+    match_severity: str | None = None
+    match_server_id: str | None = None
+    channel: str  # webhook, email
+    channel_config: dict = {}
+    cooldown_minutes: int = 30
+    enabled: bool = True
+
+
+class AlertRuleUpdate(BaseModel):
+    name: str | None = None
+    match_severity: str | None = None
+    match_server_id: str | None = None
+    channel: str | None = None
+    channel_config: dict | None = None
+    cooldown_minutes: int | None = None
+    enabled: bool | None = None
+
+
+VALID_CHANNELS = {"webhook", "email"}
+
 VALID_CHECK_TYPES = {
     "ping",
     "tcp",
