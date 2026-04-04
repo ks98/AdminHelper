@@ -10,7 +10,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.core.database import Base, engine
-from app.models import MonitorCheck, MonitorState  # noqa: F401
+from app.models import MonitorCheck, MonitorState, MonitorTemplate, MonitorTemplateAssignment  # noqa: F401
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 logger = logging.getLogger("monitor")

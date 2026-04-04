@@ -1,6 +1,9 @@
 import json
+import logging
+import os
 import uuid
 
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -9,6 +12,11 @@ from app.core.auth import get_current_admin
 from app.core.events import fire_event
 from app.modules.servers.models import Server
 from app.modules.servers.schemas import ServerCreate, ServerUpdate
+
+logger = logging.getLogger("srm.servers")
+
+MONITOR_URL = os.environ.get("MONITOR_SERVICE_URL", "http://monitoring:8080")
+MONITOR_API_KEY = os.environ.get("MONITOR_API_KEY", "")
 
 router = APIRouter(prefix="/api/servers", tags=["servers"])
 
@@ -70,3 +78,13 @@ def delete_server(server_id: str, db: Session = Depends(get_db), _admin=Depends(
     fire_event("server.deleted", {"id": server.id, "name": server.name})
     db.delete(server)
     db.commit()
+
+    # Monitoring-Cleanup: Alle Checks/Alerts/Assignments dieses Servers loeschen
+    try:
+        httpx.delete(
+            f"{MONITOR_URL}/servers/{server_id}/cleanup",
+            headers={"X-Internal-Key": MONITOR_API_KEY},
+            timeout=5,
+        )
+    except Exception as exc:
+        logger.warning("Monitoring-Cleanup fuer Server %s fehlgeschlagen: %s", server_id, exc)

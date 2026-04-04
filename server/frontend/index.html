@@ -332,6 +332,14 @@
         </div>
         <div id="monitorCredentialList"></div>
         <div id="monitorCredentialEmpty" class="empty-state hidden"><p>Keine Zugangsdaten vorhanden.</p></div>
+
+        <!-- Templates -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:30px;margin-bottom:12px">
+          <h3 style="margin:0">Templates</h3>
+          <button id="addTemplateBtn" class="btn primary">+ Template</button>
+        </div>
+        <div id="monitorTemplateList"></div>
+        <div id="monitorTemplateEmpty" class="empty-state hidden"><p>Keine Templates vorhanden.</p></div>
       </div>
 
     </main>
@@ -662,6 +670,12 @@
         <div class="field">
           <label>Notizen</label>
           <textarea id="sfNotes" placeholder="Optionale Notizen..."></textarea>
+        </div>
+        <div class="field full">
+          <label>Monitoring-Templates</label>
+          <select id="sfTemplates" multiple size="3" style="min-height:60px">
+          </select>
+          <small style="color:var(--text-soft)">Mehrfachauswahl: Strg+Klick</small>
         </div>
         <div class="modal-actions">
           <button type="button" class="btn ghost" data-close="serverModal">Abbrechen</button>
@@ -1402,6 +1416,52 @@
 
         <div class="modal-actions">
           <button type="button" class="btn ghost" data-close="credentialModal">Abbrechen</button>
+          <button type="submit" class="btn primary">Speichern</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Template -->
+  <div id="monitorTemplateModal" class="modal-backdrop hidden">
+    <div class="modal" style="width:min(720px,95vw);max-height:90vh;overflow-y:auto">
+      <div class="modal-header">
+        <div class="modal-title" id="templateModalTitle">Neues Template</div>
+        <button class="modal-close" data-close="monitorTemplateModal">&#x2715;</button>
+      </div>
+      <form id="templateForm" class="modal-form">
+        <div class="conn-form">
+          <div class="field">
+            <label>Name *</label>
+            <input id="tplName" required placeholder="z.B. Webserver, Proxmox Node" />
+          </div>
+          <div class="field full">
+            <label>Beschreibung</label>
+            <input id="tplDescription" placeholder="Optionale Beschreibung" />
+          </div>
+
+          <!-- Check-Definitionen -->
+          <div class="field full">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <label style="margin:0;font-weight:600">Check-Definitionen</label>
+              <button type="button" class="btn small" onclick="addTemplateCheckDef()">+ Check</button>
+            </div>
+            <div id="tplCheckDefs"></div>
+            <small style="color:var(--text-soft)">Verwende <code>{{hostname}}</code>, <code>{{server_name}}</code>, <code>{{server_id}}</code> als Platzhalter</small>
+          </div>
+
+          <!-- Alert-Definitionen -->
+          <div class="field full">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <label style="margin:0;font-weight:600">Alert-Definitionen</label>
+              <button type="button" class="btn small" onclick="addTemplateAlertDef()">+ Alert</button>
+            </div>
+            <div id="tplAlertDefs"></div>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn ghost" data-close="monitorTemplateModal">Abbrechen</button>
           <button type="submit" class="btn primary">Speichern</button>
         </div>
       </form>

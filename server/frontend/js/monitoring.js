@@ -4,18 +4,21 @@
 // ── Load ���─────────────────────────────────────────────────────────────────
 async function loadMonitoring() {
   try {
-    const [checks, alerts, credentials] = await Promise.all([
+    const [checks, alerts, credentials, templates] = await Promise.all([
       get('/api/monitoring/status'),
       get('/api/monitoring/alerts'),
       get('/api/monitoring/credentials'),
+      get('/api/monitoring/templates'),
     ]);
     state.monitorChecks = checks;
     state.monitorAlertRules = alerts;
     state.monitorCredentials = credentials;
+    state.monitorTemplates = templates;
     renderMonitorOverview();
     renderMonitorChecks();
     renderMonitorAlerts();
     renderMonitorCredentials();
+    renderMonitorTemplates();
   } catch (err) {
     toast(err.message, 'error');
   }
@@ -136,7 +139,7 @@ function _renderCheckTable(checks) {
     return `<tr>
       <td><span class="monitor-dot monitor-${st}"></span></td>
       <td><span class="badge badge-${c.checkType}">${esc(typeBadge)}</span></td>
-      <td><strong>${esc(c.name)}</strong></td>
+      <td><strong>${esc(c.name)}</strong>${c.templateId ? ' <span class="badge badge-tpl" title="Von Template verwaltet">TPL</span>' : ''}</td>
       <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-soft)">${esc(msg)}</td>
       <td style="color:var(--text-soft);font-size:12px">${esc(lastCheck)}</td>
       <td style="white-space:nowrap">
@@ -786,6 +789,231 @@ async function deleteCredential(id) {
   try {
     await del(`/api/monitoring/credentials/${id}`);
     toast('Credential geloescht');
+    await loadMonitoring();
+  } catch (err) {
+    toast(err.message, 'error');
+  }
+}
+
+// ── Templates ────────────────────────────────────────────────────────────
+function renderMonitorTemplates() {
+  const container = document.getElementById('monitorTemplateList');
+  const empty = document.getElementById('monitorTemplateEmpty');
+  if (!container) return;
+  container.innerHTML = '';
+
+  const templates = state.monitorTemplates || [];
+  if (templates.length === 0) {
+    if (empty) empty.classList.remove('hidden');
+    return;
+  }
+  if (empty) empty.classList.add('hidden');
+
+  const rows = templates.map(t => {
+    const checkCount = (t.checkDefinitions || []).length;
+    const alertCount = (t.alertDefinitions || []).length;
+    const serverCount = (t.assignments || []).length;
+    const serverNames = (t.assignments || []).map(a => a.serverName).join(', ') || '\u2013';
+
+    return `<tr>
+      <td><strong>${esc(t.name)}</strong></td>
+      <td style="color:var(--text-soft)">${esc(t.description || '')}</td>
+      <td>${checkCount} Checks, ${alertCount} Alerts</td>
+      <td style="color:var(--text-soft);font-size:12px" title="${esc(serverNames)}">${serverCount} Server</td>
+      <td style="white-space:nowrap">
+        <button class="btn small" onclick="editTemplate('${t.id}')">Bearbeiten</button>
+        <button class="btn small ghost" onclick="deleteTemplate('${t.id}')">L\u00f6schen</button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  container.innerHTML = `<table class="data-table" style="margin:0">
+    <thead><tr><th>Name</th><th>Beschreibung</th><th>Inhalt</th><th>Server</th><th>Aktionen</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+// ── Template Modal ───────────────────────────────────────────────────────
+document.getElementById('addTemplateBtn')?.addEventListener('click', () => openTemplateModal(null));
+
+function openTemplateModal(template) {
+  state.editingTemplateId = template ? template.id : null;
+  document.getElementById('templateModalTitle').textContent = template ? 'Template bearbeiten' : 'Neues Template';
+
+  document.getElementById('tplName').value = template?.name || '';
+  document.getElementById('tplDescription').value = template?.description || '';
+
+  state.templateCheckDefs = (template?.checkDefinitions || []).map(d => ({...d}));
+  state.templateAlertDefs = (template?.alertDefinitions || []).map(d => ({...d}));
+
+  _renderTemplateCheckDefs();
+  _renderTemplateAlertDefs();
+  showModal('monitorTemplateModal');
+}
+
+function _renderTemplateCheckDefs() {
+  const container = document.getElementById('tplCheckDefs');
+  if (!container) return;
+
+  if (state.templateCheckDefs.length === 0) {
+    container.innerHTML = '<div style="color:var(--text-soft);font-size:13px;padding:8px 0">Keine Checks definiert</div>';
+    return;
+  }
+
+  container.innerHTML = state.templateCheckDefs.map((def, i) => {
+    const typeBadge = def.check_type ? def.check_type.toUpperCase() : 'PING';
+    return `<div class="tpl-def-row" style="display:flex;gap:6px;align-items:center;margin-bottom:6px;padding:6px 8px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px">
+      <span class="badge badge-${def.check_type || 'ping'}" style="flex-shrink:0;font-size:10px">${esc(typeBadge)}</span>
+      <input value="${esc(def.name || '')}" onchange="state.templateCheckDefs[${i}].name=this.value" style="flex:1;min-width:120px" placeholder="Name ({{server_name}})" />
+      <select onchange="state.templateCheckDefs[${i}].check_type=this.value;_renderTemplateCheckDefs()" style="width:100px">
+        ${['ping','tcp','http','agent_resources','service_process','snmp','proxmox_node','proxmox_vm','pbs_job','opnsense','unifi_device']
+          .map(t => `<option value="${t}" ${def.check_type===t?'selected':''}>${t}</option>`).join('')}
+      </select>
+      <select onchange="state.templateCheckDefs[${i}].interval=this.value" style="width:65px">
+        ${['1m','5m','15m','30m','1h','6h','12h','24h']
+          .map(v => `<option value="${v}" ${def.interval===v?'selected':''}>${v}</option>`).join('')}
+      </select>
+      <select onchange="state.templateCheckDefs[${i}].severity=this.value" style="width:80px">
+        ${['critical','warning','info']
+          .map(v => `<option value="${v}" ${def.severity===v?'selected':''}>${v}</option>`).join('')}
+      </select>
+      <button type="button" class="btn small" onclick="editTemplateCheckConfig(${i})" title="Config">&#x2699;</button>
+      <button type="button" class="btn small ghost" onclick="removeTemplateCheckDef(${i})" title="Entfernen">&#x2715;</button>
+    </div>`;
+  }).join('');
+}
+
+function addTemplateCheckDef() {
+  state.templateCheckDefs.push({
+    def_id: crypto.randomUUID(),
+    name: 'Ping {{server_name}}',
+    check_type: 'ping',
+    config: { target: '{{hostname}}', timeout: 5 },
+    interval: '5m',
+    severity: 'critical',
+    consecutive_fails: 3,
+  });
+  _renderTemplateCheckDefs();
+}
+
+function removeTemplateCheckDef(index) {
+  state.templateCheckDefs.splice(index, 1);
+  _renderTemplateCheckDefs();
+}
+
+function editTemplateCheckConfig(index) {
+  const def = state.templateCheckDefs[index];
+  const configStr = JSON.stringify(def.config || {}, null, 2);
+  const result = prompt(`Config fuer "${def.name}" (JSON):\n\nPlatzhalter: {{hostname}}, {{server_name}}, {{server_id}}`, configStr);
+  if (result !== null) {
+    try {
+      def.config = JSON.parse(result);
+    } catch {
+      toast('Ungueltiges JSON', 'error');
+    }
+  }
+}
+
+function _renderTemplateAlertDefs() {
+  const container = document.getElementById('tplAlertDefs');
+  if (!container) return;
+
+  if (state.templateAlertDefs.length === 0) {
+    container.innerHTML = '<div style="color:var(--text-soft);font-size:13px;padding:8px 0">Keine Alerts definiert</div>';
+    return;
+  }
+
+  container.innerHTML = state.templateAlertDefs.map((def, i) => {
+    const channelLabel = def.channel === 'email' ? 'E-Mail' : 'Webhook';
+    return `<div class="tpl-def-row" style="display:flex;gap:6px;align-items:center;margin-bottom:6px;padding:6px 8px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px">
+      <span class="badge badge-${def.channel || 'webhook'}" style="flex-shrink:0;font-size:10px">${esc(channelLabel)}</span>
+      <input value="${esc(def.name || '')}" onchange="state.templateAlertDefs[${i}].name=this.value" style="flex:1;min-width:120px" placeholder="Name" />
+      <select onchange="state.templateAlertDefs[${i}].channel=this.value;_renderTemplateAlertDefs()" style="width:90px">
+        <option value="webhook" ${def.channel==='webhook'?'selected':''}>Webhook</option>
+        <option value="email" ${def.channel==='email'?'selected':''}>E-Mail</option>
+      </select>
+      <select onchange="state.templateAlertDefs[${i}].match_severity=this.value||null" style="width:80px">
+        <option value="" ${!def.match_severity?'selected':''}>Alle</option>
+        <option value="critical" ${def.match_severity==='critical'?'selected':''}>Critical</option>
+        <option value="warning" ${def.match_severity==='warning'?'selected':''}>Warning</option>
+      </select>
+      <input value="${def.cooldown_minutes||30}" onchange="state.templateAlertDefs[${i}].cooldown_minutes=parseInt(this.value)||30" style="width:50px" type="number" title="Cooldown (Min.)" />
+      <button type="button" class="btn small" onclick="editTemplateAlertConfig(${i})" title="Config">&#x2699;</button>
+      <button type="button" class="btn small ghost" onclick="removeTemplateAlertDef(${i})" title="Entfernen">&#x2715;</button>
+    </div>`;
+  }).join('');
+}
+
+function addTemplateAlertDef() {
+  state.templateAlertDefs.push({
+    def_id: crypto.randomUUID(),
+    name: 'Alert {{server_name}}',
+    channel: 'webhook',
+    channel_config: { url: '' },
+    match_severity: 'critical',
+    cooldown_minutes: 30,
+    enabled: true,
+  });
+  _renderTemplateAlertDefs();
+}
+
+function removeTemplateAlertDef(index) {
+  state.templateAlertDefs.splice(index, 1);
+  _renderTemplateAlertDefs();
+}
+
+function editTemplateAlertConfig(index) {
+  const def = state.templateAlertDefs[index];
+  const configStr = JSON.stringify(def.channel_config || {}, null, 2);
+  const result = prompt(`Channel-Config fuer "${def.name}" (JSON):`, configStr);
+  if (result !== null) {
+    try {
+      def.channel_config = JSON.parse(result);
+    } catch {
+      toast('Ungueltiges JSON', 'error');
+    }
+  }
+}
+
+document.getElementById('templateForm')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const data = {
+    name: document.getElementById('tplName').value.trim(),
+    description: document.getElementById('tplDescription').value.trim() || null,
+    check_definitions: state.templateCheckDefs,
+    alert_definitions: state.templateAlertDefs,
+  };
+  try {
+    if (state.editingTemplateId) {
+      const result = await put(`/api/monitoring/templates/${state.editingTemplateId}`, data);
+      const sync = result.syncResult;
+      toast(`Template gespeichert — ${sync.created} erstellt, ${sync.updated} aktualisiert, ${sync.deleted} geloescht (${sync.servers} Server)`);
+    } else {
+      await post('/api/monitoring/templates', data);
+      toast('Template erstellt');
+    }
+    closeModal('monitorTemplateModal');
+    await loadMonitoring();
+  } catch (err) {
+    toast(err.message, 'error');
+  }
+});
+
+function editTemplate(id) {
+  const t = (state.monitorTemplates || []).find(t => t.id === id);
+  if (t) openTemplateModal(t);
+}
+
+async function deleteTemplate(id) {
+  const t = (state.monitorTemplates || []).find(t => t.id === id);
+  const serverCount = (t?.assignments || []).length;
+  const msg = serverCount > 0
+    ? `Template "${t.name}" wirklich loeschen? Alle Checks bei ${serverCount} Server(n) werden geloescht!`
+    : `Template "${t?.name}" wirklich loeschen?`;
+  if (!confirm(msg)) return;
+  try {
+    await del(`/api/monitoring/templates/${id}`);
+    toast('Template geloescht');
     await loadMonitoring();
   } catch (err) {
     toast(err.message, 'error');

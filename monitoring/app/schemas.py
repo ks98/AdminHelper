@@ -59,6 +59,48 @@ class CredentialUpdate(BaseModel):
     config: dict | None = None
 
 
+class TemplateCheckDef(BaseModel):
+    def_id: str | None = None  # wird auto-generiert wenn nicht gesetzt
+    name: str
+    check_type: str
+    config: dict = {}
+    enabled: bool = True
+    interval: str = "5m"
+    severity: str = "critical"
+    consecutive_fails: int = 3
+    description: str | None = None
+
+
+class TemplateAlertDef(BaseModel):
+    def_id: str | None = None
+    name: str
+    match_severity: str | None = None
+    channel: str
+    channel_config: dict = {}
+    cooldown_minutes: int = 30
+    enabled: bool = True
+
+
+class TemplateCreate(BaseModel):
+    name: str
+    description: str | None = None
+    check_definitions: list[TemplateCheckDef] = []
+    alert_definitions: list[TemplateAlertDef] = []
+
+
+class TemplateUpdate(BaseModel):
+    name: str | None = None
+    description: str | None = None
+    check_definitions: list[TemplateCheckDef] | None = None
+    alert_definitions: list[TemplateAlertDef] | None = None
+
+
+class TemplateAssign(BaseModel):
+    server_id: str
+    hostname: str
+    server_name: str
+
+
 VALID_CRED_TYPES = {
     "proxmox_token",
     "opnsense_api",

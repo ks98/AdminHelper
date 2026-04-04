@@ -20,6 +20,8 @@ class MonitorCheck(Base):
     interval = Column(String, nullable=False, default="5m")
     severity = Column(String, nullable=False, default="critical")
     consecutive_fails = Column(Integer, default=3)
+    template_id = Column(String, nullable=True, index=True)
+    template_def_id = Column(String, nullable=True)  # stabile def_id aus Template
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
@@ -35,6 +37,7 @@ class MonitorCheck(Base):
             "interval": self.interval,
             "severity": self.severity,
             "consecutiveFails": self.consecutive_fails,
+            "templateId": self.template_id,
             "createdAt": self.created_at.isoformat() if self.created_at else None,
             "updatedAt": self.updated_at.isoformat() if self.updated_at else None,
         }
@@ -75,6 +78,8 @@ class MonitorAlertRule(Base):
     channel_config = Column(String, nullable=False, default="{}")
     cooldown_minutes = Column(Integer, default=30)
     enabled = Column(Boolean, default=True)
+    template_id = Column(String, nullable=True, index=True)
+    template_def_id = Column(String, nullable=True)
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
@@ -88,6 +93,7 @@ class MonitorAlertRule(Base):
             "channelConfig": json.loads(self.channel_config) if self.channel_config else {},
             "cooldownMinutes": self.cooldown_minutes,
             "enabled": self.enabled,
+            "templateId": self.template_id,
             "createdAt": self.created_at.isoformat() if self.created_at else None,
             "updatedAt": self.updated_at.isoformat() if self.updated_at else None,
         }
@@ -141,4 +147,49 @@ class MonitorCredential(Base):
             "config": cfg,
             "createdAt": self.created_at.isoformat() if self.created_at else None,
             "updatedAt": self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+
+class MonitorTemplate(Base):
+    __tablename__ = "monitor_templates"
+
+    id = Column(String, primary_key=True)
+    name = Column(String, nullable=False)
+    description = Column(String, nullable=True)
+    check_definitions = Column(String, nullable=False, default="[]")
+    alert_definitions = Column(String, nullable=False, default="[]")
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    def to_dict(self, assignments: list | None = None) -> dict:
+        d = {
+            "id": self.id,
+            "name": self.name,
+            "description": self.description,
+            "checkDefinitions": json.loads(self.check_definitions) if self.check_definitions else [],
+            "alertDefinitions": json.loads(self.alert_definitions) if self.alert_definitions else [],
+            "createdAt": self.created_at.isoformat() if self.created_at else None,
+            "updatedAt": self.updated_at.isoformat() if self.updated_at else None,
+        }
+        if assignments is not None:
+            d["assignments"] = [a.to_dict() for a in assignments]
+        return d
+
+
+class MonitorTemplateAssignment(Base):
+    __tablename__ = "monitor_template_assignments"
+
+    id = Column(String, primary_key=True)
+    template_id = Column(String, ForeignKey("monitor_templates.id", ondelete="CASCADE"), nullable=False, index=True)
+    server_id = Column(String, nullable=False, index=True)
+    server_hostname = Column(String, nullable=False)
+    server_name = Column(String, nullable=False)
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "templateId": self.template_id,
+            "serverId": self.server_id,
+            "serverHostname": self.server_hostname,
+            "serverName": self.server_name,
         }

@@ -28,6 +28,10 @@ const state = {
   editingAlertRuleId: null,
   monitorCredentials: [],
   editingCredentialId: null,
+  monitorTemplates: [],
+  editingTemplateId: null,
+  templateCheckDefs: [],
+  templateAlertDefs: [],
 };
 
 // ── API helpers ────────────────────────────────────────────────────────────

@@ -130,7 +130,7 @@ function toggleServerCard(headerEl) {
 
 document.getElementById('addServerBtn').addEventListener('click', () => openServerModal(null));
 
-function openServerModal(server) {
+async function openServerModal(server) {
   state.editingServerId = server ? server.id : null;
   document.getElementById('serverModalTitle').textContent = server ? 'Server bearbeiten' : 'Neuer Server';
   document.getElementById('sfName').value     = server?.name     || '';
@@ -138,6 +138,25 @@ function openServerModal(server) {
   document.getElementById('sfOsType').value   = server?.osType   || '';
   document.getElementById('sfTags').value     = (server?.tags || []).join(', ');
   document.getElementById('sfNotes').value    = server?.notes    || '';
+
+  // Template-Dropdown befuellen
+  const sel = document.getElementById('sfTemplates');
+  try {
+    const templates = await get('/api/monitoring/templates');
+    let assignedIds = [];
+    if (server) {
+      const assignments = await get(`/api/monitoring/templates/assignments/${server.id}`);
+      assignedIds = assignments.map(a => a.templateId);
+    }
+    sel.innerHTML = templates.map(t =>
+      `<option value="${esc(t.id)}"${assignedIds.includes(t.id) ? ' selected' : ''}>${esc(t.name)}</option>`
+    ).join('');
+    sel.dataset.originalIds = JSON.stringify(assignedIds);
+  } catch {
+    sel.innerHTML = '<option disabled>Templates nicht verfuegbar</option>';
+    sel.dataset.originalIds = '[]';
+  }
+
   showModal('serverModal');
 }
 
@@ -151,19 +170,41 @@ document.getElementById('serverForm').addEventListener('submit', async (e) => {
     notes:    document.getElementById('sfNotes').value.trim(),
   };
   try {
-    if (state.editingServerId) {
-      await put(`/api/servers/${state.editingServerId}`, data);
+    let serverId = state.editingServerId;
+    if (serverId) {
+      await put(`/api/servers/${serverId}`, data);
       toast('Server gespeichert');
     } else {
-      await post('/api/servers', data);
+      const created = await post('/api/servers', data);
+      serverId = created.id;
       toast('Server erstellt');
     }
+
+    await _syncTemplateAssignments(serverId, data.hostname, data.name);
+
     closeModal('serverModal');
     await loadServers();
   } catch (err) {
     toast(err.message, 'error');
   }
 });
+
+async function _syncTemplateAssignments(serverId, hostname, serverName) {
+  const sel = document.getElementById('sfTemplates');
+  const oldIds = new Set(JSON.parse(sel.dataset.originalIds || '[]'));
+  const newIds = new Set([...sel.selectedOptions].map(o => o.value));
+
+  const toAdd = [...newIds].filter(id => !oldIds.has(id));
+  const toRemove = [...oldIds].filter(id => !newIds.has(id));
+
+  const calls = [
+    ...toAdd.map(id => post(`/api/monitoring/templates/${id}/assign`, {
+      server_id: serverId, hostname, server_name: serverName,
+    }).catch(() => null)),
+    ...toRemove.map(id => del(`/api/monitoring/templates/${id}/assign/${serverId}`).catch(() => null)),
+  ];
+  if (calls.length) await Promise.all(calls);
+}
 
 function editServer(id) {
   const s = state.servers.find(s => s.id === id);
