@@ -148,6 +148,27 @@ def _migrate_visitors_to_users():
     conn.close()
 
 
+def _server_cert_needs_regen(pki_dir, server_addr: str) -> bool:
+    """Prueft ob das Server-Cert neu generiert werden muss (fehlende/falsche SANs)."""
+    import ipaddress
+    from cryptography import x509 as cx509
+
+    cert_path = pki_dir / "frps.crt"
+    if not cert_path.exists():
+        return True
+    try:
+        cert = cx509.load_pem_x509_certificate(cert_path.read_bytes())
+        san = cert.extensions.get_extension_for_class(cx509.SubjectAlternativeName)
+        # Pruefen ob die Adresse korrekt als IP oder DNS im SAN steht
+        try:
+            addr = ipaddress.ip_address(server_addr)
+            return addr not in san.value.get_values_for_type(cx509.IPAddress)
+        except ValueError:
+            return server_addr not in san.value.get_values_for_type(cx509.DNSName)
+    except Exception:
+        return True
+
+
 def _ensure_pki():
     """Generiert CA + Server-Cert automatisch wenn eine FRP-Config existiert aber PKI fehlt."""
     from app.modules.frp import pki as pki_manager
@@ -164,8 +185,7 @@ def _ensure_pki():
             pki_manager.generate_ca("Simple Remote Manager CA")
             logger.info("Auto-PKI: CA generiert")
 
-        status = pki_manager.get_pki_status()
-        if not status.get("serverCertExists"):
+        if _server_cert_needs_regen(pki_manager.PKI_DIR, config.server_addr):
             pki_manager.generate_server_cert(config.server_addr)
             logger.info("Auto-PKI: Server-Cert fuer %s generiert", config.server_addr)
 

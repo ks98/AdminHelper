@@ -127,6 +127,8 @@ def _load_ca() -> tuple[x509.Certificate, rsa.RSAPrivateKey]:
 
 def generate_server_cert(server_addr: str) -> dict:
     """Generiert ein Server-Zertifikat fuer frps, signiert von der CA."""
+    import ipaddress
+
     ca_cert, ca_key = _load_ca()
     d = _ensure_pki_dir()
     key = _generate_key()
@@ -137,6 +139,13 @@ def generate_server_cert(server_addr: str) -> dict:
         x509.NameAttribute(NameOID.ORGANIZATION_NAME, "Simple Remote Manager"),
     ])
 
+    # IP-Adressen muessen als IPAddress-SAN eingetragen werden, nicht als DNSName
+    san_entries: list[x509.GeneralName] = []
+    try:
+        san_entries.append(x509.IPAddress(ipaddress.ip_address(server_addr)))
+    except ValueError:
+        san_entries.append(x509.DNSName(server_addr))
+
     builder = (
         x509.CertificateBuilder()
         .subject_name(subject)
@@ -146,9 +155,7 @@ def generate_server_cert(server_addr: str) -> dict:
         .not_valid_before(now)
         .not_valid_after(now + datetime.timedelta(days=VALIDITY_DAYS_CERT))
         .add_extension(x509.BasicConstraints(ca=False, path_length=None), critical=True)
-        .add_extension(x509.SubjectAlternativeName([
-            x509.DNSName(server_addr),
-        ]), critical=False)
+        .add_extension(x509.SubjectAlternativeName(san_entries), critical=False)
         .add_extension(x509.ExtendedKeyUsage([
             x509.oid.ExtendedKeyUsageOID.SERVER_AUTH,
         ]), critical=False)
