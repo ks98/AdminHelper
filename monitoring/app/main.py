@@ -69,6 +69,7 @@ def _migrate_agent_keys_to_hash(insp):
         # Migration lief bereits, aber api_key wurde evtl. nicht entfernt
         if "api_key" in existing:
             with engine.begin() as conn:
+                conn.execute(text("DROP INDEX IF EXISTS ix_monitor_agent_keys_api_key"))
                 conn.execute(text("ALTER TABLE monitor_agent_keys DROP COLUMN api_key"))
                 logger.info("Migration: Spalte api_key nachtraeglich entfernt")
         return
@@ -89,6 +90,7 @@ def _migrate_agent_keys_to_hash(insp):
             )
         logger.info("Migration: %d Agent-Keys von Klartext zu SHA-256 Hash konvertiert", len(rows))
         # Alte Klartext-Spalte entfernen (SQLite >= 3.35.0)
+        conn.execute(text("DROP INDEX IF EXISTS ix_monitor_agent_keys_api_key"))
         conn.execute(text("ALTER TABLE monitor_agent_keys DROP COLUMN api_key"))
         logger.info("Migration: Spalte api_key entfernt")
 
