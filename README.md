@@ -116,7 +116,10 @@ Der optionale **Simple Remote Manager Server** ermöglicht zentrale Verwaltung u
 - **Web-Interface** im gleichen Design wie der Desktop-Client
 - **Benutzerrollen**: Admin (vollständige CRUD) und User (nur lesen)
 - **API-Keys** für programmatischen Zugriff und Client-Sync
-- **JWT-Authentifizierung** für das Web-Interface
+- **JWT-Authentifizierung** mit Refresh-Token-Mechanismus
+- **FRP-Tunnel-Verwaltung** mit Config-Generierung, Visitor-Profilen und Provisioning
+- **Monitoring-Service** mit Agent-basiertem Ressourcen-Monitoring, Templates und Alerting
+- **Server-Verwaltung** mit Tags, PKI/TLS-Management und Auto-Connection
 - **Docker**-Deployment via GitLab-Registry
 
 ### Schnellstart
@@ -174,9 +177,18 @@ GET    /api/api-keys            # API-Keys (Admin)
 POST   /api/api-keys            # API-Key anlegen (Admin)
 DELETE /api/api-keys/{id}       # API-Key loeschen (Admin)
 
+GET    /api/servers              # Server-Liste (Admin)
+POST   /api/servers              # Server anlegen (Admin)
+DELETE /api/servers/{id}         # Server loeschen (Admin)
+
 GET    /api/frp/tunnels         # Tunnel-Liste (Admin)
 GET    /api/frp/visitors        # Visitor-Liste (Admin)
 GET    /api/frp/generate/visitor-toml  # Visitor-Config generieren
+POST   /api/frp/provision/{id}/activate  # Provisioning aktivieren
+
+GET    /api/monitoring/checks    # Monitoring-Checks (Admin)
+GET    /api/monitoring/templates # Monitoring-Templates (Admin)
+POST   /api/monitoring/agent-keys/{server_id}  # Agent-Key generieren
 ```
 
 API-Dokumentation: `http://localhost:8080/api/docs`
@@ -214,6 +226,58 @@ Die **Simple Remote Manager Chrome Extension** zeigt Web-Verbindungen (`kind: we
 ### Einstellungen zwischen Geräten
 
 Die Einstellungen (Server-URL, API-Key) werden über `chrome.storage.sync` gespeichert und bei aktivierter Chrome-Synchronisierung automatisch auf alle Geräte übertragen.
+
+---
+
+## Monitoring
+
+Der **Monitoring-Service** läuft als separater Container neben dem Server und überwacht registrierte Server über einen leichtgewichtigen Agent.
+
+### Features
+
+- **Check-Typen**: Ping, TCP, HTTP, SNMP, Agent-basierte Ressourcen-Checks
+- **Agent-Plugins**: CPU, RAM, Disk, Systemd Health, Docker, ZFS, Proxmox (automatisch erkannt)
+- **Templates**: Monitoring-Konfigurationen als Templates definieren und an Server zuweisen
+- **Alerting**: Webhook- und E-Mail-Benachrichtigungen mit konfigurierbarem Cooldown
+- **Recovery-Alerts**: Automatische Benachrichtigung wenn ein Check wieder OK ist
+
+### Agent installieren
+
+Der Monitor-Agent wird als DEB-Paket bereitgestellt (`srm-monitor-agent`):
+
+```bash
+apt install ./srm-monitor-agent_0.1.0_all.deb
+
+# Einrichtung (mit CA-Zertifikat fuer self-signed Server):
+sudo srm-monitor-agent --init \
+  --url https://<server>/api/monitoring \
+  --api-key <KEY> \
+  --server-id <SERVER-ID> \
+  --cacert /pfad/zum/ca.crt
+
+# Oder ohne SSL-Verifikation (nur zum Testen):
+sudo srm-monitor-agent --init \
+  --url https://<server>/api/monitoring \
+  --api-key <KEY> \
+  --server-id <SERVER-ID> \
+  --insecure
+```
+
+Der Agent pusht Metriken per Timer an den Monitoring-Service und erkennt automatisch vorhandene Subsysteme (Docker, ZFS, Proxmox).
+
+### FRP-Client Agent
+
+Der FRP-Client-Agent (`srm-frpc-client`) synchronisiert die frpc-Konfiguration vom Server:
+
+```bash
+apt install ./srm-frpc-client_0.1.0_amd64.deb
+
+sudo srm-frpc-sync --init \
+  --url https://<server> \
+  --token <PROVISION-TOKEN> \
+  --server-id <SERVER-ID> \
+  --cacert /pfad/zum/ca.crt
+```
 
 ---
 
@@ -277,15 +341,26 @@ cargo tauri build
 │  ├─ app/                   # FastAPI-Backend (modularer Monolith)
 │  │  ├─ main.py
 │  │  ├─ core/               # Config, Auth, DB, Middleware
-│  │  └─ modules/            # users, connections, servers, frp, hooks, api_keys
+│  │  └─ modules/            # users, connections, servers, frp, hooks, api_keys, monitoring_proxy
 │  ├─ frontend/              # Web-Interface (HTML/CSS/JS)
 │  ├─ Dockerfile
 │  └─ requirements.txt
-├─ agent/                    # frpc Sync-Agent + DEB/RPM-Paketierung
-│  ├─ srm-frpc-sync          # POSIX-Shell Sync-Agent
-│  ├─ systemd/               # frpc.service, sync.service, sync.timer
-│  ├─ build-deb.sh
-│  └─ build-rpm.sh
+├─ monitoring/
+│  ├─ app/                   # FastAPI Monitoring-Service
+│  │  ├─ main.py
+│  │  ├─ models.py           # Checks, States, Templates, AlertRules, AgentKeys
+│  │  ├─ routers/            # checks, templates, alerts, agent, admin
+│  │  ├─ core/               # Config, Auth, DB
+│  │  └─ scheduler.py        # APScheduler fuer periodische Checks
+│  └─ Dockerfile
+├─ agent/                    # Client-Agents + DEB/RPM-Paketierung
+│  ├─ srm-frpc-sync          # POSIX-Shell FRP-Sync-Agent
+│  ├─ srm-monitor-agent      # Python Monitoring-Agent (CPU, RAM, Disk, Plugins)
+│  ├─ systemd/               # Service- und Timer-Units
+│  ├─ build-deb.sh           # FRP-Client DEB-Build
+│  ├─ build-monitor-deb.sh   # Monitor-Agent DEB-Build
+│  ├─ build-rpm.sh           # FRP-Client RPM-Build
+│  └─ build-monitor-rpm.sh   # Monitor-Agent RPM-Build
 ├─ extension/                # Chrome Extension
 ├─ docs/                     # Dokumentation (DE + EN)
 ├─ data/                     # Server-Daten (gitignored, Bind-Mount)
