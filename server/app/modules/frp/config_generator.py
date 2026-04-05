@@ -7,27 +7,26 @@ if TYPE_CHECKING:
     from app.modules.frp.models import FrpServerConfig, FrpTunnel
 
 
-def _tls_server_block(config: FrpServerConfig) -> list[str]:
+def _tls_server_block(
+    server_name: str = "frps",
+    pki_base_path: str = "/etc/frp/pki",
+) -> list[str]:
     """Generiert den [transport.tls]-Block fuer frps."""
-    lines = ['', '[transport.tls]', 'force = true']
-    if config.tls_cert_file:
-        lines.append(f'certFile = "{config.tls_cert_file}"')
-    if config.tls_key_file:
-        lines.append(f'keyFile = "{config.tls_key_file}"')
-    if config.tls_ca_file:
-        lines.append(f'trustedCaFile = "{config.tls_ca_file}"')
-    return lines
+    return [
+        '', '[transport.tls]', 'force = true',
+        f'certFile = "{pki_base_path}/{server_name}.crt"',
+        f'keyFile = "{pki_base_path}/{server_name}.key"',
+        f'trustedCaFile = "{pki_base_path}/ca.crt"',
+    ]
 
 
 def _tls_client_block(
-    config: FrpServerConfig,
     frpc_user: str = "",
     pki_base_path: str = "/etc/frp/pki",
 ) -> list[str]:
     """Generiert den [transport.tls]-Block fuer frpc/visitor."""
     lines = ['', '[transport.tls]', 'enable = true']
-    if config.tls_ca_file:
-        lines.append(f'trustedCaFile = "{pki_base_path}/ca.crt"')
+    lines.append(f'trustedCaFile = "{pki_base_path}/ca.crt"')
     if frpc_user:
         lines.append(f'certFile = "{pki_base_path}/{frpc_user}.crt"')
         lines.append(f'keyFile = "{pki_base_path}/{frpc_user}.key"')
@@ -66,7 +65,7 @@ def generate_frps_toml(config: FrpServerConfig) -> str:
     lines.append('auth.method = "token"')
     lines.append(f'auth.token = "{config.auth_token}"')
 
-    lines.extend(_tls_server_block(config))
+    lines.extend(_tls_server_block())
 
     return '\n'.join(lines) + '\n'
 
@@ -95,7 +94,7 @@ def generate_frpc_toml(
         f'auth.token = "{config.auth_token}"',
     ]
 
-    lines.extend(_tls_client_block(config, frpc_user))
+    lines.extend(_tls_client_block(frpc_user))
 
     active_tunnels = [t for t in tunnels if t.enabled]
 
@@ -150,7 +149,7 @@ def generate_visitor_toml(
         f'auth.token = "{config.auth_token}"',
     ]
 
-    lines.extend(_tls_client_block(config, visitor_user, pki_base_path))
+    lines.extend(_tls_client_block(visitor_user, pki_base_path))
 
     stcp_tunnels = [t for t in tunnels if t.tunnel_type == "stcp" and t.enabled]
     stcp_tunnels.sort(key=lambda t: t.visitor_port or 0)

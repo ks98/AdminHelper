@@ -120,7 +120,6 @@ def create_server_config(data: FrpServerConfigCreate, db: Session = Depends(get_
         dashboard_user=data.dashboard_user,
         dashboard_password=data.dashboard_password,
         extra_config=json.dumps(data.extra_config) if data.extra_config else None,
-        tls_force=data.tls_force,
     )
     db.add(config)
     db.commit()
@@ -147,7 +146,7 @@ def update_server_config(config_id: str, data: FrpServerConfigUpdate, db: Sessio
     sent = data.model_fields_set
     for field in ["name", "server_addr", "bind_port", "vhost_https_port", "auth_token",
                    "subdomain_host", "max_ports_per_client", "dashboard_port",
-                   "dashboard_user", "dashboard_password", "tls_force"]:
+                   "dashboard_user", "dashboard_password"]:
         if field in sent:
             setattr(config, field, getattr(data, field))
 
@@ -615,15 +614,7 @@ def create_server_cert(
         raise HTTPException(status_code=404, detail="Keine FRP-Config vorhanden")
 
     result = pki_manager.generate_server_cert(config.server_addr)
-
-    # Pfade in der Config speichern
-    config.tls_cert_file = result["certPath"]
-    config.tls_key_file = result["keyPath"]
-    config.tls_ca_file = str(pki_manager.PKI_DIR / "ca.crt")
-    db.commit()
-    db.refresh(config)
     write_frps_config(config)
-
     return result
 
 

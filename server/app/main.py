@@ -100,21 +100,13 @@ def _migrate_add_columns():
     if tunnel_cols and "tags" not in tunnel_cols:
         cursor.execute("ALTER TABLE frp_tunnels ADD COLUMN tags TEXT")
         logger.info("Migration: tags zu frp_tunnels hinzugefuegt")
-    # TLS-Felder zu frp_server_config
+    # TLS-Felder aus frp_server_config entfernen (TLS ist jetzt immer aktiv, Pfade kommen aus pki_base_path)
     cursor.execute("PRAGMA table_info(frp_server_config)")
     frp_cols = {row[1] for row in cursor.fetchall()}
-    # SAFETY: col/coldef sind hardcoded Literale, keine User-Eingaben
-    _frp_new_cols = {
-        "tls_force": "BOOLEAN DEFAULT 0",
-        "tls_cert_file": "TEXT",
-        "tls_key_file": "TEXT",
-        "tls_ca_file": "TEXT",
-    }
-    for col, coldef in _frp_new_cols.items():
-        assert col.isidentifier(), f"Ungültiger Spaltenname: {col}"
-        if frp_cols and col not in frp_cols:
-            cursor.execute(f"ALTER TABLE frp_server_config ADD COLUMN {col} {coldef}")
-            logger.info("Migration: %s zu frp_server_config hinzugefuegt", col)
+    for col in ("tls_force", "tls_cert_file", "tls_key_file", "tls_ca_file"):
+        if col in frp_cols:
+            cursor.execute(f"ALTER TABLE frp_server_config DROP COLUMN {col}")
+            logger.info("Migration: %s aus frp_server_config entfernt", col)
     conn.commit()
     conn.close()
 
@@ -156,10 +148,40 @@ def _migrate_visitors_to_users():
     conn.close()
 
 
+def _ensure_pki():
+    """Generiert CA + Server-Cert automatisch wenn eine FRP-Config existiert aber PKI fehlt."""
+    from app.modules.frp import pki as pki_manager
+    from app.modules.frp.docker_manager import write_frps_config
+
+    db = SessionLocal()
+    try:
+        config = db.query(FrpServerConfig).first()
+        if not config:
+            return
+
+        status = pki_manager.get_pki_status()
+        if not status["caExists"]:
+            pki_manager.generate_ca("Simple Remote Manager CA")
+            logger.info("Auto-PKI: CA generiert")
+
+        status = pki_manager.get_pki_status()
+        if not status.get("serverCertExists"):
+            pki_manager.generate_server_cert(config.server_addr)
+            logger.info("Auto-PKI: Server-Cert fuer %s generiert", config.server_addr)
+
+        write_frps_config(config)
+        logger.info("Auto-PKI: frps.toml neu geschrieben")
+    except Exception:
+        logger.exception("Auto-PKI fehlgeschlagen")
+    finally:
+        db.close()
+
+
 _migrate_add_columns()
 _ensure_admin()
 _migrate_connections_json()
 _migrate_visitors_to_users()
+_ensure_pki()
 
 
 @asynccontextmanager

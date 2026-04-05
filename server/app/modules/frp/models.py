@@ -23,10 +23,6 @@ class FrpServerConfig(Base):
     dashboard_user = Column(String, nullable=True)
     dashboard_password = Column(String, nullable=True)
     extra_config = Column(String, nullable=True)  # JSON fuer zusaetzliche frps.toml-Felder
-    tls_force = Column(Boolean, default=False)  # mTLS erzwingen
-    tls_cert_file = Column(String, nullable=True)  # Pfad zum Server-Cert
-    tls_key_file = Column(String, nullable=True)  # Pfad zum Server-Key
-    tls_ca_file = Column(String, nullable=True)  # Pfad zum CA-Cert
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
@@ -51,10 +47,6 @@ class FrpServerConfig(Base):
             "dashboardUser": self.dashboard_user,
             "dashboardPassword": self.dashboard_password,
             "extraConfig": json.loads(self.extra_config) if self.extra_config else None,
-            "tlsForce": self.tls_force or False,
-            "tlsCertFile": self.tls_cert_file,
-            "tlsKeyFile": self.tls_key_file,
-            "tlsCaFile": self.tls_ca_file,
             "createdAt": self.created_at.isoformat() if self.created_at else None,
             "updatedAt": self.updated_at.isoformat() if self.updated_at else None,
         }

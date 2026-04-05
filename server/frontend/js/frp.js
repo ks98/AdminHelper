@@ -40,7 +40,7 @@ function renderFrp() {
         ${cfg.vhostHttpsPort ? `<div><strong>HTTPS Port:</strong> ${cfg.vhostHttpsPort}</div>` : ''}
         ${cfg.subdomainHost ? `<div><strong>Subdomain:</strong> ${esc(cfg.subdomainHost)}</div>` : ''}
         ${cfg.dashboardPort ? `<div><strong>Dashboard:</strong> :${cfg.dashboardPort}</div>` : ''}
-        ${cfg.tlsForce ? `<div><strong>mTLS:</strong> <span style="color:#22c55e">Aktiv</span></div>` : ''}
+        <div><strong>mTLS:</strong> <span style="color:#22c55e">Immer aktiv</span></div>
       </div>
     `;
     downloadFrps.style.display = '';
@@ -169,7 +169,6 @@ function openFrpConfigModal() {
   document.getElementById('fcDashPort').value     = cfg?.dashboardPort  || '';
   document.getElementById('fcDashUser').value     = cfg?.dashboardUser  || '';
   document.getElementById('fcDashPass').value     = cfg?.dashboardPassword || '';
-  document.getElementById('fcTlsForce').checked   = cfg?.tlsForce || false;
   showModal('frpConfigModal');
 }
 
@@ -186,7 +185,6 @@ document.getElementById('frpConfigForm').addEventListener('submit', async (e) =>
     dashboard_port:      parseInt(document.getElementById('fcDashPort').value) || null,
     dashboard_user:      document.getElementById('fcDashUser').value.trim() || null,
     dashboard_password:  document.getElementById('fcDashPass').value.trim() || null,
-    tls_force:           document.getElementById('fcTlsForce').checked,
   };
   try {
     if (state.frpConfig) {
