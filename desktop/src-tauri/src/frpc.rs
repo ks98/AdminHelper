@@ -65,26 +65,21 @@ fn write_visitor_bundle(app: &tauri::AppHandle, bundle: &VisitorBundle) -> Resul
         .map_err(|e| AppError::Io(std::io::Error::new(std::io::ErrorKind::NotFound, e.to_string())))?;
     std::fs::create_dir_all(&data_dir)?;
 
-    // Write PKI files
+    // Write PKI files if present
+    let pki_dir = data_dir.join("pki");
     if !bundle.pki.is_empty() {
-        let pki_dir = data_dir.join("pki");
         std::fs::create_dir_all(&pki_dir)?;
-
         for (filename, content) in &bundle.pki {
             let file_path = pki_dir.join(filename);
             std::fs::write(&file_path, content)?;
         }
-
-        // Rewrite relative pki/ paths to absolute paths in the TOML
-        let abs_pki = pki_dir.to_string_lossy();
-        let toml_content = bundle.toml.replace("\"pki/", &format!("\"{abs_pki}/"));
-        let config_path = data_dir.join("visitor.toml");
-        std::fs::write(&config_path, &toml_content)?;
-        return Ok(config_path);
     }
 
+    // Always rewrite relative pki/ paths to absolute paths in the TOML
+    let abs_pki = pki_dir.to_string_lossy();
+    let toml_content = bundle.toml.replace("\"pki/", &format!("\"{abs_pki}/"));
     let config_path = data_dir.join("visitor.toml");
-    std::fs::write(&config_path, &bundle.toml)?;
+    std::fs::write(&config_path, &toml_content)?;
     Ok(config_path)
 }
 
