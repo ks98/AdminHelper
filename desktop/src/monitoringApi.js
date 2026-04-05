@@ -1,24 +1,16 @@
 export function createMonitoringApi(session) {
-  const baseUrl = `${session.serverUrl}/api/monitoring`;
-  const headers = {
-    Authorization: `Bearer ${session.token}`,
-    "Content-Type": "application/json"
-  };
+  const basePath = "/api/monitoring";
 
   async function request(method, path, body) {
-    const url = `${baseUrl}${path}`;
-    const opts = { method, headers };
-    if (body) opts.body = JSON.stringify(body);
-    const res = await fetch(url, opts);
-    if (res.status === 401) {
-      throw new Error("SESSION_EXPIRED");
-    }
-    if (!res.ok) {
-      const text = await res.text().catch(() => res.statusText);
-      throw new Error(text || `HTTP ${res.status}`);
-    }
-    if (res.status === 204) return null;
-    return res.json();
+    const fullPath = `${basePath}${path}`;
+    const result = await window.__TAURI__.core.invoke("api_proxy", {
+      serverUrl: session.serverUrl,
+      token: session.token,
+      method,
+      path: fullPath,
+      body: body ? JSON.stringify(body) : null,
+    });
+    return result;
   }
 
   return {

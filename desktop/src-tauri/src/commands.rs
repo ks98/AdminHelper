@@ -10,6 +10,66 @@ use crate::password;
 use crate::storage;
 use crate::sync;
 
+/// Prüft ob das Server-Zertifikat gültig ist. Gibt true zurück wenn gültig,
+/// false wenn Self-Signed/ungültig.
+#[tauri::command]
+pub async fn check_server_cert(server_url: String) -> Result<bool, AppError> {
+    let client = reqwest::Client::builder()
+        .danger_accept_invalid_certs(false)
+        .build()
+        .map_err(AppError::from)?;
+
+    let url = format!("{}/api/auth/me", server_url.trim_end_matches('/'));
+    match client.get(&url).send().await {
+        Ok(_) => Ok(true),
+        Err(e) if e.is_connect() => Ok(false), // TLS/connection error
+        Err(_) => Ok(false),
+    }
+}
+
+/// Generischer API-Proxy: leitet Requests über reqwest an den Server weiter.
+/// Umgeht damit WebView-TLS-Beschränkungen bei Self-Signed Certs.
+#[tauri::command]
+pub async fn api_proxy(
+    server_url: String,
+    token: String,
+    method: String,
+    path: String,
+    body: Option<String>,
+) -> Result<serde_json::Value, AppError> {
+    let client = auth::build_client(&server_url)?;
+    let url = format!("{}{}", server_url.trim_end_matches('/'), path);
+
+    let mut req = match method.as_str() {
+        "POST" => client.post(&url),
+        "PUT" => client.put(&url),
+        "DELETE" => client.delete(&url),
+        _ => client.get(&url),
+    };
+
+    req = req.header("Authorization", format!("Bearer {token}"));
+
+    if let Some(b) = body {
+        req = req.header("Content-Type", "application/json").body(b);
+    }
+
+    let response = req.send().await?;
+    let status = response.status();
+
+    if status == reqwest::StatusCode::NO_CONTENT {
+        return Ok(serde_json::Value::Null);
+    }
+
+    if !status.is_success() {
+        let text = response.text().await.unwrap_or_default();
+        return Err(AppError::Validation(format!("HTTP {}: {}", status.as_u16(), text)));
+    }
+
+    let value: serde_json::Value = response.json().await
+        .unwrap_or(serde_json::Value::Null);
+    Ok(value)
+}
+
 #[tauri::command]
 pub fn load_connections(app: tauri::AppHandle) -> Result<Vec<Connection>, AppError> {
     storage::load_connections(&app)

@@ -1135,6 +1135,17 @@ import { detectSystemLanguage, getIntervalMinutes, getSettingsDefaults } from ".
       if (state.settings.mode === "server") {
         const session = await authApi.checkSession();
         if (session) {
+          // Zertifikat pruefen und Warnung anzeigen
+          const certValid = await authApi.checkServerCert(session.serverUrl);
+          if (!certValid) {
+            const accepted = confirm(t("cert.warning.message", { url: session.serverUrl }));
+            if (!accepted) {
+              await authApi.logout();
+              showLoginScreen(state.settings.serverUrl || "");
+              updateNavVisibility();
+              return;
+            }
+          }
           state.session = session;
           hideLoginScreen();
           state.connections = await loadConnectionsForMode();
@@ -1312,6 +1323,16 @@ import { detectSystemLanguage, getIntervalMinutes, getSettingsDefaults } from ".
     loginBtn.disabled = true;
     loginBtn.textContent = t("login.connecting");
     try {
+      // Zertifikat pruefen vor Login
+      const certValid = await authApi.checkServerCert(serverUrl);
+      if (!certValid) {
+        const accepted = confirm(t("cert.warning.message", { url: serverUrl }));
+        if (!accepted) {
+          loginBtn.disabled = false;
+          loginBtn.textContent = t("login.submit");
+          return;
+        }
+      }
       const session = await authApi.login(serverUrl, username, password);
       state.session = session;
       loginPassword.value = "";

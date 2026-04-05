@@ -135,6 +135,12 @@ export function createAuthApi(bridge) {
         return await bridge.tauriInvoke("fetch_connections_jwt", { serverUrl, token });
       }
       throw new Error("Nur in Tauri verfügbar");
+    },
+    async checkServerCert(serverUrl) {
+      if (bridge.isTauri) {
+        return await bridge.tauriInvoke("check_server_cert", { serverUrl });
+      }
+      return true;
     }
   };
 }

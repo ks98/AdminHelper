@@ -12,10 +12,10 @@ mod terminal;
 mod validation;
 
 use commands::{
-    check_session, delete_password, fetch_connections_jwt, fetch_tunnels, load_connections,
-    load_settings, login, logout, open_connection, open_connection_stored, password_state,
-    resolve_connection, save_connections, save_password, save_settings, start_tunnel, stop_tunnel,
-    sync_connections, tunnel_status,
+    api_proxy, check_server_cert, check_session, delete_password, fetch_connections_jwt,
+    fetch_tunnels, load_connections, load_settings, login, logout, open_connection,
+    open_connection_stored, password_state, resolve_connection, save_connections, save_password,
+    save_settings, start_tunnel, stop_tunnel, sync_connections, tunnel_status,
 };
 use tauri::Manager;
 
@@ -55,7 +55,9 @@ fn main() {
             stop_tunnel,
             tunnel_status,
             fetch_tunnels,
-            resolve_connection
+            resolve_connection,
+            api_proxy,
+            check_server_cert
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
