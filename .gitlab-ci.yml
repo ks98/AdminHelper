@@ -287,3 +287,92 @@ publish_frpc_rpm:
       curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" \
            --upload-file "${RPM_FILE}" \
            "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/srm-frpc-desktop/${FRPC_PKG_VERSION}/${RPM_FILE}"
+
+# ── Monitor Agent Package ────────────────────────────────────────────
+build_monitor_deb:
+  stage: build
+  image: debian:bookworm-slim
+  needs: []
+  variables:
+    MONITOR_PKG_VERSION: "0.1.0"
+  script:
+    - apt-get update -qq && apt-get install -y -qq dpkg-dev > /dev/null
+    - VERSION=${MONITOR_PKG_VERSION} bash agent/build-monitor-deb.sh
+  artifacts:
+    name: "srm-monitor-agent-deb-$CI_COMMIT_REF_SLUG"
+    paths:
+      - "srm-monitor-agent_*.deb"
+    expire_in: 30 days
+  rules:
+    - if: $CI_COMMIT_TAG
+    - if: $CI_COMMIT_BRANCH
+    - changes:
+        - agent/**/*
+
+build_monitor_rpm:
+  stage: build
+  image: almalinux:9
+  needs: []
+  variables:
+    MONITOR_PKG_VERSION: "0.1.0"
+  script:
+    - dnf install -y rpm-build tar gzip > /dev/null
+    - VERSION=${MONITOR_PKG_VERSION} bash agent/build-monitor-rpm.sh
+  artifacts:
+    name: "srm-monitor-agent-rpm-$CI_COMMIT_REF_SLUG"
+    paths:
+      - "srm-monitor-agent-*.rpm"
+    expire_in: 30 days
+  rules:
+    - if: $CI_COMMIT_TAG
+    - if: $CI_COMMIT_BRANCH
+    - changes:
+        - agent/**/*
+
+publish_monitor_deb:
+  stage: publish
+  image: curlimages/curl:latest
+  needs: [build_monitor_deb]
+  variables:
+    MONITOR_PKG_VERSION: "0.1.0"
+  rules:
+    - if: $CI_COMMIT_TAG
+  script:
+    - DEB_FILE=$(ls srm-monitor-agent_*.deb | head -1)
+    - |
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" \
+           --upload-file "${DEB_FILE}" \
+           "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/srm-monitor-agent/${MONITOR_PKG_VERSION}/${DEB_FILE}"
+
+publish_monitor_deb_dev:
+  stage: publish
+  image: debian:trixie
+  needs:
+    - build_monitor_deb
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  before_script:
+    - apt-get update
+    - apt-get install -y --no-install-recommends bash ca-certificates curl python3
+    - chmod +x desktop/scripts/ci_publish_via_api.sh
+  variables:
+    APTLY_DISTRIBUTION: dev
+  script:
+    - mkdir -p /tmp/monitor-debs
+    - cp srm-monitor-agent_*.deb /tmp/monitor-debs/
+    - desktop/scripts/ci_publish_via_api.sh /tmp/monitor-debs
+
+publish_monitor_rpm:
+  stage: publish
+  image: curlimages/curl:latest
+  needs: [build_monitor_rpm]
+  variables:
+    MONITOR_PKG_VERSION: "0.1.0"
+  rules:
+    - if: $CI_COMMIT_TAG
+  script:
+    - RPM_FILE=$(ls srm-monitor-agent-*.rpm | head -1)
+    - |
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" \
+           --upload-file "${RPM_FILE}" \
+           "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/srm-monitor-agent/${MONITOR_PKG_VERSION}/${RPM_FILE}"
