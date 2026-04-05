@@ -155,16 +155,18 @@ def generate_visitor_toml(
     stcp_tunnels.sort(key=lambda t: t.visitor_port or 0)
 
     for tunnel in stcp_tunnels:
-        # FRP bildet den vollen Proxy-Namen als "{user}.{name}",
-        # der Agent nutzt server.name als user — der Visitor muss diesen Prefix referenzieren
-        server_name = tunnel.target_server.name if tunnel.target_server else ""
-        full_server_name = f"{server_name}.{tunnel.name}" if server_name else tunnel.name
+        # FRP registriert Proxies als "{agent_user}.{proxy_name}".
+        # Der Visitor muss serverUser auf den Agent-User setzen,
+        # damit FRP den Proxy als "{serverUser}.{serverName}" findet.
+        agent_user = tunnel.target_server.name if tunnel.target_server else ""
 
         lines.append('')
         lines.append('[[visitors]]')
         lines.append(f'name = "{tunnel.name}-visitor"')
         lines.append(f'type = "stcp"')
-        lines.append(f'serverName = "{full_server_name}"')
+        lines.append(f'serverName = "{tunnel.name}"')
+        if agent_user:
+            lines.append(f'serverUser = "{agent_user}"')
         lines.append(f'secretKey = "{tunnel.secret_key}"')
         lines.append(f'bindAddr = "127.0.0.1"')
         lines.append(f'bindPort = {tunnel.visitor_port}')
