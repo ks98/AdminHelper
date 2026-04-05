@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Simple Remote Manager</title>
     <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="vendor/uplot.min.css" />
   </head>
   <body>
     <div class="backdrop">
@@ -53,6 +54,10 @@
             <div class="brand-subtitle" data-i18n="brand.subtitle">Manager</div>
           </div>
         </div>
+        <nav id="mainNav" class="main-nav hidden">
+          <button class="nav-btn active" data-nav="connections" data-i18n="nav.connections">Verbindungen</button>
+          <button class="nav-btn" data-nav="monitoring" data-i18n="nav.monitoring">Monitoring</button>
+        </nav>
         <div class="top-actions">
           <div id="tunnelIndicator" class="tunnel-indicator hidden" title="">
             <span class="tunnel-dot"></span>
@@ -101,6 +106,31 @@
           </div>
           <div id="list" class="list"></div>
           <div id="tree" class="tree hidden"></div>
+        </section>
+
+        <section id="monitoringSection" class="monitoring-section panel hidden">
+          <div class="mon-header">
+            <div>
+              <div class="eyebrow" data-i18n="monitoring.eyebrow">Monitoring</div>
+              <h2 data-i18n="monitoring.title">Monitoring</h2>
+            </div>
+          </div>
+          <div class="mon-tabs">
+            <button class="mon-tab active" data-tab="overview" data-i18n="monitoring.overview">Übersicht</button>
+            <button class="mon-tab" data-tab="alerts" data-i18n="monitoring.alerts">Alerts</button>
+            <button class="mon-tab" data-tab="log" data-i18n="monitoring.log">Log</button>
+          </div>
+          <div class="mon-tab-content" data-tab="overview">
+            <div id="monSummaryCards" class="mon-summary-cards"></div>
+            <div id="monFilterBar" class="mon-filter-bar"></div>
+            <div id="monCheckList" class="mon-check-list"></div>
+          </div>
+          <div class="mon-tab-content hidden" data-tab="alerts">
+            <div id="monAlertList" class="mon-alert-list"></div>
+          </div>
+          <div class="mon-tab-content hidden" data-tab="log">
+            <div id="monAlertLog" class="mon-alert-log"></div>
+          </div>
         </section>
 
       </main>
@@ -360,6 +390,7 @@
       </div>
     </div>
 
+    <script src="vendor/uplot.min.js"></script>
     <script type="module" src="app.js"></script>
   </body>
 </html>

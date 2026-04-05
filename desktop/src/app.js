@@ -7,6 +7,8 @@ import {
   validateConnection
 } from "./connectionModel.js";
 import { translations } from "./i18n.js";
+import { createMonitoringApi } from "./monitoringApi.js";
+import { initMonitoring } from "./monitoring.js";
 import {
   createAuthApi,
   createConnectionsApi,
@@ -26,7 +28,13 @@ import { detectSystemLanguage, getIntervalMinutes, getSettingsDefaults } from ".
     search: "",
     view: "list",
     session: null,
-    tunnels: []
+    tunnels: [],
+    activeView: "connections",
+    monitorChecks: [],
+    monitorAlertRules: [],
+    monitorAlertLog: [],
+    monitorTab: "overview",
+    monitorFilters: { server: "", type: "", status: "", search: "" }
   };
 
   let currentLanguage = "de";
@@ -168,6 +176,34 @@ import { detectSystemLanguage, getIntervalMinutes, getSettingsDefaults } from ".
   const api = createConnectionsApi(bridge, t, () => getClientInfo(window));
   const settingsApi = createSettingsApi(bridge, t);
   const passwordApi = createPasswordApi(bridge);
+
+  const mainNav = document.getElementById("mainNav");
+  const monitoringSection = document.getElementById("monitoringSection");
+  const connectionsSection = document.querySelector(".connections.panel");
+  const monitoring = initMonitoring(state, t, createMonitoringApi);
+
+  function switchView(view) {
+    state.activeView = view;
+    document.querySelectorAll("[data-nav]").forEach((btn) => {
+      btn.classList.toggle("active", btn.dataset.nav === view);
+    });
+    connectionsSection.classList.toggle("hidden", view !== "connections");
+    monitoringSection.classList.toggle("hidden", view !== "monitoring");
+    if (view === "monitoring") {
+      monitoring.activate();
+    } else {
+      monitoring.deactivate();
+    }
+  }
+
+  function updateNavVisibility() {
+    const mode = (state.settings || getSettingsDefaults()).mode;
+    const showNav = mode === "server" && state.session;
+    if (mainNav) mainNav.classList.toggle("hidden", !showNav);
+    if (!showNav && state.activeView === "monitoring") {
+      switchView("connections");
+    }
+  }
 
   function getStatusTarget() {
     if (editorEl.classList.contains("hidden") && globalStatusEl) {
@@ -1105,12 +1141,14 @@ import { detectSystemLanguage, getIntervalMinutes, getSettingsDefaults } from ".
           startTunnelIfServerMode();
         } else {
           showLoginScreen(state.settings.serverUrl || "");
+          updateNavVisibility();
           return;
         }
       } else {
         hideLoginScreen();
         state.connections = await loadConnectionsForMode();
       }
+      updateNavVisibility();
     } catch (error) {
       showStatus(t("error.loadConnections"), true);
       state.connections = [];
@@ -1254,6 +1292,7 @@ import { detectSystemLanguage, getIntervalMinutes, getSettingsDefaults } from ".
       state.connections = [];
       updateTunnelIndicator(null);
       renderConnections();
+      updateNavVisibility();
       closeSettingsPrompt();
       showLoginScreen(state.settings?.serverUrl || "");
     });
@@ -1279,6 +1318,7 @@ import { detectSystemLanguage, getIntervalMinutes, getSettingsDefaults } from ".
       hideLoginScreen();
       state.connections = await loadConnectionsForMode();
       renderConnections();
+      updateNavVisibility();
       startTunnelIfServerMode();
     } catch (error) {
       loginError.textContent = t("login.error", { message: error.message || error });
@@ -1337,6 +1377,7 @@ import { detectSystemLanguage, getIntervalMinutes, getSettingsDefaults } from ".
       await settingsApi.save(settings);
       setLanguage(settings.language || "de");
       updateSettingsBadge(settings.mode);
+      updateNavVisibility();
       closeSettingsPrompt();
       if (mode === "server") {
         stopSyncTimer();
@@ -1382,6 +1423,10 @@ import { detectSystemLanguage, getIntervalMinutes, getSettingsDefaults } from ".
     input.addEventListener("change", () => {
       setSyncMode(getSyncMode());
     });
+  });
+
+  document.querySelectorAll("[data-nav]").forEach((btn) => {
+    btn.addEventListener("click", () => switchView(btn.dataset.nav));
   });
 
   initScrollAcceleration();
