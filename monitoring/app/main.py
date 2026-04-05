@@ -66,7 +66,12 @@ def _migrate_agent_keys_to_hash(insp):
         return
     existing = {c["name"] for c in insp.get_columns("monitor_agent_keys")}
     if "hashed_key" in existing:
-        return  # Bereits migriert
+        # Migration lief bereits, aber api_key wurde evtl. nicht entfernt
+        if "api_key" in existing:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE monitor_agent_keys DROP COLUMN api_key"))
+                logger.info("Migration: Spalte api_key nachtraeglich entfernt")
+        return
     if "api_key" not in existing:
         return  # Frische DB, create_all hat hashed_key bereits angelegt
 
@@ -83,6 +88,9 @@ def _migrate_agent_keys_to_hash(insp):
                 {"h": hashed, "id": row[0]},
             )
         logger.info("Migration: %d Agent-Keys von Klartext zu SHA-256 Hash konvertiert", len(rows))
+        # Alte Klartext-Spalte entfernen (SQLite >= 3.35.0)
+        conn.execute(text("ALTER TABLE monitor_agent_keys DROP COLUMN api_key"))
+        logger.info("Migration: Spalte api_key entfernt")
 
 
 app = FastAPI(
