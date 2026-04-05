@@ -15,6 +15,7 @@ import argparse
 import json
 import os
 import shutil
+import ssl
 import subprocess
 import sys
 import time
@@ -407,7 +408,21 @@ def build_report(service_names: list[str]) -> dict:
 # HTTP Push
 # ---------------------------------------------------------------------------
 
-def push_report(url: str, api_key: str, server_id: str, report: dict) -> bool:
+def build_ssl_context(cacert: str = "", insecure: bool = False) -> ssl.SSLContext | None:
+    """Erstellt einen SSL-Context basierend auf den Optionen."""
+    if insecure:
+        ctx = ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+        return ctx
+    if cacert and os.path.isfile(cacert):
+        ctx = ssl.create_default_context(cafile=cacert)
+        return ctx
+    return None
+
+
+def push_report(url: str, api_key: str, server_id: str, report: dict,
+                ssl_context: ssl.SSLContext | None = None) -> bool:
     """Sendet den Report an den Monitoring-Service."""
     endpoint = f"{url.rstrip('/')}/agent/{server_id}/report"
     data = json.dumps(report).encode("utf-8")
@@ -417,7 +432,7 @@ def push_report(url: str, api_key: str, server_id: str, report: dict) -> bool:
     req.add_header("X-API-Key", api_key)
 
     try:
-        with urlopen(req, timeout=15) as resp:
+        with urlopen(req, timeout=15, context=ssl_context) as resp:
             if resp.status < 300:
                 return True
             log(f"Unerwarteter Status: {resp.status}")
@@ -437,12 +452,25 @@ def push_report(url: str, api_key: str, server_id: str, report: dict) -> bool:
 # Init Mode
 # ---------------------------------------------------------------------------
 
-def do_init(url: str, api_key: str, server_id: str, services: str) -> None:
+def do_init(url: str, api_key: str, server_id: str, services: str,
+            cacert: str = "", insecure: bool = False) -> None:
     """Ersteinrichtung: Config schreiben und systemd aktivieren."""
     url = url.rstrip("/")
 
-    # Config schreiben
     CONF_DIR.mkdir(parents=True, exist_ok=True)
+
+    # CA-Cert kopieren falls angegeben
+    stored_cacert = ""
+    if cacert:
+        if not os.path.isfile(cacert):
+            die(f"CA-Zertifikat nicht gefunden: {cacert}")
+        dest = CONF_DIR / "ca.crt"
+        shutil.copy2(cacert, dest)
+        os.chmod(str(dest), 0o644)
+        stored_cacert = str(dest)
+        log(f"CA-Zertifikat kopiert: {dest}")
+
+    # Config schreiben
     config_lines = [
         f'MONITOR_URL="{url}"',
         f'API_KEY="{api_key}"',
@@ -450,13 +478,18 @@ def do_init(url: str, api_key: str, server_id: str, services: str) -> None:
     ]
     if services:
         config_lines.append(f'SERVICES="{services}"')
+    if stored_cacert:
+        config_lines.append(f'CACERT="{stored_cacert}"')
+    if insecure:
+        config_lines.append('INSECURE="1"')
     CONF_FILE.write_text("\n".join(config_lines) + "\n")
     os.chmod(str(CONF_FILE), 0o600)
     log(f"Config geschrieben: {CONF_FILE}")
 
     # Test-Push
+    ssl_ctx = build_ssl_context(stored_cacert, insecure)
     report = build_report(services.split(",") if services else [])
-    if push_report(url, api_key, server_id, report):
+    if push_report(url, api_key, server_id, report, ssl_ctx):
         log("Test-Push erfolgreich")
     else:
         log("WARNUNG: Test-Push fehlgeschlagen — pruefe URL und API-Key")
@@ -498,12 +531,15 @@ def main():
     parser.add_argument("--api-key", help="API-Key fuer Authentifizierung")
     parser.add_argument("--server-id", help="Server-ID im SRM")
     parser.add_argument("--services", default="", help="Kommagetrennte Service-Namen (z.B. nginx,frpc,docker)")
+    parser.add_argument("--cacert", default="", help="CA-Zertifikat fuer self-signed Server")
+    parser.add_argument("--insecure", action="store_true", help="SSL-Verifikation deaktivieren")
     args = parser.parse_args()
 
     if args.init:
         if not args.url or not args.api_key or not args.server_id:
             die("--init erfordert --url, --api-key und --server-id")
-        do_init(args.url, args.api_key, args.server_id, args.services)
+        do_init(args.url, args.api_key, args.server_id, args.services,
+                args.cacert, args.insecure)
         return
 
     # Sync Mode: Config laden und Report pushen
@@ -519,9 +555,10 @@ def main():
         die("Config unvollstaendig — bitte erneut mit --init einrichten")
 
     service_names = [s.strip() for s in config.get("SERVICES", "").split(",") if s.strip()]
+    ssl_ctx = build_ssl_context(config.get("CACERT", ""), config.get("INSECURE") == "1")
 
     report = build_report(service_names)
-    if push_report(url, api_key, server_id, report):
+    if push_report(url, api_key, server_id, report, ssl_ctx):
         log("Report gesendet")
     else:
         log("Report senden fehlgeschlagen")
