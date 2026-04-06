@@ -202,6 +202,16 @@ class ServiceProcessChecker:
             return result
         return set()
 
+    @staticmethod
+    def _is_ignored(unit: str, ignore: set) -> bool:
+        """Prueft ob eine Unit ignoriert werden soll (mit/ohne .service-Suffix)."""
+        if unit in ignore:
+            return True
+        # "nginx" soll auch "nginx.service" matchen und umgekehrt
+        if unit.endswith(".service"):
+            return unit[:-8] in ignore
+        return f"{unit}.service" in ignore
+
     def _evaluate_auto(self, config: dict, report: dict) -> tuple[str, str, dict | None]:
         """Auto-Modus: prueft systemd health aus dem Report."""
         systemd = report.get("systemd")
@@ -210,8 +220,8 @@ class ServiceProcessChecker:
 
         ignore = self._parse_ignore(config.get("ignore", []))
 
-        failed = [u for u in systemd.get("failed", []) if u not in ignore]
-        enabled_inactive = [u for u in systemd.get("enabled_inactive", []) if u not in ignore]
+        failed = [u for u in systemd.get("failed", []) if not self._is_ignored(u, ignore)]
+        enabled_inactive = [u for u in systemd.get("enabled_inactive", []) if not self._is_ignored(u, ignore)]
 
         metrics = {
             "services_failed": len(failed),
