@@ -462,7 +462,7 @@ export function initMonitoring(state, t, monitoringApiFactory) {
     try {
       const metricsData = await monitoringApi.fetchMetrics(check.id, period);
       const allSeries = metricsData?.data || [];
-      console.debug("[monitoring] gauge chart: allSeries =", allSeries.map(s => ({ name: s.metric?.__name__, mount: s.metric?.mount })), "filter =", metricFilter, "diskMount =", diskMount);
+      console.debug("[monitoring] gauge chart: _debug =", metricsData?._debug, "allSeries =", allSeries.map(s => ({ name: s.metric?.__name__, mount: s.metric?.mount })), "filter =", metricFilter, "diskMount =", diskMount);
       // Filter auf die angeklickte Metrik
       const filtered = allSeries.filter((s) => {
         const name = s.metric?.__name__ || "";

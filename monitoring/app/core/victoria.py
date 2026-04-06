@@ -42,11 +42,12 @@ class VictoriaClient:
         if not metrics:
             return
         body = "\n".join(metrics)
+        logger.debug("VictoriaMetrics write: %d Zeilen, erste: %s", len(metrics), metrics[0][:200] if metrics else "-")
         try:
             resp = self._client.post(f"{self.base_url}/write", content=body)
             resp.raise_for_status()
         except httpx.HTTPError as exc:
-            logger.warning("VictoriaMetrics write fehlgeschlagen: %s", exc)
+            logger.warning("VictoriaMetrics write fehlgeschlagen: %s (URL: %s)", exc, self.base_url)
 
     def write_check_result(
         self,
@@ -87,9 +88,12 @@ class VictoriaClient:
                 params={"query": query, "start": start, "end": end, "step": step},
             )
             resp.raise_for_status()
-            return resp.json()
+            data = resp.json()
+            result_count = len(data.get("data", {}).get("result", []))
+            logger.debug("VictoriaMetrics query_range: query=%s results=%d", query, result_count)
+            return data
         except httpx.HTTPError as exc:
-            logger.warning("VictoriaMetrics query_range fehlgeschlagen: %s", exc)
+            logger.warning("VictoriaMetrics query_range fehlgeschlagen: %s (query=%s)", exc, query)
             return {"status": "error", "data": {"result": []}}
 
     def query_instant(self, query: str) -> dict:
