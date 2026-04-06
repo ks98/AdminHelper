@@ -2,7 +2,7 @@ import json
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pathlib import Path
@@ -241,4 +241,6 @@ app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 @app.get("/{full_path:path}", include_in_schema=False)
 def spa_fallback(full_path: str):
+    if full_path.startswith("api/"):
+        raise HTTPException(status_code=404, detail="Not found")
     return FileResponse(static_dir / "index.html")

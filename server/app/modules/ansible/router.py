@@ -2,6 +2,7 @@ import json
 import logging
 import shutil
 import uuid
+from pathlib import Path
 
 import yaml
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -23,7 +24,10 @@ router = APIRouter(prefix="/api/ansible/playbooks", tags=["ansible"])
 
 
 def _playbook_path(playbook_id: str, filename: str):
-    return PLAYBOOKS_DIR / playbook_id / filename
+    safe_name = Path(filename).name
+    if not safe_name:
+        raise HTTPException(status_code=400, detail="Ungueltiger Dateiname")
+    return PLAYBOOKS_DIR / playbook_id / safe_name
 
 
 @router.get("")
