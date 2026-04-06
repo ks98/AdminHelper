@@ -13,7 +13,21 @@ export function createMonitoringApi(session) {
     return result;
   }
 
+  async function requestRaw(method, path) {
+    const result = await window.__TAURI__.core.invoke("api_proxy", {
+      serverUrl: session.serverUrl,
+      token: session.token,
+      method,
+      path,
+      body: null,
+    });
+    return result;
+  }
+
   return {
+    fetchServers() {
+      return requestRaw("GET", "/api/servers");
+    },
     fetchStatus() {
       return request("GET", "/status");
     },

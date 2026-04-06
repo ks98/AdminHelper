@@ -11,13 +11,17 @@ export function worstStatus(checks) {
   return worst;
 }
 
-export function groupChecksByServer(checks, connections = []) {
+export function groupChecksByServer(checks, servers = []) {
+  const serverMap = {};
+  for (const s of servers) {
+    serverMap[s.id] = s;
+  }
   const map = new Map();
   for (const c of checks) {
     const key = c.serverId || "__none";
     if (!map.has(key)) {
-      const match = c.serverId ? connections.find((conn) => conn.serverId === c.serverId) : null;
-      const serverName = match ? (match.name || match.host || c.serverId) : c.serverId;
+      const srv = c.serverId ? serverMap[c.serverId] : null;
+      const serverName = srv ? (srv.name || srv.hostname || c.serverId) : c.serverId;
       map.set(key, { serverId: c.serverId, serverName, checks: [] });
     }
     map.get(key).checks.push(c);

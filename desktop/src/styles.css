@@ -1203,38 +1203,49 @@ body {
 /* ── Filter Bar ──────────────────────────────────────────────────── */
 .mon-filter-bar {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
   align-items: center;
+  margin: 12px 0;
+  padding: 8px 10px;
+  background: rgba(15, 23, 42, 0.45);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
 }
 .mon-filter-select {
   appearance: none;
   -webkit-appearance: none;
-  background: rgba(15, 23, 42, 0.78);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394a3b8' d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
+  background: rgba(30, 41, 59, 0.8);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%2394a3b8' d='M2 3.5l3 3.5 3-3.5'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 10px center;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 8px 30px 8px 12px;
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  border-radius: 8px;
+  padding: 6px 28px 6px 10px;
   color: var(--text);
-  font-size: 13px;
+  font-size: 12px;
   font-family: var(--font);
-  min-width: 130px;
+  min-width: 120px;
   cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
 }
+.mon-filter-select:hover { border-color: rgba(148, 163, 184, 0.3); }
+.mon-filter-select:focus { border-color: var(--accent); outline: none; }
 .mon-filter-select option { background: #0f172a; color: var(--text); }
 .mon-filter-search {
-  background: rgba(15, 23, 42, 0.78);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 8px 12px;
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  border-radius: 8px;
+  padding: 6px 10px;
   color: var(--text);
-  font-size: 13px;
+  font-size: 12px;
   font-family: var(--font);
   flex: 1;
-  min-width: 160px;
+  min-width: 140px;
+  transition: border-color 0.15s ease, background 0.15s ease;
 }
+.mon-filter-search:hover { border-color: rgba(148, 163, 184, 0.3); }
+.mon-filter-search:focus { border-color: var(--accent); outline: none; }
 .mon-filter-search::placeholder { color: var(--text-soft); }
 
 /* ── Status Dots ─────────────────────────────────────────────────── */

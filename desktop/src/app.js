@@ -33,6 +33,7 @@ import { detectSystemLanguage, getIntervalMinutes, getSettingsDefaults } from ".
     monitorChecks: [],
     monitorAlertRules: [],
     monitorAlertLog: [],
+    monitorServers: [],
     monitorTab: "overview",
     monitorFilters: { server: "", type: "", status: "", search: "" }
   };

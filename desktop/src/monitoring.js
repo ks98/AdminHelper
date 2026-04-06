@@ -79,6 +79,20 @@ export function initMonitoring(state, t, monitoringApiFactory) {
     }
   }
 
+  // ── Helpers ─────────────────────────────────────────────────────────
+  function buildServerMap() {
+    const map = {};
+    for (const s of state.monitorServers || []) {
+      map[s.id] = s;
+    }
+    return map;
+  }
+
+  function resolveServerName(serverId) {
+    const srv = buildServerMap()[serverId];
+    return srv ? (srv.name || srv.hostname || serverId) : serverId;
+  }
+
   // ── Filter Bar ─────────────────────────────────────────────────────
   function renderFilterBar(checks) {
     filterBar.innerHTML = "";
@@ -86,11 +100,8 @@ export function initMonitoring(state, t, monitoringApiFactory) {
     const serverIds = [...new Set(checks.map((c) => c.serverId).filter(Boolean))].sort();
     const types = [...new Set(checks.map((c) => c.checkType))].sort();
 
-    const serverOptions = serverIds.map((id) => {
-      const conn = (state.connections || []).find((c) => c.serverId === id);
-      const label = conn ? (conn.name || conn.host || id) : id;
-      return { value: id, label };
-    });
+    const serverOptions = serverIds.map((id) => ({ value: id, label: resolveServerName(id) }));
+    serverOptions.sort((a, b) => a.label.localeCompare(b.label));
     const serverSelect = buildSelect("monFilterServer", t("monitoring.filter.allServers"), serverOptions);
     serverSelect.value = state.monitorFilters.server || "";
     serverSelect.addEventListener("change", () => { state.monitorFilters.server = serverSelect.value; applyFilters(); });
@@ -147,7 +158,7 @@ export function initMonitoring(state, t, monitoringApiFactory) {
       checkListContainer.appendChild(empty);
       return;
     }
-    const groups = groupChecksByServer(checks, state.connections);
+    const groups = groupChecksByServer(checks, state.monitorServers || []);
     for (const group of groups) {
       const groupEl = buildServerGroup(group);
       checkListContainer.appendChild(groupEl);
@@ -637,7 +648,17 @@ export function initMonitoring(state, t, monitoringApiFactory) {
     else if (tab === "log") loadAlertLog();
   }
 
-  // ── Main Load ──────────────────────────────────────────────────────
+  // ── Main Load ─���──────────────────────────────────────────────────���─
+  async function loadServers() {
+    if (!ensureApi()) return;
+    try {
+      const servers = await monitoringApi.fetchServers();
+      state.monitorServers = Array.isArray(servers) ? servers : [];
+    } catch (_) {
+      state.monitorServers = [];
+    }
+  }
+
   async function loadMonitoring() {
     if (!ensureApi()) return;
     try {
@@ -660,7 +681,7 @@ export function initMonitoring(state, t, monitoringApiFactory) {
   function activate() {
     monitoringApi = null; // re-create with fresh session
     ensureApi();
-    loadMonitoring();
+    loadServers().then(() => loadMonitoring());
     startRefresh();
     switchMonitorTab(state.monitorTab || "overview");
   }
