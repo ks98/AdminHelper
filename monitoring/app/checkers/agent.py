@@ -187,13 +187,28 @@ class ServiceProcessChecker:
             return self._evaluate_auto(config, report)
         return self._evaluate_list(config, report)
 
+    @staticmethod
+    def _parse_ignore(raw) -> set:
+        """Ignore-Liste normalisieren: akzeptiert Array oder CSV-String."""
+        if isinstance(raw, str):
+            return {s.strip() for s in raw.split(",") if s.strip()}
+        if isinstance(raw, list):
+            result = set()
+            for item in raw:
+                if isinstance(item, str) and "," in item:
+                    result.update(s.strip() for s in item.split(",") if s.strip())
+                elif isinstance(item, str) and item.strip():
+                    result.add(item.strip())
+            return result
+        return set()
+
     def _evaluate_auto(self, config: dict, report: dict) -> tuple[str, str, dict | None]:
         """Auto-Modus: prueft systemd health aus dem Report."""
         systemd = report.get("systemd")
         if not systemd:
             return "unknown", "Keine systemd-Daten im Report", None
 
-        ignore = set(config.get("ignore", []))
+        ignore = self._parse_ignore(config.get("ignore", []))
 
         failed = [u for u in systemd.get("failed", []) if u not in ignore]
         enabled_inactive = [u for u in systemd.get("enabled_inactive", []) if u not in ignore]

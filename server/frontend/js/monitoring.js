@@ -1285,10 +1285,18 @@ function _tplCheckDefaults(type) {
 function _tplCfgInput(idx, key, val, placeholder, opts) {
   const w = opts?.width || '120px';
   const type = opts?.type || 'text';
+  let handler;
+  if (opts?.csv) {
+    handler = `state.templateCheckDefs[${idx}].config.${key}=this.value.split(',').map(s=>s.trim()).filter(Boolean)`;
+  } else if (type === 'number') {
+    handler = `state.templateCheckDefs[${idx}].config.${key}=Number(this.value)||0`;
+  } else {
+    handler = `state.templateCheckDefs[${idx}].config.${key}=this.value`;
+  }
   return `<label style="display:flex;flex-direction:column;gap:2px;color:var(--text-soft)">
     <span style="font-size:11px">${esc(placeholder)}</span>
     <input value="${esc(val ?? '')}" ${type==='number'?'type="number"':''} style="width:${w};font-size:12px"
-      onchange="state.templateCheckDefs[${idx}].config.${key}=${type==='number'?'Number(this.value)||0':'this.value'}" />
+      onchange="${handler}" />
   </label>`;
 }
 
@@ -1345,12 +1353,12 @@ function _tplCheckConfigFields(type, cfg, idx) {
     case 'service_process':
       return sel('mode', cfg.mode || 'auto', 'Modus', [{value:'auto',label:'Auto'},{value:'list',label:'Liste'}])
         + (cfg.mode === 'list'
-          ? inp('services', _toCSV(cfg.services), 'Services', {width:'200px'})
-          : inp('ignore', _toCSV(cfg.ignore), 'Ignorieren', {width:'200px'}));
+          ? inp('services', _toCSV(cfg.services), 'Services', {width:'200px', csv: true})
+          : inp('ignore', _toCSV(cfg.ignore), 'Ignorieren', {width:'200px', csv: true}));
 
     case 'proxmox_backup':
       return inp('max_backup_age_hours', cfg.max_backup_age_hours, 'Max. Alter (h)', {width:'80px', type:'number'})
-        + inp('exclude_vmids', _toCSV(cfg.exclude_vmids), 'VMIDs ausschl.', {width:'120px'})
+        + inp('exclude_vmids', _toCSV(cfg.exclude_vmids), 'VMIDs ausschl.', {width:'120px', csv: true})
         + sel('exclude_stopped', String(cfg.exclude_stopped ?? true), 'Gestoppte ign.', [{value:'true',label:'Ja'},{value:'false',label:'Nein'}]);
 
     case 'zfs_health':
@@ -1358,7 +1366,7 @@ function _tplCheckConfigFields(type, cfg, idx) {
         + inp('capacity_crit', cfg.capacity_crit, 'Kap. Crit %', {width:'80px', type:'number'});
 
     case 'docker_health':
-      return inp('ignore_containers', _toCSV(cfg.ignore_containers), 'Ignorieren', {width:'200px'});
+      return inp('ignore_containers', _toCSV(cfg.ignore_containers), 'Ignorieren', {width:'200px', csv: true});
 
     default:
       return `<span style="color:var(--text-soft);font-size:12px">Keine Config-Felder</span>`;
