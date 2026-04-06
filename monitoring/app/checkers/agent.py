@@ -7,8 +7,11 @@ Die Daten kommen vom srm-monitor-agent via POST /agent/{server_id}/report.
 
 from __future__ import annotations
 
+import logging
 import time
 from datetime import datetime, timezone
+
+logger = logging.getLogger("monitor.checkers.agent")
 
 # In-Memory Map: server_id -> letzter Report-Zeitstempel (Unix)
 _last_report: dict[str, float] = {}
@@ -219,6 +222,12 @@ class ServiceProcessChecker:
             return "unknown", "Keine systemd-Daten im Report", None
 
         ignore = self._parse_ignore(config.get("ignore", []))
+        logger.info(
+            "_evaluate_auto: config.ignore=%r (type=%s) -> parsed ignore=%r | "
+            "failed_raw=%r | enabled_inactive_raw=%r",
+            config.get("ignore"), type(config.get("ignore")).__name__,
+            ignore, systemd.get("failed", []), systemd.get("enabled_inactive", []),
+        )
 
         failed = [u for u in systemd.get("failed", []) if not self._is_ignored(u, ignore)]
         enabled_inactive = [u for u in systemd.get("enabled_inactive", []) if not self._is_ignored(u, ignore)]
