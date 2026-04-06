@@ -113,9 +113,12 @@ export function createPasswordApi(bridge) {
 
 export function createAuthApi(bridge) {
   return {
-    async login(serverUrl, username, password) {
+    async login(serverUrl, username, password, allowSelfSigned) {
       if (bridge.isTauri) {
-        return await bridge.tauriInvoke("login", { serverUrl, username, password });
+        return await bridge.tauriInvoke("login", {
+          serverUrl, username, password,
+          allowSelfSigned: allowSelfSigned || undefined,
+        });
       }
       throw new Error("Nur in Tauri verfügbar");
     },

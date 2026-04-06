@@ -67,6 +67,7 @@ export function initAuth(state, t, callbacks, authApi, tunnelApi, connectionsApi
     loginBtn.disabled = true;
     loginBtn.textContent = t("login.connecting");
     try {
+      let acceptedSelfSigned = false;
       const certValid = await authApi.checkServerCert(serverUrl);
       if (!certValid) {
         const accepted = confirm(t("cert.warning.message", { url: serverUrl }));
@@ -75,8 +76,13 @@ export function initAuth(state, t, callbacks, authApi, tunnelApi, connectionsApi
           loginBtn.textContent = t("login.submit");
           return;
         }
+        acceptedSelfSigned = true;
       }
-      const session = await authApi.login(serverUrl, username, password);
+      const session = await authApi.login(serverUrl, username, password, acceptedSelfSigned);
+      if (acceptedSelfSigned && state.settings) {
+        state.settings.allowSelfSignedCerts = true;
+        await callbacks.saveSettings(state.settings);
+      }
       state.session = session;
       loginPassword.value = "";
       hideLoginScreen();

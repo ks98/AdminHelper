@@ -206,6 +206,7 @@ import { initAuth } from "./authLogin.js";
     // App-level
     setLanguage,
     updateNavVisibility,
+    saveSettings: (s) => settingsApi.save(s),
   });
 
   // ── Global listeners ────────────────────────────────────────────────
