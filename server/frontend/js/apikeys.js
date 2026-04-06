@@ -23,10 +23,10 @@ function renderApiKeys() {
     const date = k.created_at ? new Date(k.created_at).toLocaleDateString('de-DE') : '–';
     tr.innerHTML = `
       <td><strong>${esc(k.name)}</strong></td>
-      <td><span class="badge badge-${esc(k.permission)}">${k.permission === 'read_write' ? 'Lesen & Schreiben' : 'Nur lesen'}</span></td>
+      <td><span class="badge badge-${esc(k.permission)}">${k.permission === 'read_write' ? t('page.apikeys.readWrite') : t('page.apikeys.readOnly')}</span></td>
       <td>${date}</td>
       <td>
-        <button class="btn small ghost" onclick="deleteApiKey(${k.id})">Löschen</button>
+        <button class="btn small ghost" onclick="deleteApiKey(${k.id})">${t('action.delete')}</button>
       </td>
     `;
     tbody.appendChild(tr);
@@ -57,14 +57,14 @@ document.getElementById('apiKeyForm').addEventListener('submit', async (e) => {
 
 document.getElementById('copyKeyBtn').addEventListener('click', () => {
   const key = document.getElementById('keyRevealValue').textContent;
-  navigator.clipboard.writeText(key).then(() => toast('In Zwischenablage kopiert'));
+  navigator.clipboard.writeText(key).then(() => toast(t('toast.apikey.copied')));
 });
 
 async function deleteApiKey(id) {
-  if (!confirm('API-Key wirklich löschen?')) return;
+  if (!confirm(t('confirm.apikey.delete'))) return;
   try {
     await del(`/api/api-keys/${id}`);
-    toast('API-Key gelöscht');
+    toast(t('toast.apikey.deleted'));
     await loadApiKeys();
   } catch (err) {
     toast(err.message, 'error');

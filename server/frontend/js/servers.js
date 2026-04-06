@@ -69,12 +69,12 @@ function renderServers() {
             <strong>${esc(s.name)}</strong>
             <span style="color:var(--text-soft);font-size:13px;margin-left:8px">${esc(s.hostname)}${osLabel}</span>
           </div>
-          <span style="color:var(--text-soft);font-size:12px;flex-shrink:0">${connCount} Verbindung${connCount !== 1 ? 'en' : ''}</span>
+          <span style="color:var(--text-soft);font-size:12px;flex-shrink:0">${t(connCount !== 1 ? 'page.servers.connCountPlural' : 'page.servers.connCount', { count: connCount })}</span>
           ${tags ? `<div style="display:flex;gap:4px;flex-shrink:0">${tags}</div>` : ''}
         </div>
         <div style="display:flex;gap:6px;flex-shrink:0" onclick="event.stopPropagation()">
-          <button class="btn small" onclick="editServer('${esc(s.id)}')">Bearbeiten</button>
-          <button class="btn small ghost" onclick="deleteServer('${esc(s.id)}')">L\u00f6schen</button>
+          <button class="btn small" onclick="editServer('${esc(s.id)}')">${t('action.edit')}</button>
+          <button class="btn small ghost" onclick="deleteServer('${esc(s.id)}')">${t('action.delete')}</button>
         </div>
       </div>
       <div class="server-card-body hidden">
@@ -91,8 +91,8 @@ function renderServers() {
       <div class="server-card-header" onclick="toggleServerCard(this)">
         <div style="display:flex;align-items:center;gap:10px;flex:1">
           <span class="server-chevron">&#x25B6;</span>
-          <strong style="color:var(--text-soft)">Ohne Server</strong>
-          <span style="color:var(--text-soft);font-size:12px">${standalone.length} Verbindung${standalone.length !== 1 ? 'en' : ''}</span>
+          <strong style="color:var(--text-soft)">${t('page.servers.noServer')}</strong>
+          <span style="color:var(--text-soft);font-size:12px">${t(standalone.length !== 1 ? 'page.servers.connCountPlural' : 'page.servers.connCount', { count: standalone.length })}</span>
         </div>
       </div>
       <div class="server-card-body hidden">
@@ -105,7 +105,7 @@ function renderServers() {
 
 function _renderServerConnections(conns) {
   if (conns.length === 0) {
-    return '<div style="padding:12px;color:var(--text-soft);font-size:13px">Keine Verbindungen zugeordnet.</div>';
+    return `<div style="padding:12px;color:var(--text-soft);font-size:13px">${t('page.servers.noConnections')}</div>`;
   }
   const rows = conns.map(c => {
     const host = c.kind === 'web' ? (c.url || '\u2013') : (c.host || '\u2013');
@@ -118,7 +118,7 @@ function _renderServerConnections(conns) {
       <td>${esc(c.username || '\u2013')}</td>
     </tr>`;
   }).join('');
-  return `<table class="data-table" style="margin:0"><thead><tr><th>Typ</th><th>Name</th><th>Host / URL</th><th>Port</th><th>Benutzer</th></tr></thead><tbody>${rows}</tbody></table>`;
+  return `<table class="data-table" style="margin:0"><thead><tr><th>${t('table.type')}</th><th>${t('table.name')}</th><th>${t('table.hostUrl')}</th><th>${t('table.port')}</th><th>${t('table.user')}</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 
 function toggleServerCard(headerEl) {
@@ -132,7 +132,7 @@ document.getElementById('addServerBtn').addEventListener('click', () => openServ
 
 async function openServerModal(server) {
   state.editingServerId = server ? server.id : null;
-  document.getElementById('serverModalTitle').textContent = server ? 'Server bearbeiten' : 'Neuer Server';
+  document.getElementById('serverModalTitle').textContent = server ? t('modal.server.title') : t('modal.server.titleNew');
   document.getElementById('sfName').value     = server?.name     || '';
   document.getElementById('sfHostname').value = server?.hostname || '';
   document.getElementById('sfOsType').value   = server?.osType   || '';
@@ -153,7 +153,7 @@ async function openServerModal(server) {
     ).join('');
     sel.dataset.originalIds = JSON.stringify(assignedIds);
   } catch {
-    sel.innerHTML = '<option disabled>Templates nicht verfuegbar</option>';
+    sel.innerHTML = `<option disabled>${t('modal.server.templatesUnavailable')}</option>`;
     sel.dataset.originalIds = '[]';
   }
 
@@ -173,11 +173,11 @@ document.getElementById('serverForm').addEventListener('submit', async (e) => {
     let serverId = state.editingServerId;
     if (serverId) {
       await put(`/api/servers/${serverId}`, data);
-      toast('Server gespeichert');
+      toast(t('toast.server.saved'));
     } else {
       const created = await post('/api/servers', data);
       serverId = created.id;
-      toast('Server erstellt');
+      toast(t('toast.server.created'));
     }
 
     await _syncTemplateAssignments(serverId, data.hostname, data.name);
@@ -212,10 +212,10 @@ function editServer(id) {
 }
 
 async function deleteServer(id) {
-  if (!confirm('Server wirklich l\u00f6schen? Zugeordnete Verbindungen werden zu Standalone.')) return;
+  if (!confirm(t('confirm.server.delete'))) return;
   try {
     await del(`/api/servers/${id}`);
-    toast('Server gel\u00f6scht');
+    toast(t('toast.server.deleted'));
     await loadServers();
   } catch (err) {
     toast(err.message, 'error');

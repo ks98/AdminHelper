@@ -34,7 +34,7 @@ async function initApp() {
   document.getElementById('appLayout').classList.remove('hidden');
 
   document.getElementById('userName').textContent = state.user.username;
-  document.getElementById('userRole').textContent = state.user.is_admin ? 'Admin' : 'Benutzer';
+  document.getElementById('userRole').textContent = state.user.is_admin ? t('role.admin') : t('role.user');
   document.getElementById('userAvatar').textContent = state.user.username.charAt(0).toUpperCase();
 
   if (state.user.is_admin) {
@@ -42,14 +42,29 @@ async function initApp() {
     document.getElementById('addConnBtn').classList.remove('hidden');
     document.getElementById('exportConnBtn').classList.remove('hidden');
     document.getElementById('importConnBtn').classList.remove('hidden');
-    document.getElementById('connActionsHeader').textContent = 'Aktionen';
+    document.getElementById('connActionsHeader').textContent = t('label.actions');
     // Server-Liste vorab laden
     try { state.servers = await get('/api/servers'); } catch { /* ignore */ }
   }
 
+  applyTranslations();
+
   const hash = location.hash.replace('#/', '') || 'connections';
   navigate(hash);
 }
+
+// ── Language Toggle ────────────────────────────────────────────────────────
+document.getElementById('langToggleBtn').addEventListener('click', () => {
+  const newLang = currentLanguage === 'de' ? 'en' : 'de';
+  setLanguage(newLang);
+  // Update toggle button label (shows the OTHER language)
+  document.getElementById('langToggleBtn').textContent = newLang === 'de' ? 'EN' : 'DE';
+  // Re-render current page to update dynamically generated content
+  const hash = location.hash.replace('#/', '') || 'connections';
+  navigate(hash);
+});
+// Set initial toggle label
+document.getElementById('langToggleBtn').textContent = currentLanguage === 'de' ? 'EN' : 'DE';
 
 // ── Logout ─────────────────────────────────────────────────────────────────
 document.getElementById('logoutBtn').addEventListener('click', logout);
@@ -83,6 +98,7 @@ function navigate(page) {
 }
 
 // ── Startup ────────────────────────────────────────────────────────────────
+applyTranslations();
 if (state.token) {
   initApp();
 }

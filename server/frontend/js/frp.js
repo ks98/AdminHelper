@@ -40,7 +40,7 @@ function renderFrp() {
         ${cfg.vhostHttpsPort ? `<div><strong>HTTPS Port:</strong> ${cfg.vhostHttpsPort}</div>` : ''}
         ${cfg.subdomainHost ? `<div><strong>Subdomain:</strong> ${esc(cfg.subdomainHost)}</div>` : ''}
         ${cfg.dashboardPort ? `<div><strong>Dashboard:</strong> :${cfg.dashboardPort}</div>` : ''}
-        <div><strong>mTLS:</strong> <span style="color:#22c55e">Immer aktiv</span></div>
+        <div><strong>mTLS:</strong> <span style="color:#22c55e">${t('page.frp.mtlsActive')}</span></div>
       </div>
     `;
     downloadFrps.style.display = '';
@@ -48,7 +48,7 @@ function renderFrp() {
     document.getElementById('frpStatusBtn').style.display = '';
     document.getElementById('pkiBtn').style.display = '';
   } else {
-    infoEl.textContent = 'Noch keine FRP-Server Konfiguration vorhanden. Klicke auf "Konfigurieren" um zu starten.';
+    infoEl.textContent = t('page.frp.noConfig');
     downloadFrps.style.display = 'none';
     downloadVisitor.style.display = 'none';
     document.getElementById('frpStatusBtn').style.display = 'none';
@@ -62,18 +62,18 @@ function renderFrp() {
 
   const tunnelSearchEl = document.getElementById('tunnelSearch');
   const q = tunnelSearchEl ? tunnelSearchEl.value.toLowerCase() : '';
-  const filteredTunnels = state.frpTunnels.filter(t => {
-    if (state.tunnelTagFilter && !(t.tags || []).includes(state.tunnelTagFilter)) return false;
+  const filteredTunnels = state.frpTunnels.filter(tn => {
+    if (state.tunnelTagFilter && !(tn.tags || []).includes(state.tunnelTagFilter)) return false;
     if (q) {
-      const server = state.servers.find(s => s.id === t.serverId);
+      const server = state.servers.find(s => s.id === tn.serverId);
       const fields = [
-        t.name,
-        t.tunnelType,
-        t.protocol,
-        (t.tags || []).join(' '),
-        t.localIp + ':' + t.localPort,
-        String(t.remotePort || ''),
-        t.customDomains,
+        tn.name,
+        tn.tunnelType,
+        tn.protocol,
+        (tn.tags || []).join(' '),
+        tn.localIp + ':' + tn.localPort,
+        String(tn.remotePort || ''),
+        tn.customDomains,
         server ? server.name : '',
         server ? server.hostname : '',
       ].map(f => (f || '').toLowerCase());
@@ -89,10 +89,10 @@ function renderFrp() {
   emptyEl.classList.add('hidden');
 
   const byServer = {};
-  filteredTunnels.forEach(t => {
-    const sid = t.serverId || '__none__';
+  filteredTunnels.forEach(tun => {
+    const sid = tun.serverId || '__none__';
     if (!byServer[sid]) byServer[sid] = [];
-    byServer[sid].push(t);
+    byServer[sid].push(tun);
   });
 
   Object.entries(byServer).forEach(([sid, tunnels]) => {
@@ -100,29 +100,29 @@ function renderFrp() {
     const card = document.createElement('div');
     card.className = 'server-card';
 
-    const title = server ? esc(server.name) : 'Unbekannter Server';
+    const title = server ? esc(server.name) : t('page.frp.unknownServer');
     const hostname = server ? ` · ${esc(server.hostname)}` : '';
 
-    const tunnelRows = tunnels.map(t => {
-      const typeBadge = t.tunnelType === 'stcp'
+    const tunnelRows = tunnels.map(tun => {
+      const typeBadge = tun.tunnelType === 'stcp'
         ? '<span class="badge badge-ssh">STCP</span>'
         : '<span class="badge badge-web">HTTPS</span>';
-      const protoBadge = `<span class="badge">${esc(t.protocol).toUpperCase()}</span>`;
-      const target = `${esc(t.localIp)}:${t.localPort}`;
-      const tagBadges = (t.tags || []).map(tag => `<span class="badge" style="font-size:10px">${esc(tag)}</span>`).join(' ');
-      const visitor = t.visitorPort ? `Visitor :${t.visitorPort}` : (t.customDomains || '\u2013');
-      const statusDot = t.enabled
-        ? '<span style="color:#22c55e" title="Aktiv">&#x25CF;</span>'
-        : '<span style="color:#ef4444" title="Deaktiviert">&#x25CF;</span>';
+      const protoBadge = `<span class="badge">${esc(tun.protocol).toUpperCase()}</span>`;
+      const target = `${esc(tun.localIp)}:${tun.localPort}`;
+      const tagBadges = (tun.tags || []).map(tag => `<span class="badge" style="font-size:10px">${esc(tag)}</span>`).join(' ');
+      const visitor = tun.visitorPort ? `Visitor :${tun.visitorPort}` : (tun.customDomains || '\u2013');
+      const statusDot = tun.enabled
+        ? `<span style="color:#22c55e" title="${t('action.enable')}">&#x25CF;</span>`
+        : `<span style="color:#ef4444" title="${t('action.disable')}">&#x25CF;</span>`;
       return `<tr>
         <td>${statusDot}</td>
         <td>${typeBadge} ${protoBadge}</td>
-        <td><strong>${esc(t.name)}</strong> ${tagBadges}</td>
+        <td><strong>${esc(tun.name)}</strong> ${tagBadges}</td>
         <td>${target}</td>
         <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(visitor)}</td>
         <td style="text-align:right;white-space:nowrap">
-          <button class="btn small" onclick="editTunnel('${esc(t.id)}')">Bearbeiten</button>
-          <button class="btn small ghost" onclick="deleteTunnel('${esc(t.id)}')">L\u00f6schen</button>
+          <button class="btn small" onclick="editTunnel('${esc(tun.id)}')">${t('action.edit')}</button>
+          <button class="btn small ghost" onclick="deleteTunnel('${esc(tun.id)}')">${t('action.delete')}</button>
         </td>
       </tr>`;
     }).join('');
@@ -135,7 +135,7 @@ function renderFrp() {
             <strong>${title}</strong>
             <span style="color:var(--text-soft);font-size:13px;margin-left:8px">${hostname}</span>
           </div>
-          <span style="color:var(--text-soft);font-size:12px;flex-shrink:0">${tunnels.length} Tunnel</span>
+          <span style="color:var(--text-soft);font-size:12px;flex-shrink:0">${t('page.frp.tunnelCount', { count: tunnels.length })}</span>
         </div>
         <div style="display:flex;gap:6px;flex-shrink:0" onclick="event.stopPropagation()">
           ${server ? `<button class="btn small ghost" onclick="openProvisionModal('${esc(sid)}')">Provision</button>` : ''}
@@ -144,7 +144,7 @@ function renderFrp() {
       </div>
       <div class="server-card-body">
         <table class="data-table" style="margin:0">
-          <thead><tr><th></th><th>Typ</th><th>Name</th><th>Ziel</th><th>Visitor / Domain</th><th></th></tr></thead>
+          <thead><tr><th></th><th>${t('label.type')}</th><th>${t('label.name')}</th><th>${t('monitor.cfg.target')}</th><th>Visitor / Domain</th><th></th></tr></thead>
           <tbody>${tunnelRows}</tbody>
         </table>
       </div>
@@ -158,7 +158,7 @@ document.getElementById('frpConfigBtn').addEventListener('click', () => openFrpC
 
 function openFrpConfigModal() {
   const cfg = state.frpConfig;
-  document.getElementById('frpConfigModalTitle').textContent = cfg ? 'FRP-Server bearbeiten' : 'Neue FRP-Server Konfiguration';
+  document.getElementById('frpConfigModalTitle').textContent = cfg ? t('modal.frpConfig.title') : t('modal.frpConfig.titleNew');
   document.getElementById('fcName').value        = cfg?.name          || '';
   document.getElementById('fcServerAddr').value   = cfg?.serverAddr    || '';
   document.getElementById('fcBindPort').value     = cfg?.bindPort      || 7000;
@@ -189,10 +189,10 @@ document.getElementById('frpConfigForm').addEventListener('submit', async (e) =>
   try {
     if (state.frpConfig) {
       await put(`/api/frp/server-config/${state.frpConfig.id}`, data);
-      toast('FRP-Config gespeichert');
+      toast(t('toast.frpConfig.saved'));
     } else {
       await post('/api/frp/server-config', data);
-      toast('FRP-Config erstellt');
+      toast(t('toast.frpConfig.created'));
     }
     closeModal('frpConfigModal');
     await loadFrp();
@@ -206,14 +206,14 @@ document.getElementById('addTunnelBtn').addEventListener('click', () => openTunn
 
 function openTunnelModal(tunnel) {
   if (!state.frpConfig) {
-    toast('Bitte zuerst eine FRP-Server Konfiguration anlegen', 'error');
+    toast(t('page.frp.createConfigFirst'), 'error');
     return;
   }
   state.editingTunnelId = tunnel ? tunnel.id : null;
-  document.getElementById('frpTunnelModalTitle').textContent = tunnel ? 'Tunnel bearbeiten' : 'Neuer Tunnel';
+  document.getElementById('frpTunnelModalTitle').textContent = tunnel ? t('modal.tunnel.title') : t('modal.tunnel.titleNew');
 
   const sel = document.getElementById('ftServer');
-  sel.innerHTML = '<option value="">-- Server w\u00e4hlen --</option>';
+  sel.innerHTML = `<option value="">${t('modal.tunnel.selectServer')}</option>`;
   state.servers.forEach(s => {
     sel.innerHTML += `<option value="${esc(s.id)}">${esc(s.name)} (${esc(s.hostname)})</option>`;
   });
@@ -288,10 +288,10 @@ document.getElementById('frpTunnelForm').addEventListener('submit', async (e) =>
   try {
     if (state.editingTunnelId) {
       await put(`/api/frp/tunnels/${state.editingTunnelId}`, data);
-      toast('Tunnel gespeichert');
+      toast(t('toast.tunnel.saved'));
     } else {
       await post('/api/frp/tunnels', data);
-      toast('Tunnel erstellt');
+      toast(t('toast.tunnel.created'));
     }
 
     closeModal('frpTunnelModal');
@@ -302,15 +302,15 @@ document.getElementById('frpTunnelForm').addEventListener('submit', async (e) =>
 });
 
 function editTunnel(id) {
-  const t = state.frpTunnels.find(t => t.id === id);
-  if (t) openTunnelModal(t);
+  const tun = state.frpTunnels.find(tun => tun.id === id);
+  if (tun) openTunnelModal(tun);
 }
 
 async function deleteTunnel(id) {
-  if (!confirm('Tunnel wirklich l\u00f6schen?')) return;
+  if (!confirm(t('confirm.tunnel.delete'))) return;
   try {
     await del(`/api/frp/tunnels/${id}`);
-    toast('Tunnel gel\u00f6scht');
+    toast(t('toast.tunnel.deleted'));
     await loadFrp();
   } catch (err) {
     toast(err.message, 'error');
@@ -371,7 +371,7 @@ function _showHtmlPreview(title, html) {
 
 document.getElementById('copyFrpConfigBtn').addEventListener('click', () => {
   const text = document.getElementById('frpPreviewContent').textContent;
-  navigator.clipboard.writeText(text).then(() => toast('In Zwischenablage kopiert'));
+  navigator.clipboard.writeText(text).then(() => toast(t('toast.frp.copied')));
 });
 
 // Bulk-ZIP
@@ -391,7 +391,7 @@ document.getElementById('bulkZipBtn').addEventListener('click', async () => {
     a.download = 'frp-configs.zip';
     a.click();
     URL.revokeObjectURL(url);
-    toast('ZIP heruntergeladen');
+    toast(t('toast.frp.zipDownloaded'));
   } catch (err) {
     toast(err.message, 'error');
   }
@@ -402,76 +402,78 @@ document.getElementById('bulkZipBtn').addEventListener('click', async () => {
 document.getElementById('pkiBtn').addEventListener('click', async () => {
   try {
     const status = await get('/api/frp/pki/status');
+    const _dl = currentLanguage === 'en' ? 'en-GB' : 'de-DE';
     let html = '<div style="display:flex;flex-direction:column;gap:16px">';
 
     html += '<div style="background:var(--surface);padding:12px;border-radius:var(--radius-sm)">';
-    html += '<h4 style="margin:0 0 8px">Certificate Authority (CA)</h4>';
+    html += `<h4 style="margin:0 0 8px">${t('frp.pki.caTitle')}</h4>`;
     if (status.caExists) {
-      html += `<p style="margin:0;color:var(--text-soft)">Gueltig bis: <strong>${new Date(status.caExpiry).toLocaleDateString('de-DE')}</strong></p>`;
+      html += `<p style="margin:0;color:var(--text-soft)">${t('frp.pki.caValidUntil')} <strong>${new Date(status.caExpiry).toLocaleDateString(_dl)}</strong></p>`;
       html += `<div style="display:flex;gap:8px;margin-top:8px">`;
-      html += `<button class="btn small" onclick="pkiDownload('ca.crt')">ca.crt herunterladen</button>`;
-      html += `<button class="btn small primary" onclick="pkiGenerateCA()">CA neu generieren</button>`;
+      html += `<button class="btn small" onclick="pkiDownload('ca.crt')">${t('frp.pki.caDownload')}</button>`;
+      html += `<button class="btn small primary" onclick="pkiGenerateCA()">${t('frp.pki.caRegenerate')}</button>`;
       html += `</div>`;
     } else {
-      html += '<p style="margin:0;color:var(--text-soft)">Keine CA vorhanden.</p>';
-      html += `<button class="btn small primary" style="margin-top:8px" onclick="pkiGenerateCA()">CA erstellen</button>`;
+      html += `<p style="margin:0;color:var(--text-soft)">${t('frp.pki.caNotExist')}</p>`;
+      html += `<button class="btn small primary" style="margin-top:8px" onclick="pkiGenerateCA()">${t('frp.pki.caCreate')}</button>`;
     }
     html += '</div>';
 
     html += '<div style="background:var(--surface);padding:12px;border-radius:var(--radius-sm)">';
-    html += '<h4 style="margin:0 0 8px">Server-Zertifikat (frps)</h4>';
+    html += `<h4 style="margin:0 0 8px">${t('frp.pki.serverCertTitle')}</h4>`;
     if (status.serverCertExists) {
-      html += `<p style="margin:0;color:var(--text-soft)">Gueltig bis: <strong>${new Date(status.serverCertExpiry).toLocaleDateString('de-DE')}</strong></p>`;
+      html += `<p style="margin:0;color:var(--text-soft)">${t('frp.pki.caValidUntil')} <strong>${new Date(status.serverCertExpiry).toLocaleDateString(_dl)}</strong></p>`;
       html += `<div style="display:flex;gap:8px;margin-top:8px">`;
       html += `<button class="btn small" onclick="pkiDownload('frps.crt')">frps.crt</button>`;
       html += `<button class="btn small" onclick="pkiDownload('frps.key')">frps.key</button>`;
       if (status.caExists) {
-        html += `<button class="btn small primary" onclick="pkiGenerateServerCert()">Neu generieren</button>`;
+        html += `<button class="btn small primary" onclick="pkiGenerateServerCert()">${t('frp.pki.serverCertRegenerate')}</button>`;
       }
       html += `</div>`;
     } else {
-      html += '<p style="margin:0;color:var(--text-soft)">Kein Server-Zertifikat vorhanden.</p>';
+      html += `<p style="margin:0;color:var(--text-soft)">${t('frp.pki.serverCertNotExist')}</p>`;
       if (status.caExists) {
-        html += `<button class="btn small" style="margin-top:8px" onclick="pkiGenerateServerCert()">Server-Cert generieren</button>`;
+        html += `<button class="btn small" style="margin-top:8px" onclick="pkiGenerateServerCert()">${t('frp.pki.serverCertGenerate')}</button>`;
       }
     }
     html += '</div>';
 
     html += '<div style="background:var(--surface);padding:12px;border-radius:var(--radius-sm)">';
-    html += '<h4 style="margin:0 0 8px">Client-Zertifikate</h4>';
+    html += `<h4 style="margin:0 0 8px">${t('frp.pki.clientCertsTitle')}</h4>`;
     if (status.clientCerts.length > 0) {
-      html += '<table class="data-table" style="margin:0"><thead><tr><th>Name</th><th>Ablauf</th><th></th></tr></thead><tbody>';
+      html += `<table class="data-table" style="margin:0"><thead><tr><th>${t('label.name')}</th><th>${t('frp.pki.expiry')}</th><th></th></tr></thead><tbody>`;
       status.clientCerts.forEach(c => {
-        html += `<tr><td>${esc(c.name)}</td><td>${new Date(c.expiry).toLocaleDateString('de-DE')}</td>
+        html += `<tr><td>${esc(c.name)}</td><td>${new Date(c.expiry).toLocaleDateString(_dl)}</td>
           <td style="text-align:right;white-space:nowrap">
-            <button class="btn small ghost" onclick="pkiDownloadBundle('${esc(c.name)}')" title="ZIP mit ca.crt + Client-Cert + Key">ZIP</button>
+            <button class="btn small ghost" onclick="pkiDownloadBundle('${esc(c.name)}')">ZIP</button>
             <button class="btn small ghost" onclick="pkiDownload('${esc(c.name)}.crt')">crt</button>
             <button class="btn small ghost" onclick="pkiDownload('${esc(c.name)}.key')">key</button>
           </td></tr>`;
       });
       html += '</tbody></table>';
     } else {
-      html += '<p style="margin:0;color:var(--text-soft)">Keine Client-Zertifikate vorhanden.</p>';
+      html += `<p style="margin:0;color:var(--text-soft)">${t('frp.pki.clientCertsNone')}</p>`;
     }
     if (status.caExists) {
       html += `<div style="display:flex;gap:8px;margin-top:8px;align-items:center">
-        <input id="pkiClientName" type="text" placeholder="Client-Name (z.B. k01-lnx1)" style="flex:1" />
-        <button class="btn small" onclick="pkiGenerateClientCert()">Generieren</button>
+        <input id="pkiClientName" type="text" placeholder="${t('frp.pki.clientNamePlaceholder')}" style="flex:1" />
+        <button class="btn small" onclick="pkiGenerateClientCert()">${t('frp.pki.generate')}</button>
       </div>`;
     }
     html += '</div></div>';
 
-    _showHtmlPreview('PKI-Verwaltung', html);
+    _showHtmlPreview(t('frp.pki.title'), html);
   } catch (err) {
     toast(err.message, 'error');
   }
 });
 
 async function pkiGenerateCA() {
-  if (!confirm('Neue CA generieren? Bestehende Zertifikate werden ungueltig!')) return;
+  if (!confirm(t('confirm.pki.regenerateCA'))) return;
   try {
     const result = await post('/api/frp/pki/ca');
-    toast(`CA erstellt (gueltig bis ${new Date(result.expiry).toLocaleDateString('de-DE')})`);
+    const _dl = currentLanguage === 'en' ? 'en-GB' : 'de-DE';
+    toast(t('toast.pki.caCreated', { date: new Date(result.expiry).toLocaleDateString(_dl) }));
     document.getElementById('pkiBtn').click();
   } catch (err) { toast(err.message, 'error'); }
 }
@@ -480,7 +482,7 @@ async function pkiGenerateServerCert() {
   try {
     const addr = state.frpConfig?.serverAddr || 'localhost';
     const result = await post('/api/frp/pki/server-cert', { server_addr: addr });
-    toast(`Server-Cert erstellt fuer ${result.commonName}`);
+    toast(t('toast.pki.serverCertCreated', { name: result.commonName }));
     document.getElementById('pkiBtn').click();
   } catch (err) { toast(err.message, 'error'); }
 }
@@ -525,10 +527,10 @@ async function pkiDownloadBundle(clientName) {
 
 async function pkiGenerateClientCert() {
   const name = document.getElementById('pkiClientName')?.value?.trim();
-  if (!name) { toast('Bitte einen Client-Namen eingeben', 'error'); return; }
+  if (!name) { toast(t('toast.pki.enterClientName'), 'error'); return; }
   try {
     const result = await post(`/api/frp/pki/client-cert/${encodeURIComponent(name)}`);
-    toast(`Client-Cert erstellt fuer ${result.commonName}`);
+    toast(t('toast.pki.clientCertCreated', { name: result.commonName }));
     document.getElementById('pkiBtn').click();
   } catch (err) { toast(err.message, 'error'); }
 }
@@ -540,13 +542,13 @@ document.getElementById('frpStatusBtn').addEventListener('click', async () => {
     let html = '';
 
     if (status.error) {
-      html = `<p style="color:var(--danger)">frps nicht erreichbar: ${esc(status.error)}</p>`;
+      html = `<p style="color:var(--danger)">${t('frp.status.unreachable', { error: esc(status.error) })}</p>`;
     } else {
       const proxies = status.proxies || [];
       if (proxies.length === 0) {
-        html = '<p style="color:var(--text-soft)">Keine aktiven Proxies auf dem frps-Server.</p>';
+        html = `<p style="color:var(--text-soft)">${t('frp.status.noProxies')}</p>`;
       } else {
-        html += '<table class="data-table" style="margin:0"><thead><tr><th></th><th>Name</th><th>Typ</th><th>Verbindungen</th><th>Traffic In</th><th>Traffic Out</th></tr></thead><tbody>';
+        html += `<table class="data-table" style="margin:0"><thead><tr><th></th><th>${t('label.name')}</th><th>${t('label.type')}</th><th>${t('frp.status.connections')}</th><th>Traffic In</th><th>Traffic Out</th></tr></thead><tbody>`;
         proxies.forEach(p => {
           const online = p.status === 'online';
           const dot = online
@@ -560,7 +562,7 @@ document.getElementById('frpStatusBtn').addEventListener('click', async () => {
       }
     }
 
-    _showHtmlPreview('frps Tunnel-Status', html);
+    _showHtmlPreview(t('frp.status.title'), html);
   } catch (err) {
     toast(err.message, 'error');
   }
@@ -580,7 +582,7 @@ let _provisionServerId = null;
 async function openProvisionModal(serverId) {
   _provisionServerId = serverId;
   const server = state.servers.find(s => s.id === serverId);
-  document.getElementById('provisionModalTitle').textContent = `Provisioning: ${server?.name || serverId}`;
+  document.getElementById('provisionModalTitle').textContent = t('frp.provision.title', { name: server?.name || serverId });
   document.getElementById('provisionOneLiner').classList.add('hidden');
   showModal('provisionModal');
   await _loadProvisionTokens(serverId);
@@ -601,7 +603,7 @@ document.getElementById('createProvisionTokenBtn').addEventListener('click', asy
 
     document.getElementById('provisionCommand').textContent = cmd;
     document.getElementById('provisionOneLiner').classList.remove('hidden');
-    toast('Provision-Token erstellt (24h gueltig)');
+    toast(t('toast.provision.created'));
     await _loadProvisionTokens(_provisionServerId);
   } catch (err) {
     toast(err.message, 'error');
@@ -610,7 +612,7 @@ document.getElementById('createProvisionTokenBtn').addEventListener('click', asy
 
 function copyProvisionCommand() {
   const text = document.getElementById('provisionCommand').textContent;
-  navigator.clipboard.writeText(text).then(() => toast('Befehl kopiert'));
+  navigator.clipboard.writeText(text).then(() => toast(t('toast.provision.commandCopied')));
 }
 
 async function _loadProvisionTokens(serverId) {
@@ -618,27 +620,28 @@ async function _loadProvisionTokens(serverId) {
   try {
     const tokens = await get(`/api/frp/provision/${serverId}/tokens`);
     if (tokens.length === 0) {
-      el.textContent = 'Keine Tokens vorhanden.';
+      el.textContent = t('frp.provision.noTokens');
       return;
     }
-    let html = '<table class="data-table" style="margin:0;font-size:13px"><thead><tr><th>Erstellt</th><th>Ablauf</th><th>Status</th></tr></thead><tbody>';
-    tokens.forEach(t => {
-      const created = new Date(t.createdAt).toLocaleString('de-DE');
-      const expires = new Date(t.expiresAt).toLocaleString('de-DE');
+    const _dl = currentLanguage === 'en' ? 'en-GB' : 'de-DE';
+    let html = `<table class="data-table" style="margin:0;font-size:13px"><thead><tr><th>${t('label.created')}</th><th>${t('frp.pki.expiry')}</th><th>${t('label.status')}</th></tr></thead><tbody>`;
+    tokens.forEach(tk => {
+      const created = new Date(tk.createdAt).toLocaleString(_dl);
+      const expires = new Date(tk.expiresAt).toLocaleString(_dl);
       let statusBadge;
-      if (t.usedAt) {
-        statusBadge = `<span style="color:#22c55e">Verwendet (${new Date(t.usedAt).toLocaleString('de-DE')})</span>`;
-      } else if (t.isValid) {
-        statusBadge = '<span style="color:var(--accent)">Aktiv</span>';
+      if (tk.usedAt) {
+        statusBadge = `<span style="color:#22c55e">${t('frp.provision.used', { time: new Date(tk.usedAt).toLocaleString(_dl) })}</span>`;
+      } else if (tk.isValid) {
+        statusBadge = `<span style="color:var(--accent)">${t('frp.provision.active')}</span>`;
       } else {
-        statusBadge = '<span style="color:#ef4444">Abgelaufen</span>';
+        statusBadge = `<span style="color:#ef4444">${t('frp.provision.expired')}</span>`;
       }
       html += `<tr><td>${created}</td><td>${expires}</td><td>${statusBadge}</td></tr>`;
     });
     html += '</tbody></table>';
     el.innerHTML = html;
   } catch (err) {
-    el.textContent = 'Fehler beim Laden.';
+    el.textContent = t('frp.provision.loadError');
   }
 }
 

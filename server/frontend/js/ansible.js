@@ -37,7 +37,7 @@ function renderAnsible() {
     p.name.toLowerCase().includes(q) ||
     p.filename.toLowerCase().includes(q) ||
     (p.description || '').toLowerCase().includes(q) ||
-    (p.tags || []).some(t => t.toLowerCase().includes(q))
+    (p.tags || []).some(tg => tg.toLowerCase().includes(q))
   );
 
   if (state.ansibleTagFilter) {
@@ -53,10 +53,11 @@ function renderAnsible() {
   filtered.forEach(p => {
     const card = document.createElement('div');
     card.className = 'server-card';
-    const tags = (p.tags || []).map(t => `<span class="tag">${esc(t)}</span>`).join(' ');
+    const tags = (p.tags || []).map(tg => `<span class="tag">${esc(tg)}</span>`).join(' ');
     const desc = p.description ? `<span style="color:var(--text-soft);font-size:13px;margin-left:8px">${esc(p.description)}</span>` : '';
-    const updated = p.updatedAt ? new Date(p.updatedAt).toLocaleDateString('de-DE') : '';
-    const created = p.createdAt ? new Date(p.createdAt).toLocaleDateString('de-DE') : '';
+    const _dl = currentLanguage === 'en' ? 'en-GB' : 'de-DE';
+    const updated = p.updatedAt ? new Date(p.updatedAt).toLocaleDateString(_dl) : '';
+    const created = p.createdAt ? new Date(p.createdAt).toLocaleDateString(_dl) : '';
     const dateLabel = updated || created;
 
     card.innerHTML = `
@@ -72,12 +73,12 @@ function renderAnsible() {
           ${tags ? `<div style="display:flex;gap:4px;flex-shrink:0">${tags}</div>` : ''}
         </div>
         <div style="display:flex;gap:6px;flex-shrink:0" onclick="event.stopPropagation()">
-          <button class="btn small" onclick="editPlaybook('${esc(p.id)}')">Bearbeiten</button>
-          <button class="btn small ghost" onclick="deletePlaybook('${esc(p.id)}')">L\u00f6schen</button>
+          <button class="btn small" onclick="editPlaybook('${esc(p.id)}')">${t('action.edit')}</button>
+          <button class="btn small ghost" onclick="deletePlaybook('${esc(p.id)}')">${t('action.delete')}</button>
         </div>
       </div>
       <div class="server-card-body hidden">
-        <pre style="margin:0;padding:12px;font-size:13px;overflow-x:auto;background:var(--bg-card);border-radius:6px" id="pbPreview_${esc(p.id)}"><span style="color:var(--text-soft)">Inhalt wird geladen...</span></pre>
+        <pre style="margin:0;padding:12px;font-size:13px;overflow-x:auto;background:var(--bg-card);border-radius:6px" id="pbPreview_${esc(p.id)}"><span style="color:var(--text-soft)">${t('page.ansible.contentLoading')}</span></pre>
       </div>
     `;
     container.appendChild(card);
@@ -107,7 +108,7 @@ async function loadPlaybookPreview(id, preEl) {
     preEl.textContent = data.content;
     preEl.dataset.loaded = 'true';
   } catch {
-    preEl.textContent = 'Fehler beim Laden des Inhalts.';
+    preEl.textContent = t('page.ansible.loadError');
   }
 }
 
@@ -116,7 +117,7 @@ document.getElementById('addPlaybookBtn').addEventListener('click', () => openPl
 
 async function openPlaybookModal(playbook) {
   state.editingPlaybookId = playbook ? playbook.id : null;
-  document.getElementById('playbookModalTitle').textContent = playbook ? 'Playbook bearbeiten' : 'Neues Playbook';
+  document.getElementById('playbookModalTitle').textContent = playbook ? t('modal.playbook.title') : t('modal.playbook.titleNew');
   document.getElementById('pbName').value = playbook?.name || '';
   document.getElementById('pbFilename').value = playbook?.filename || '';
   document.getElementById('pbDescription').value = playbook?.description || '';
@@ -148,10 +149,10 @@ document.getElementById('playbookForm').addEventListener('submit', async (e) => 
   try {
     if (state.editingPlaybookId) {
       await put(`/api/ansible/playbooks/${state.editingPlaybookId}`, data);
-      toast('Playbook gespeichert');
+      toast(t('toast.playbook.saved'));
     } else {
       await post('/api/ansible/playbooks', data);
-      toast('Playbook erstellt');
+      toast(t('toast.playbook.created'));
     }
     closeModal('playbookModal');
     await loadAnsible();
@@ -166,10 +167,10 @@ function editPlaybook(id) {
 }
 
 async function deletePlaybook(id) {
-  if (!confirm('Playbook wirklich l\u00f6schen?')) return;
+  if (!confirm(t('confirm.playbook.delete'))) return;
   try {
     await del(`/api/ansible/playbooks/${id}`);
-    toast('Playbook gel\u00f6scht');
+    toast(t('toast.playbook.deleted'));
     await loadAnsible();
   } catch (err) {
     toast(err.message, 'error');

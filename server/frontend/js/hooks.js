@@ -1,37 +1,41 @@
 /* Simple Remote Manager – Hooks */
 'use strict';
 
-const HOOK_EVENTS = [
-  { value: 'connection.created',   label: 'Verbindung erstellt' },
-  { value: 'connection.updated',   label: 'Verbindung geändert' },
-  { value: 'connection.deleted',   label: 'Verbindung gelöscht' },
-  { value: 'connections.imported', label: 'Verbindungen importiert' },
-  { value: 'user.created',         label: 'Benutzer erstellt' },
-  { value: 'user.deleted',         label: 'Benutzer gelöscht' },
-  { value: 'server.created',       label: 'Server erstellt' },
-  { value: 'server.updated',       label: 'Server geändert' },
-  { value: 'server.deleted',       label: 'Server gelöscht' },
-  { value: 'server.startup',       label: 'App gestartet' },
-  { value: 'frp.config.created',   label: 'FRP-Config erstellt' },
-  { value: 'frp.config.updated',   label: 'FRP-Config geändert' },
-  { value: 'frp.config.deleted',   label: 'FRP-Config gelöscht' },
-  { value: 'frp.tunnel.created',   label: 'FRP-Tunnel erstellt' },
-  { value: 'frp.tunnel.updated',   label: 'FRP-Tunnel geändert' },
-  { value: 'frp.tunnel.deleted',   label: 'FRP-Tunnel gelöscht' },
-];
+function _getHookEvents() {
+  return [
+    { value: 'connection.created',   label: t('hook.event.connection.created') },
+    { value: 'connection.updated',   label: t('hook.event.connection.updated') },
+    { value: 'connection.deleted',   label: t('hook.event.connection.deleted') },
+    { value: 'connections.imported', label: t('hook.event.connections.imported') },
+    { value: 'user.created',         label: t('hook.event.user.created') },
+    { value: 'user.deleted',         label: t('hook.event.user.deleted') },
+    { value: 'server.created',       label: t('hook.event.server.created') },
+    { value: 'server.updated',       label: t('hook.event.server.updated') },
+    { value: 'server.deleted',       label: t('hook.event.server.deleted') },
+    { value: 'server.startup',       label: t('hook.event.server.startup') },
+    { value: 'frp.config.created',   label: t('hook.event.frp.config.created') },
+    { value: 'frp.config.updated',   label: t('hook.event.frp.config.updated') },
+    { value: 'frp.config.deleted',   label: t('hook.event.frp.config.deleted') },
+    { value: 'frp.tunnel.created',   label: t('hook.event.frp.tunnel.created') },
+    { value: 'frp.tunnel.updated',   label: t('hook.event.frp.tunnel.updated') },
+    { value: 'frp.tunnel.deleted',   label: t('hook.event.frp.tunnel.deleted') },
+  ];
+}
 
-const HOOK_SCRIPT_HELP = {
-  webhook:  'Kontext: <code>payload</code>, <code>headers</code>, <code>params</code>',
-  event:    'Kontext: <code>event_type</code>, <code>event_data</code>',
-  schedule: 'Kontext: <code>triggered_at</code>, <code>last_run</code>',
-};
+function _getHookScriptHelp() {
+  return {
+    webhook:  t('hook.scriptHelp.webhook'),
+    event:    t('hook.scriptHelp.event'),
+    schedule: t('hook.scriptHelp.schedule'),
+  };
+}
 
 const HOOK_TYPE_LABEL = { webhook: 'Webhook', event: 'Event', schedule: 'Schedule' };
 
 // Event-Checkboxes einmalig aufbauen
 (function () {
   const grid = document.getElementById('hkEventsGrid');
-  HOOK_EVENTS.forEach(evt => {
+  _getHookEvents().forEach(evt => {
     const lbl = document.createElement('label');
     lbl.className = 'checkbox-label';
     lbl.innerHTML =
@@ -52,9 +56,10 @@ function _updateHookFormFields() {
   document.getElementById('hkEventsField').classList.toggle('hidden', type !== 'event');
   document.getElementById('hkIntervalField').classList.toggle('hidden', type !== 'schedule');
   if (type !== 'schedule') document.getElementById('hkCronField').classList.add('hidden');
-  const base = 'Verfügbar: <code>load_connections()</code>, <code>save_connections(list)</code>, <code>uuid4()</code>, <code>result</code>, <code>logs</code>, <code>log(msg)</code> – <code>import</code> erlaubt';
+  const help = _getHookScriptHelp();
+  const base = t('hook.scriptHelp.base');
   document.getElementById('hkScriptHelp').innerHTML =
-    (HOOK_SCRIPT_HELP[type] ? HOOK_SCRIPT_HELP[type] + ' · ' : '') + base;
+    (help[type] ? help[type] + ' · ' : '') + base;
 }
 
 async function loadHooks() {
@@ -85,18 +90,18 @@ function renderHooks() {
     } else if (h.hook_type === 'schedule') {
       details = `<strong>${esc(h.schedule_interval || '–')}</strong>`;
       if (h.next_run) {
-        details += `<br/><span style="font-size:11px;color:var(--text-soft)">Nächster: ${esc(new Date(h.next_run).toLocaleString('de-DE'))}</span>`;
+        details += `<br/><span style="font-size:11px;color:var(--text-soft)">${t('page.hooks.next', { time: new Date(h.next_run).toLocaleString(currentLanguage === 'en' ? 'en-GB' : 'de-DE') })}</span>`;
       }
     }
 
     const actions = [
-      `<button class="btn small" onclick="editHook('${esc(h.id)}')">Bearbeiten</button>`,
-      `<button class="btn small ghost" onclick="runHook('${esc(h.id)}','${esc(h.name)}')">Ausführen</button>`,
+      `<button class="btn small" onclick="editHook('${esc(h.id)}')">${t('action.edit')}</button>`,
+      `<button class="btn small ghost" onclick="runHook('${esc(h.id)}','${esc(h.name)}')">${t('action.run')}</button>`,
       h.hook_type === 'webhook'
-        ? `<button class="btn small ghost" onclick="rotateHookToken('${esc(h.id)}','${esc(h.name)}')">Token rotieren</button>`
+        ? `<button class="btn small ghost" onclick="rotateHookToken('${esc(h.id)}','${esc(h.name)}')">${t('page.hooks.rotateToken')}</button>`
         : '',
-      `<button class="btn small ghost" onclick="toggleHookEnabled('${esc(h.id)}')">${h.enabled ? 'Deaktivieren' : 'Aktivieren'}</button>`,
-      `<button class="btn small ghost" onclick="deleteHook('${esc(h.id)}')">Löschen</button>`,
+      `<button class="btn small ghost" onclick="toggleHookEnabled('${esc(h.id)}')">${h.enabled ? t('action.disable') : t('action.enable')}</button>`,
+      `<button class="btn small ghost" onclick="deleteHook('${esc(h.id)}')">${t('action.delete')}</button>`,
     ].filter(Boolean).join('');
 
     tr.innerHTML = `
@@ -106,7 +111,7 @@ function renderHooks() {
       </td>
       <td><span class="badge badge-${esc(h.hook_type)}">${esc(HOOK_TYPE_LABEL[h.hook_type] || h.hook_type)}</span></td>
       <td>${details}</td>
-      <td><span class="badge badge-${h.enabled ? 'active' : 'inactive'}">${h.enabled ? 'Aktiv' : 'Inaktiv'}</span></td>
+      <td><span class="badge badge-${h.enabled ? 'active' : 'inactive'}">${h.enabled ? t('page.hooks.active') : t('page.hooks.inactive')}</span></td>
       <td style="font-size:12px;color:var(--text-soft)">${esc(lastRun)}</td>
       <td><div style="display:flex;gap:6px;flex-wrap:wrap">${actions}</div></td>
     `;
@@ -118,7 +123,7 @@ document.getElementById('addHookBtn').addEventListener('click', () => openHookMo
 
 function openHookModal(hook) {
   state.editingHookId = hook ? hook.id : null;
-  document.getElementById('hookModalTitle').textContent = hook ? 'Hook bearbeiten' : 'Neuer Hook';
+  document.getElementById('hookModalTitle').textContent = hook ? t('modal.hook.title') : t('modal.hook.titleNew');
   document.getElementById('hkName').value   = hook?.name        || '';
   document.getElementById('hkDesc').value   = hook?.description || '';
   document.getElementById('hkScript').value = hook?.script      || '';
@@ -158,27 +163,27 @@ document.getElementById('hookForm').addEventListener('submit', async (e) => {
 
   if (type === 'event') {
     data.event_triggers = [...document.querySelectorAll('input[name="hkEvent"]:checked')].map(cb => cb.value);
-    if (!data.event_triggers.length) { toast('Bitte mindestens ein Event auswählen', 'error'); return; }
+    if (!data.event_triggers.length) { toast(t('modal.hook.selectEvent'), 'error'); return; }
   }
   if (type === 'schedule') {
     const iv = document.getElementById('hkInterval').value;
     data.schedule_interval = iv === 'custom' ? document.getElementById('hkCron').value.trim() : iv;
-    if (!data.schedule_interval) { toast('Bitte ein Intervall angeben', 'error'); return; }
+    if (!data.schedule_interval) { toast(t('modal.hook.selectInterval'), 'error'); return; }
   }
 
   try {
     if (state.editingHookId) {
       await put(`/api/hooks/${state.editingHookId}`, data);
-      toast('Hook gespeichert');
+      toast(t('toast.hook.saved'));
       closeModal('hookModal');
       await loadHooks();
     } else {
       const result = await post('/api/hooks', data);
       closeModal('hookModal');
       if (type === 'webhook' && result.token) {
-        showHookToken(result.token, 'Hook erstellt');
+        showHookToken(result.token, t('toast.hook.created'));
       } else {
-        toast('Hook erstellt');
+        toast(t('toast.hook.created'));
       }
       await loadHooks();
     }
@@ -197,10 +202,10 @@ async function editHook(id) {
 }
 
 async function deleteHook(id) {
-  if (!confirm('Hook wirklich löschen?')) return;
+  if (!confirm(t('confirm.hook.delete'))) return;
   try {
     await del(`/api/hooks/${id}`);
-    toast('Hook gelöscht');
+    toast(t('toast.hook.deleted'));
     await loadHooks();
   } catch (err) {
     toast(err.message, 'error');
@@ -217,10 +222,10 @@ async function toggleHookEnabled(id) {
 }
 
 async function rotateHookToken(id, name) {
-  if (!confirm(`Token für „${name}" wirklich neu generieren? Der alte Token wird ungültig.`)) return;
+  if (!confirm(t('confirm.hook.rotateToken', { name }))) return;
   try {
     const result = await post(`/api/hooks/${id}/rotate`);
-    showHookToken(result.token, 'Neuer Token generiert');
+    showHookToken(result.token, t('toast.hook.tokenGenerated'));
   } catch (err) {
     toast(err.message, 'error');
   }
@@ -228,9 +233,9 @@ async function rotateHookToken(id, name) {
 
 async function runHook(id, name) {
   try {
-    toast('Hook wird ausgeführt…');
+    toast(t('toast.hook.running'));
     const result = await post(`/api/hooks/${id}/run`);
-    document.getElementById('hookRunTitle').textContent = `Ergebnis: ${name}`;
+    document.getElementById('hookRunTitle').textContent = t('hook.result.title', { name });
     document.getElementById('hookRunResult').textContent = JSON.stringify(result, null, 2);
     showModal('hookRunModal');
   } catch (err) {
@@ -247,5 +252,5 @@ function showHookToken(token, title) {
 
 document.getElementById('copyWebhookTokenBtn').addEventListener('click', () => {
   navigator.clipboard.writeText(document.getElementById('webhookTokenValue').textContent)
-    .then(() => toast('Token kopiert'));
+    .then(() => toast(t('toast.hook.tokenCopied')));
 });

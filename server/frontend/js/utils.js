@@ -73,7 +73,7 @@ async function api(method, path, body) {
       res = await fetch(path, { method, headers, body: jsonBody });
     } else {
       logout();
-      throw new Error('Sitzung abgelaufen');
+      throw new Error(t('session.expired'));
     }
   }
 
@@ -142,7 +142,7 @@ function renderTagFilter(selectId, items, stateKey) {
   const allTags = [...new Set(items.flatMap(i => i.tags || []))].sort();
   select.classList.remove('hidden');
   const prev = state[stateKey];
-  select.innerHTML = '<option value="">Alle Tags</option>' +
+  select.innerHTML = `<option value="">${t('label.allTags')}</option>` +
     allTags.map(t => `<option value="${esc(t)}"${prev === t ? ' selected' : ''}>${esc(t)}</option>`).join('');
 }
 

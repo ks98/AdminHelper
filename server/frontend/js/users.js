@@ -26,13 +26,13 @@ function renderUsers() {
     const date = u.created_at ? new Date(u.created_at).toLocaleDateString('de-DE') : '–';
     const isMe = u.id === state.user?.id;
     tr.innerHTML = `
-      <td><strong>${esc(u.username)}</strong>${isMe ? ' <span style="color:var(--text-soft);font-size:12px">(ich)</span>' : ''}</td>
-      <td><span class="badge badge-${u.is_admin ? 'admin' : 'user'}">${u.is_admin ? 'Admin' : 'Benutzer'}</span></td>
+      <td><strong>${esc(u.username)}</strong>${isMe ? ` <span style="color:var(--text-soft);font-size:12px">${t('page.users.me')}</span>` : ''}</td>
+      <td><span class="badge badge-${u.is_admin ? 'admin' : 'user'}">${u.is_admin ? t('role.admin') : t('role.user')}</span></td>
       <td>${date}</td>
       <td>
         <div style="display:flex;gap:6px">
-          <button class="btn small" onclick="editUser(${u.id})">Bearbeiten</button>
-          ${!isMe ? `<button class="btn small ghost" onclick="deleteUser(${u.id})">Löschen</button>` : ''}
+          <button class="btn small" onclick="editUser(${u.id})">${t('action.edit')}</button>
+          ${!isMe ? `<button class="btn small ghost" onclick="deleteUser(${u.id})">${t('action.delete')}</button>` : ''}
         </div>
       </td>
     `;
@@ -44,12 +44,12 @@ document.getElementById('addUserBtn').addEventListener('click', () => openUserMo
 
 function openUserModal(user) {
   state.editingUserId = user ? user.id : null;
-  document.getElementById('userModalTitle').textContent = user ? 'Benutzer bearbeiten' : 'Neuer Benutzer';
+  document.getElementById('userModalTitle').textContent = user ? t('modal.user.title') : t('modal.user.titleNew');
   document.getElementById('ufUsername').value  = user?.username || '';
   document.getElementById('ufUsername').disabled = !!user;
   document.getElementById('ufPassword').value  = '';
   document.getElementById('ufPassword').required = !user;
-  document.getElementById('ufPasswordLabel').textContent = user ? 'Neues Passwort (leer = unverändert)' : 'Passwort *';
+  document.getElementById('ufPasswordLabel').textContent = user ? t('modal.user.passwordEdit') : t('modal.user.password');
   document.getElementById('ufIsAdmin').checked = user?.is_admin || false;
 
   // Server-Checkboxen rendern
@@ -64,7 +64,7 @@ function openUserModal(user) {
       </label>
     `).join('');
   } else {
-    listEl.innerHTML = '<span style="color:var(--text-soft);font-size:12px">Keine Server vorhanden.</span>';
+    listEl.innerHTML = `<span style="color:var(--text-soft);font-size:12px">${t('page.users.noServers')}</span>`;
   }
 
   showModal('userModal');
@@ -81,16 +81,16 @@ document.getElementById('userForm').addEventListener('submit', async (e) => {
       const data = { is_admin: document.getElementById('ufIsAdmin').checked, server_ids: serverIds };
       if (pw) data.password = pw;
       await put(`/api/users/${state.editingUserId}`, data);
-      toast('Benutzer gespeichert');
+      toast(t('toast.user.saved'));
     } else {
-      if (!pw) { toast('Passwort erforderlich', 'error'); return; }
+      if (!pw) { toast(t('modal.user.passwordRequired'), 'error'); return; }
       await post('/api/users', {
         username: document.getElementById('ufUsername').value.trim(),
         password: pw,
         is_admin: document.getElementById('ufIsAdmin').checked,
         server_ids: serverIds,
       });
-      toast('Benutzer erstellt');
+      toast(t('toast.user.created'));
     }
     closeModal('userModal');
     await loadUsers();
@@ -105,10 +105,10 @@ function editUser(id) {
 }
 
 async function deleteUser(id) {
-  if (!confirm('Benutzer wirklich löschen?')) return;
+  if (!confirm(t('confirm.user.delete'))) return;
   try {
     await del(`/api/users/${id}`);
-    toast('Benutzer gelöscht');
+    toast(t('toast.user.deleted'));
     await loadUsers();
   } catch (err) {
     toast(err.message, 'error');

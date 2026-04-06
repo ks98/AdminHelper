@@ -40,12 +40,12 @@ function renderConnections() {
 
   if (filtered.length === 0) {
     empty.classList.remove('hidden');
-    document.getElementById('connSubtitle').textContent = 'Keine Verbindungen gefunden';
+    document.getElementById('connSubtitle').textContent = t('page.connections.none');
     return;
   }
 
   empty.classList.add('hidden');
-  document.getElementById('connSubtitle').textContent = `${state.connections.length} Verbindung${state.connections.length !== 1 ? 'en' : ''}`;
+  document.getElementById('connSubtitle').textContent = t(state.connections.length !== 1 ? 'page.connections.countPlural' : 'page.connections.count', { count: state.connections.length });
 
   filtered.forEach(c => {
     const tr = document.createElement('tr');
@@ -54,8 +54,8 @@ function renderConnections() {
     const tags = (c.tags || []).map(t => `<span class="tag">${esc(t)}</span>`).join(' ');
     const actions = state.user?.is_admin
       ? `<div style="display:flex;gap:6px">
-           <button class="btn small" onclick="editConn('${esc(c.id)}')">Bearbeiten</button>
-           <button class="btn small ghost" onclick="deleteConn('${esc(c.id)}')">Löschen</button>
+           <button class="btn small" onclick="editConn('${esc(c.id)}')">${t('action.edit')}</button>
+           <button class="btn small ghost" onclick="deleteConn('${esc(c.id)}')">${t('action.delete')}</button>
          </div>`
       : '';
     tr.innerHTML = `
@@ -75,7 +75,7 @@ document.getElementById('addConnBtn').addEventListener('click', () => openConnMo
 
 function openConnModal(conn) {
   state.editingConnId = conn ? conn.id : null;
-  document.getElementById('connModalTitle').textContent = conn ? 'Verbindung bearbeiten' : 'Neue Verbindung';
+  document.getElementById('connModalTitle').textContent = conn ? t('modal.connection.title') : t('modal.connection.titleNew');
 
   document.getElementById('cfName').value    = conn?.name     || '';
   document.getElementById('cfKind').value    = conn?.kind     || 'ssh';
@@ -90,7 +90,7 @@ function openConnModal(conn) {
 
   // Server-Dropdown befüllen
   const cfServer = document.getElementById('cfServer');
-  cfServer.innerHTML = '<option value="">-- Kein Server --</option>';
+  cfServer.innerHTML = `<option value="">${t('modal.connection.noServer')}</option>`;
   state.servers.forEach(s => {
     const opt = document.createElement('option');
     opt.value = s.id;
@@ -142,10 +142,10 @@ document.getElementById('connForm').addEventListener('submit', async (e) => {
   try {
     if (state.editingConnId) {
       await put(`/api/connections/${state.editingConnId}`, conn);
-      toast('Verbindung gespeichert');
+      toast(t('toast.connection.saved'));
     } else {
       await post('/api/connections', conn);
-      toast('Verbindung erstellt');
+      toast(t('toast.connection.created'));
     }
     closeModal('connModal');
     await loadConnections();
@@ -160,10 +160,10 @@ function editConn(id) {
 }
 
 async function deleteConn(id) {
-  if (!confirm('Verbindung wirklich löschen?')) return;
+  if (!confirm(t('confirm.connection.delete'))) return;
   try {
     await del(`/api/connections/${id}`);
-    toast('Verbindung gelöscht');
+    toast(t('toast.connection.deleted'));
     await loadConnections();
   } catch (err) {
     toast(err.message, 'error');
@@ -203,11 +203,11 @@ document.getElementById('importFile').addEventListener('change', () => {
   reader.onload = (e) => {
     try {
       const data = JSON.parse(e.target.result);
-      if (!Array.isArray(data)) throw new Error('Keine Liste');
+      if (!Array.isArray(data)) throw new Error('invalid');
       document.getElementById('importInfo').textContent =
-        `${data.length} Verbindung${data.length !== 1 ? 'en' : ''} gefunden.`;
+        t(data.length !== 1 ? 'import.foundPlural' : 'import.found', { count: data.length });
     } catch {
-      document.getElementById('importInfo').textContent = 'Ungültige JSON-Datei.';
+      document.getElementById('importInfo').textContent = t('import.invalidJson');
     }
   };
   reader.readAsText(file);
@@ -215,7 +215,7 @@ document.getElementById('importFile').addEventListener('change', () => {
 
 document.getElementById('importSubmitBtn').addEventListener('click', async () => {
   const file = document.getElementById('importFile').files[0];
-  if (!file) { toast('Bitte eine Datei auswählen', 'error'); return; }
+  if (!file) { toast(t('import.selectFile'), 'error'); return; }
   const mode = document.getElementById('importMode').value;
 
   let connections;
@@ -223,18 +223,18 @@ document.getElementById('importSubmitBtn').addEventListener('click', async () =>
     connections = JSON.parse(await file.text());
     if (!Array.isArray(connections)) throw new Error();
   } catch {
-    toast('Ungültige JSON-Datei', 'error');
+    toast(t('import.invalidJsonShort'), 'error');
     return;
   }
 
   const msg = mode === 'replace'
-    ? `Alle bestehenden Verbindungen werden gelöscht und durch ${connections.length} importierte ersetzt. Fortfahren?`
-    : `${connections.length} Verbindung${connections.length !== 1 ? 'en' : ''} hinzufügen?`;
+    ? t('import.confirmReplace', { count: connections.length })
+    : t(connections.length !== 1 ? 'import.confirmMergePlural' : 'import.confirmMerge', { count: connections.length });
   if (!confirm(msg)) return;
 
   try {
     const result = await post('/api/connections/import', { connections, mode });
-    toast(`${result.imported} Verbindung${result.imported !== 1 ? 'en' : ''} importiert`);
+    toast(t(result.imported !== 1 ? 'import.resultPlural' : 'import.result', { count: result.imported }));
     closeModal('importModal');
     await loadConnections();
   } catch (err) {

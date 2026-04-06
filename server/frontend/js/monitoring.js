@@ -8,7 +8,7 @@ function _toCSV(v) { return Array.isArray(v) ? v.join(', ') : (v || ''); }
 // ── Tab-Switching ────────────────────────────────────────────────────────
 document.querySelectorAll('.monitor-tab').forEach(tab => {
   tab.addEventListener('click', () => {
-    document.querySelectorAll('.monitor-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.monitor-tab').forEach(tb => tb.classList.remove('active'));
     document.querySelectorAll('.monitor-tab-content').forEach(c => c.classList.remove('active'));
     tab.classList.add('active');
     const target = document.querySelector(`.monitor-tab-content[data-mtab="${tab.dataset.mtab}"]`);
@@ -77,7 +77,7 @@ function _populateMonitorFilters() {
   const serverIds = [...new Set(checks.map(c => c.serverId).filter(Boolean))];
   const serverSelect = document.getElementById('monitorServerFilter');
   const prevServer = state.monitorServerFilter;
-  serverSelect.innerHTML = '<option value="">Alle Server</option>' +
+  serverSelect.innerHTML = `<option value="">${t('label.allServers')}</option>` +
     serverIds.map(id => {
       const name = serverMap[id]?.name || id.substring(0, 8);
       return `<option value="${id}" ${id === prevServer ? 'selected' : ''}>${esc(name)}</option>`;
@@ -87,19 +87,19 @@ function _populateMonitorFilters() {
   const types = [...new Set(checks.map(c => c.checkType))].sort();
   const typeSelect = document.getElementById('monitorTypeFilter');
   const prevType = state.monitorTypeFilter;
-  typeSelect.innerHTML = '<option value="">Alle Typen</option>' +
-    types.map(t => `<option value="${t}" ${t === prevType ? 'selected' : ''}>${t}</option>`).join('');
+  typeSelect.innerHTML = `<option value="">${t('label.allTypes')}</option>` +
+    types.map(tp => `<option value="${tp}" ${tp === prevType ? 'selected' : ''}>${tp}</option>`).join('');
 
   // Tag-Filter
   const tagSet = new Set();
   serverIds.forEach(id => {
-    (serverMap[id]?.tags || []).forEach(t => tagSet.add(t));
+    (serverMap[id]?.tags || []).forEach(tg => tagSet.add(tg));
   });
   const tags = [...tagSet].sort();
   const tagSelect = document.getElementById('monitorTagFilter');
   const prevTag = state.monitorTagFilter;
-  tagSelect.innerHTML = '<option value="">Alle Tags</option>' +
-    tags.map(t => `<option value="${t}" ${t === prevTag ? 'selected' : ''}>${esc(t)}</option>`).join('');
+  tagSelect.innerHTML = `<option value="">${t('label.allTags')}</option>` +
+    tags.map(tg => `<option value="${tg}" ${tg === prevTag ? 'selected' : ''}>${esc(tg)}</option>`).join('');
 
   // Status-Filter und Suche behalten ihren Wert
   document.getElementById('monitorStatusFilter').value = state.monitorStatusFilter;
@@ -144,19 +144,19 @@ function renderMonitorOverview(checks) {
   container.innerHTML = `
     <div class="monitor-summary-card">
       <div class="monitor-summary-value">${counts.total}</div>
-      <div class="monitor-summary-label">Gesamt</div>
+      <div class="monitor-summary-label">${t('monitor.total')}</div>
     </div>
     <div class="monitor-summary-card monitor-summary-ok">
       <div class="monitor-summary-value">${counts.ok}</div>
-      <div class="monitor-summary-label">OK</div>
+      <div class="monitor-summary-label">${t('monitor.ok')}</div>
     </div>
     <div class="monitor-summary-card monitor-summary-warning">
       <div class="monitor-summary-value">${counts.warning}</div>
-      <div class="monitor-summary-label">Warnung</div>
+      <div class="monitor-summary-label">${t('monitor.warning')}</div>
     </div>
     <div class="monitor-summary-card monitor-summary-critical">
       <div class="monitor-summary-value">${counts.critical}</div>
-      <div class="monitor-summary-label">Kritisch</div>
+      <div class="monitor-summary-label">${t('monitor.critical')}</div>
     </div>
   `;
 }
@@ -199,7 +199,7 @@ function renderMonitorChecks(checks) {
 
   // Checks ohne Server
   if (noServer.length > 0) {
-    container.appendChild(_renderCheckGroup('Ohne Server', noServer, _worstStatus(noServer)));
+    container.appendChild(_renderCheckGroup(t('monitor.noServer'), noServer, _worstStatus(noServer)));
   }
 }
 
@@ -224,7 +224,7 @@ function _renderCheckGroup(title, checks, worstStatus) {
         <span class="server-chevron">&#x25B6;</span>
         <span class="monitor-dot monitor-${worstStatus}"></span>
         <strong>${esc(title)}</strong>
-        <span style="color:var(--text-soft);font-size:12px">${checks.length} Check${checks.length !== 1 ? 's' : ''}</span>
+        <span style="color:var(--text-soft);font-size:12px">${t(checks.length !== 1 ? 'monitor.checkCountPlural' : 'monitor.checkCount', { count: checks.length })}</span>
       </div>
     </div>
     <div class="server-card-body hidden">
@@ -238,7 +238,7 @@ function _renderCheckTable(checks) {
   const rows = checks.map(c => {
     const st = c.state?.status || 'pending';
     const msg = c.state?.message || '\u2013';
-    const lastCheck = c.state?.lastCheck ? _formatTime(c.state.lastCheck) : 'Noch nie';
+    const lastCheck = c.state?.lastCheck ? _formatTime(c.state.lastCheck) : t('monitor.neverChecked');
     const typeBadge = c.checkType.toUpperCase();
     return `<tr class="check-row" data-check-id="${c.id}" onclick="toggleCheckDetail('${c.id}', this)" style="cursor:pointer">
       <td><span class="monitor-dot monitor-${st}"></span></td>
@@ -247,18 +247,18 @@ function _renderCheckTable(checks) {
       <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-soft)">${esc(msg)}</td>
       <td style="color:var(--text-soft);font-size:12px">${esc(lastCheck)}</td>
       <td style="white-space:nowrap" onclick="event.stopPropagation()">
-        <button class="btn small" onclick="runMonitorCheck('${c.id}')" title="Jetzt ausfuehren">&#x25B6;</button>
-        <button class="btn small" onclick="editMonitorCheck('${c.id}')">Bearbeiten</button>
+        <button class="btn small" onclick="runMonitorCheck('${c.id}')" title="${t('monitor.runNow')}">&#x25B6;</button>
+        <button class="btn small" onclick="editMonitorCheck('${c.id}')">${t('action.edit')}</button>
         <button class="btn small ghost" onclick="toggleMonitorCheck('${c.id}')">
-          ${c.enabled ? 'Deaktivieren' : 'Aktivieren'}
+          ${c.enabled ? t('action.disable') : t('action.enable')}
         </button>
-        <button class="btn small ghost" onclick="deleteMonitorCheck('${c.id}')">L\u00f6schen</button>
+        <button class="btn small ghost" onclick="deleteMonitorCheck('${c.id}')">${t('action.delete')}</button>
       </td>
     </tr>`;
   }).join('');
 
   return `<table class="data-table" style="margin:0">
-    <thead><tr><th></th><th>Typ</th><th>Name</th><th>Status</th><th>Letzter Check</th><th>Aktionen</th></tr></thead>
+    <thead><tr><th></th><th>${t('label.type')}</th><th>${t('label.name')}</th><th>${t('label.status')}</th><th>${t('monitor.lastCheck')}</th><th>${t('label.actions')}</th></tr></thead>
     <tbody>${rows}</tbody>
   </table>`;
 }
@@ -266,7 +266,8 @@ function _renderCheckTable(checks) {
 function _formatTime(isoStr) {
   try {
     const d = new Date(isoStr);
-    return d.toLocaleString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit', day: '2-digit', month: '2-digit' });
+    const _dl = currentLanguage === 'en' ? 'en-GB' : 'de-DE';
+    return d.toLocaleString(_dl, { hour: '2-digit', minute: '2-digit', second: '2-digit', day: '2-digit', month: '2-digit' });
   } catch {
     return isoStr;
   }
@@ -316,7 +317,7 @@ function _buildDetailPanel(check) {
   const configKv = _formatCheckConfigWeb(check);
   let configHtml = '';
   if (configKv.length > 0) {
-    configHtml = '<div class="check-detail-config"><strong>Konfiguration</strong><div class="check-cfg-grid">' +
+    configHtml = `<div class="check-detail-config"><strong>${t('monitor.config')}</strong><div class="check-cfg-grid">` +
       configKv.map(([k, v]) => `<span class="check-cfg-key">${esc(k)}:</span><span class="check-cfg-val">${esc(String(v))}</span>`).join('') +
       '</div></div>';
   }
@@ -418,7 +419,7 @@ function _renderServiceListHtml(details) {
     const failed = details.failed || [];
     const inactive = details.enabled_inactive || [];
     if (failed.length === 0 && inactive.length === 0) {
-      return '<div class="mon-all-ok"><span class="mon-item-dot item-ok"></span> Alle systemd-Units OK</div>';
+      return `<div class="mon-all-ok"><span class="mon-item-dot item-ok"></span> ${t('monitor.allUnitsOk')}</div>`;
     }
     let html = '<div class="mon-item-list">';
     if (failed.length > 0) {
@@ -426,7 +427,7 @@ function _renderServiceListHtml(details) {
       for (const svc of failed) html += _itemRowHtml(svc, 'critical', 'failed');
     }
     if (inactive.length > 0) {
-      html += '<div class="mon-section-title">Inaktiv (Autostart)</div>';
+      html += `<div class="mon-section-title">${t('monitor.sectionInactive')}</div>`;
       for (const svc of inactive) html += _itemRowHtml(svc, 'warn', 'inactive');
     }
     html += '</div>';
@@ -436,7 +437,7 @@ function _renderServiceListHtml(details) {
   const watched = details.watched || [];
   if (watched.length === 0) return '';
   const allOk = watched.every(s => s.running);
-  if (allOk) return `<div class="mon-all-ok"><span class="mon-item-dot item-ok"></span> Alle ${watched.length} Services aktiv</div>`;
+  if (allOk) return `<div class="mon-all-ok"><span class="mon-item-dot item-ok"></span> ${t('monitor.allServicesActive', { count: watched.length })}</div>`;
   let html = '<div class="mon-item-list">';
   for (const svc of watched) {
     html += _itemRowHtml(svc.name, svc.running ? 'ok' : 'critical', svc.running ? 'running' : 'down');
@@ -448,7 +449,7 @@ function _renderServiceListHtml(details) {
 function _renderContainerListHtml(details) {
   if (!details?.containers?.length) return '';
   const allOk = details.containers.every(c => c.category === 'ok');
-  if (allOk) return `<div class="mon-all-ok"><span class="mon-item-dot item-ok"></span> Alle ${details.containers.length} Container laufen</div>`;
+  if (allOk) return `<div class="mon-all-ok"><span class="mon-item-dot item-ok"></span> ${t('monitor.allContainersRunning', { count: details.containers.length })}</div>`;
   const sorted = [...details.containers].sort((a, b) => {
     const order = { critical: 0, warning: 1, ok: 2 };
     return (order[a.category] ?? 2) - (order[b.category] ?? 2);
@@ -471,7 +472,7 @@ function _renderContainerListHtml(details) {
 function _renderBackupListHtml(details) {
   if (!details?.vms?.length) return '';
   const allOk = details.vms.every(v => v.backupStatus === 'ok');
-  if (allOk) return `<div class="mon-all-ok"><span class="mon-item-dot item-ok"></span> Alle ${details.vms.length} VMs/CTs haben aktuelle Backups</div>`;
+  if (allOk) return `<div class="mon-all-ok"><span class="mon-item-dot item-ok"></span> ${t('monitor.allBackupsOk', { count: details.vms.length })}</div>`;
   const sorted = [...details.vms].sort((a, b) => {
     const order = { missing: 0, outdated: 1, ok: 2 };
     return (order[a.backupStatus] ?? 2) - (order[b.backupStatus] ?? 2);
@@ -480,7 +481,7 @@ function _renderBackupListHtml(details) {
   for (const vm of sorted) {
     const catMap = { ok: 'ok', outdated: 'warn', missing: 'critical' };
     const cat = catMap[vm.backupStatus] || 'ok';
-    const statusText = vm.backupStatus === 'ok' ? 'OK' : vm.backupStatus === 'missing' ? 'Kein Backup' : `Veraltet (${vm.ageHours}h)`;
+    const statusText = vm.backupStatus === 'ok' ? 'OK' : vm.backupStatus === 'missing' ? t('monitor.noBackup') : t('monitor.outdated', { hours: vm.ageHours });
     html += `<div class="mon-item-row">
       <span class="mon-item-dot ${cat === 'critical' ? 'item-crit' : cat === 'warn' ? 'item-warn' : 'item-ok'}"></span>
       <span class="mon-item-badge">${esc((vm.type || 'vm').toUpperCase())}</span>
@@ -516,7 +517,7 @@ function _renderAgentPingHtml(check) {
   const seconds = match ? parseInt(match[1], 10) : null;
   if (seconds == null) return '';
   const display = seconds < 120 ? `${seconds}s` : `${Math.round(seconds / 60)}m`;
-  return `<div class="mon-last-seen"><span class="mon-last-seen-value">${display}</span><span class="mon-last-seen-unit">seit letztem Report</span></div>`;
+  return `<div class="mon-last-seen"><span class="mon-last-seen-value">${display}</span><span class="mon-last-seen-unit">${t('monitor.sinceLastReport')}</span></div>`;
 }
 
 let _gaugeActiveMetric = null;
@@ -574,7 +575,7 @@ async function _loadGaugeChart(checkId, period, metricFilter, diskMount) {
   const check = state.monitorChecks.find(c => c.id === checkId);
   if (!check) return;
 
-  chartEl.innerHTML = '<span style="color:var(--text-soft)">Lade Metriken...</span>';
+  chartEl.innerHTML = '<span style="color:var(--text-soft)">${t('monitor.loadingMetrics')}</span>';
 
   try {
     const data = await get(`/api/monitoring/checks/${checkId}/metrics?period=${period}`);
@@ -593,7 +594,7 @@ async function _loadGaugeChart(checkId, period, metricFilter, diskMount) {
       return name === metricFilter || name === metricFilter + '_value';
     });
     if (filtered.length === 0) {
-      chartEl.innerHTML = '<span style="color:var(--text-soft)">Keine Metrik-Daten verfuegbar</span>';
+      chartEl.innerHTML = '<span style="color:var(--text-soft)">${t('monitor.noMetrics')}</span>';
       return;
     }
     _renderDetailChart(chartEl, { data: filtered }, check);
@@ -616,7 +617,7 @@ async function _loadDetailMetrics(checkId, period, check) {
   const currentEl = document.getElementById(`checkDetailCurrent_${checkId}`);
   if (!chartEl) return;
 
-  chartEl.innerHTML = '<span style="color:var(--text-soft)">Lade Metriken...</span>';
+  chartEl.innerHTML = '<span style="color:var(--text-soft)">${t('monitor.loadingMetrics')}</span>';
 
   try {
     const data = await get(`/api/monitoring/checks/${checkId}/metrics?period=${period}`);
@@ -634,7 +635,7 @@ function _renderDetailCurrentValues(el, data, check) {
   if (series.length === 0) { el.innerHTML = ''; return; }
 
   const items = series.map(s => {
-    const name = s.metric?.__name__ || 'Wert';
+    const name = s.metric?.__name__ || t('monitor.value');
     const vals = s.values || [];
     const last = vals.length > 0 ? parseFloat(vals[vals.length - 1][1]) : null;
     if (last === null) return null;
@@ -652,7 +653,7 @@ function _renderDetailChart(container, data, check) {
 
   const series = data.data || [];
   if (series.length === 0) {
-    container.innerHTML = '<span style="color:var(--text-soft)">Keine Metrik-Daten verfuegbar</span>';
+    container.innerHTML = '<span style="color:var(--text-soft)">${t('monitor.noMetrics')}</span>';
     return;
   }
 
@@ -695,7 +696,7 @@ function _renderDetailChart(container, data, check) {
   try {
     _detailChart = new uPlot(opts, uData, container);
   } catch (e) {
-    container.innerHTML = '<span style="color:var(--text-soft)">Chart konnte nicht geladen werden</span>';
+    container.innerHTML = '<span style="color:var(--text-soft)">${t('monitor.chartError')}</span>';
   }
 }
 
@@ -721,7 +722,7 @@ function _renderDetailTimeline(container, statusHistory) {
     segments += `<div class="check-timeline-seg" style="width:${pct}%;background:${colorMap[status]}" title="${status}"></div>`;
   }
 
-  container.innerHTML = `<div class="check-detail-timeline-label">Status-Verlauf</div><div class="check-timeline-bar">${segments}</div>`;
+  container.innerHTML = `<div class="check-detail-timeline-label">${t('monitor.statusHistory')}</div><div class="check-timeline-bar">${segments}</div>`;
 }
 
 function _formatCheckConfigWeb(check) {
@@ -729,31 +730,31 @@ function _formatCheckConfigWeb(check) {
   const type = check.checkType;
   const kv = [];
   if (type === 'ping') {
-    kv.push(['Ziel', c.target], ['Timeout', `${c.timeout || 5}s`]);
+    kv.push([t('monitor.cfg.target'), c.target], [t('monitor.cfg.timeout'), `${c.timeout || 5}s`]);
   } else if (type === 'tcp') {
-    kv.push(['Ziel', `${c.target}:${c.port}`], ['Timeout', `${c.timeout || 5}s`]);
+    kv.push([t('monitor.cfg.target'), `${c.target}:${c.port}`], [t('monitor.cfg.timeout'), `${c.timeout || 5}s`]);
   } else if (type === 'http') {
-    kv.push(['URL', c.url], ['Methode', c.method || 'GET'], ['Expected', c.expected_status || 200]);
-    if (c.verify_ssl === false) kv.push(['SSL', 'deaktiviert']);
-    if (c.search_string) kv.push(['Suchtext', c.search_string]);
+    kv.push([t('monitor.cfg.url'), c.url], [t('monitor.cfg.method'), c.method || 'GET'], [t('monitor.cfg.expected'), c.expected_status || 200]);
+    if (c.verify_ssl === false) kv.push([t('monitor.cfg.ssl'), t('monitor.cfg.sslDisabled')]);
+    if (c.search_string) kv.push([t('monitor.cfg.searchText'), c.search_string]);
   } else if (type === 'agent_ping') {
-    kv.push(['Stale-Schwelle', `${c.stale_minutes || 5} min`]);
+    kv.push([t('monitor.cfg.staleThreshold'), t('monitor.cfg.staleMinutes', { min: c.stale_minutes || 5 })]);
   } else if (type === 'agent_resources') {
-    kv.push(['CPU', `Warn ${c.cpu_warn || 80}% / Crit ${c.cpu_crit || 95}%`],
-            ['RAM', `Warn ${c.memory_warn || 80}% / Crit ${c.memory_crit || 95}%`],
-            ['Disk', `Warn ${c.disk_warn || 85}% / Crit ${c.disk_crit || 95}%`]);
+    kv.push([t('monitor.cfg.cpu'), `Warn ${c.cpu_warn || 80}% / Crit ${c.cpu_crit || 95}%`],
+            [t('monitor.cfg.ram'), `Warn ${c.memory_warn || 80}% / Crit ${c.memory_crit || 95}%`],
+            [t('monitor.cfg.disk'), `Warn ${c.disk_warn || 85}% / Crit ${c.disk_crit || 95}%`]);
   } else if (type === 'service_process') {
-    kv.push(['Modus', c.mode || 'auto']);
-    if (c.services?.length) kv.push(['Services', _toCSV(c.services)]);
-    if (c.ignore?.length) kv.push(['Ignoriert', _toCSV(c.ignore)]);
+    kv.push([t('monitor.cfg.mode'), c.mode || 'auto']);
+    if (c.services?.length) kv.push([t('monitor.cfg.services'), _toCSV(c.services)]);
+    if (c.ignore?.length) kv.push([t('monitor.cfg.ignored'), _toCSV(c.ignore)]);
   } else if (type === 'proxmox_backup') {
-    kv.push(['Max. Alter', `${c.max_backup_age_hours || 26}h`]);
-    if (c.exclude_vmids?.length) kv.push(['Exclude VMIDs', _toCSV(c.exclude_vmids)]);
+    kv.push([t('monitor.cfg.maxAge'), t('monitor.cfg.maxAgeHours', { hours: c.max_backup_age_hours || 26 })]);
+    if (c.exclude_vmids?.length) kv.push([t('monitor.cfg.excludeVmids'), _toCSV(c.exclude_vmids)]);
   } else if (type === 'zfs_health') {
-    kv.push(['Kapazitaet', `Warn ${c.capacity_warn || 80}% / Crit ${c.capacity_crit || 90}%`]);
+    kv.push([t('monitor.cfg.capacity'), `Warn ${c.capacity_warn || 80}% / Crit ${c.capacity_crit || 90}%`]);
   } else if (type === 'docker_health') {
-    if (c.ignore_containers?.length) kv.push(['Ignoriert', _toCSV(c.ignore_containers)]);
-    kv.push(['Restart-Check', c.check_restarts !== false ? 'aktiv' : 'aus']);
+    if (c.ignore_containers?.length) kv.push([t('monitor.cfg.ignored'), _toCSV(c.ignore_containers)]);
+    kv.push([t('monitor.cfg.restartCheck'), c.check_restarts !== false ? t('monitor.cfg.restartActive') : t('monitor.cfg.restartOff')]);
   }
   return kv;
 }
@@ -788,11 +789,11 @@ document.getElementById('mcServiceMode')?.addEventListener('change', function() 
 
 function openMonitorCheckModal(check) {
   state.editingMonitorCheckId = check ? check.id : null;
-  document.getElementById('monitorCheckModalTitle').textContent = check ? 'Check bearbeiten' : 'Neuer Check';
+  document.getElementById('monitorCheckModalTitle').textContent = check ? t('modal.check.title') : t('modal.check.titleNew');
 
   // Server-Dropdown befuellen
   const serverSelect = document.getElementById('mcServerId');
-  serverSelect.innerHTML = '<option value="">-- Kein Server --</option>' +
+  serverSelect.innerHTML = `<option value="">${t('modal.check.noServer')}</option>` +
     (state.servers || []).map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join('');
 
   // Felder zuruecksetzen
@@ -950,10 +951,10 @@ document.getElementById('monitorCheckForm').addEventListener('submit', async (e)
   try {
     if (state.editingMonitorCheckId) {
       await put(`/api/monitoring/checks/${state.editingMonitorCheckId}`, data);
-      toast('Check gespeichert');
+      toast(t('toast.check.saved'));
     } else {
       await post('/api/monitoring/checks', data);
-      toast('Check erstellt');
+      toast(t('toast.check.created'));
     }
     closeModal('monitorCheckModal');
     await loadMonitoring();
@@ -971,7 +972,7 @@ function editMonitorCheck(id) {
 async function runMonitorCheck(id) {
   try {
     await post(`/api/monitoring/checks/${id}/run`);
-    toast('Check ausgefuehrt');
+    toast(t('toast.check.executed'));
     await loadMonitoring();
   } catch (err) {
     toast(err.message, 'error');
@@ -981,7 +982,7 @@ async function runMonitorCheck(id) {
 async function toggleMonitorCheck(id) {
   try {
     await post(`/api/monitoring/checks/${id}/toggle`);
-    toast('Check aktualisiert');
+    toast(t('toast.check.updated'));
     await loadMonitoring();
   } catch (err) {
     toast(err.message, 'error');
@@ -989,10 +990,10 @@ async function toggleMonitorCheck(id) {
 }
 
 async function deleteMonitorCheck(id) {
-  if (!confirm('Check wirklich loeschen?')) return;
+  if (!confirm(t('confirm.check.delete'))) return;
   try {
     await del(`/api/monitoring/checks/${id}`);
-    toast('Check geloescht');
+    toast(t('toast.check.deleted'));
     await loadMonitoring();
   } catch (err) {
     toast(err.message, 'error');
@@ -1014,32 +1015,32 @@ function renderMonitorAlerts() {
   if (empty) empty.classList.add('hidden');
 
   const rows = rules.map(r => {
-    const channelLabel = r.channel === 'webhook' ? 'Webhook' : 'E-Mail';
+    const channelLabel = r.channel === 'webhook' ? t('alerts.channel.webhook') : t('alerts.channel.email');
     const filterParts = [];
     if (r.matchSeverity) filterParts.push(`Severity: ${r.matchSeverity}`);
     if (r.matchServerId) {
       const srv = (state.servers || []).find(s => s.id === r.matchServerId);
       filterParts.push(`Server: ${srv ? srv.name : r.matchServerId.substring(0, 8)}`);
     }
-    const filters = filterParts.length > 0 ? filterParts.join(', ') : 'Alle';
+    const filters = filterParts.length > 0 ? filterParts.join(', ') : t('label.all');
 
     return `<tr class="${r.enabled ? '' : 'disabled-row'}">
       <td><strong>${esc(r.name)}</strong></td>
       <td><span class="badge badge-${r.channel}">${channelLabel}</span></td>
       <td style="color:var(--text-soft)">${esc(filters)}</td>
-      <td style="color:var(--text-soft)">${r.cooldownMinutes} Min.</td>
+      <td style="color:var(--text-soft)">${t('alerts.cooldown', { min: r.cooldownMinutes })}</td>
       <td style="white-space:nowrap">
-        <button class="btn small" onclick="editAlertRule('${r.id}')">Bearbeiten</button>
+        <button class="btn small" onclick="editAlertRule('${r.id}')">${t('action.edit')}</button>
         <button class="btn small ghost" onclick="toggleAlertRule('${r.id}')">
-          ${r.enabled ? 'Deaktivieren' : 'Aktivieren'}
+          ${r.enabled ? t('action.disable') : t('action.enable')}
         </button>
-        <button class="btn small ghost" onclick="deleteAlertRule('${r.id}')">L\u00f6schen</button>
+        <button class="btn small ghost" onclick="deleteAlertRule('${r.id}')">${t('action.delete')}</button>
       </td>
     </tr>`;
   }).join('');
 
   container.innerHTML = `<table class="data-table" style="margin:0">
-    <thead><tr><th>Name</th><th>Kanal</th><th>Filter</th><th>Cooldown</th><th>Aktionen</th></tr></thead>
+    <thead><tr><th>${t('label.name')}</th><th>${t('modal.alert.channel')}</th><th>Filter</th><th>Cooldown</th><th>${t('label.actions')}</th></tr></thead>
     <tbody>${rows}</tbody>
   </table>`;
 }
@@ -1054,11 +1055,11 @@ document.getElementById('arChannel')?.addEventListener('change', function() {
 
 function openAlertRuleModal(rule) {
   state.editingAlertRuleId = rule ? rule.id : null;
-  document.getElementById('alertRuleModalTitle').textContent = rule ? 'Alert-Rule bearbeiten' : 'Neue Alert-Rule';
+  document.getElementById('alertRuleModalTitle').textContent = rule ? t('modal.alert.title') : t('modal.alert.titleNew');
 
   // Server-Dropdown
   const serverSelect = document.getElementById('arMatchServerId');
-  serverSelect.innerHTML = '<option value="">-- Alle Server --</option>' +
+  serverSelect.innerHTML = `<option value="">${t('modal.alert.allServers')}</option>` +
     (state.servers || []).map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join('');
 
   document.getElementById('arName').value = rule?.name || '';
@@ -1105,10 +1106,10 @@ document.getElementById('alertRuleForm')?.addEventListener('submit', async (e) =
   try {
     if (state.editingAlertRuleId) {
       await put(`/api/monitoring/alerts/${state.editingAlertRuleId}`, data);
-      toast('Alert-Rule gespeichert');
+      toast(t('toast.alert.saved'));
     } else {
       await post('/api/monitoring/alerts', data);
-      toast('Alert-Rule erstellt');
+      toast(t('toast.alert.created'));
     }
     closeModal('alertRuleModal');
     await loadMonitoring();
@@ -1125,7 +1126,7 @@ function editAlertRule(id) {
 async function toggleAlertRule(id) {
   try {
     await post(`/api/monitoring/alerts/${id}/toggle`);
-    toast('Alert-Rule aktualisiert');
+    toast(t('toast.alert.updated'));
     await loadMonitoring();
   } catch (err) {
     toast(err.message, 'error');
@@ -1133,10 +1134,10 @@ async function toggleAlertRule(id) {
 }
 
 async function deleteAlertRule(id) {
-  if (!confirm('Alert-Rule wirklich loeschen?')) return;
+  if (!confirm(t('confirm.alert.delete'))) return;
   try {
     await del(`/api/monitoring/alerts/${id}`);
-    toast('Alert-Rule geloescht');
+    toast(t('toast.alert.deleted'));
     await loadMonitoring();
   } catch (err) {
     toast(err.message, 'error');
@@ -1151,7 +1152,7 @@ async function loadAlertLog() {
     if (!container) return;
 
     if (logs.length === 0) {
-      container.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-soft)">Keine Alerts versendet</td></tr>';
+      container.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text-soft)">${t('alerts.noAlerts')}</td></tr>`;
       return;
     }
 
@@ -1164,7 +1165,7 @@ async function loadAlertLog() {
         <td>${esc(checkName)}</td>
         <td><span class="monitor-dot monitor-${l.oldStatus}"></span> ${esc(l.oldStatus)}</td>
         <td><span class="monitor-dot monitor-${l.newStatus}"></span> ${esc(l.newStatus)}</td>
-        <td>${l.success ? '<span style="color:var(--green)">Gesendet</span>' : '<span style="color:var(--red)">Fehler</span>'}</td>
+        <td>${l.success ? `<span style="color:var(--green)">${t('alerts.sent')}</span>` : `<span style="color:var(--red)">${t('alerts.error')}</span>`}</td>
         <td style="font-size:12px;color:var(--text-soft)">${l.error ? esc(l.error) : '\u2013'}</td>
       </tr>`;
     }).join('');
@@ -1187,26 +1188,26 @@ function renderMonitorTemplates() {
   }
   if (empty) empty.classList.add('hidden');
 
-  const rows = templates.map(t => {
-    const checkCount = (t.checkDefinitions || []).length;
-    const alertCount = (t.alertDefinitions || []).length;
-    const serverCount = (t.assignments || []).length;
-    const serverNames = (t.assignments || []).map(a => a.serverName).join(', ') || '\u2013';
+  const rows = templates.map(tpl => {
+    const checkCount = (tpl.checkDefinitions || []).length;
+    const alertCount = (tpl.alertDefinitions || []).length;
+    const serverCount = (tpl.assignments || []).length;
+    const serverNames = (tpl.assignments || []).map(a => a.serverName).join(', ') || '\u2013';
 
     return `<tr>
-      <td><strong>${esc(t.name)}</strong></td>
-      <td style="color:var(--text-soft)">${esc(t.description || '')}</td>
-      <td>${checkCount} Checks, ${alertCount} Alerts</td>
-      <td style="color:var(--text-soft);font-size:12px" title="${esc(serverNames)}">${serverCount} Server</td>
+      <td><strong>${esc(tpl.name)}</strong></td>
+      <td style="color:var(--text-soft)">${esc(tpl.description || '')}</td>
+      <td>${t('template.checks', { count: checkCount, alerts: alertCount })}</td>
+      <td style="color:var(--text-soft);font-size:12px" title="${esc(serverNames)}">${t('template.servers', { count: serverCount })}</td>
       <td style="white-space:nowrap">
-        <button class="btn small" onclick="editTemplate('${t.id}')">Bearbeiten</button>
-        <button class="btn small ghost" onclick="deleteTemplate('${t.id}')">L\u00f6schen</button>
+        <button class="btn small" onclick="editTemplate('${tpl.id}')">${t('action.edit')}</button>
+        <button class="btn small ghost" onclick="deleteTemplate('${tpl.id}')">${t('action.delete')}</button>
       </td>
     </tr>`;
   }).join('');
 
   container.innerHTML = `<table class="data-table" style="margin:0">
-    <thead><tr><th>Name</th><th>Beschreibung</th><th>Inhalt</th><th>Server</th><th>Aktionen</th></tr></thead>
+    <thead><tr><th>${t('label.name')}</th><th>${t('label.description')}</th><th>${t('label.details')}</th><th>Server</th><th>${t('label.actions')}</th></tr></thead>
     <tbody>${rows}</tbody>
   </table>`;
 }
@@ -1216,7 +1217,7 @@ document.getElementById('addTemplateBtn')?.addEventListener('click', () => openT
 
 function openTemplateModal(template) {
   state.editingTemplateId = template ? template.id : null;
-  document.getElementById('templateModalTitle').textContent = template ? 'Template bearbeiten' : 'Neues Template';
+  document.getElementById('templateModalTitle').textContent = template ? t('modal.template.title') : t('modal.template.titleNew');
 
   document.getElementById('tplName').value = template?.name || '';
   document.getElementById('tplDescription').value = template?.description || '';
@@ -1234,7 +1235,7 @@ function _renderTemplateCheckDefs() {
   if (!container) return;
 
   if (state.templateCheckDefs.length === 0) {
-    container.innerHTML = '<div style="color:var(--text-soft);font-size:13px;padding:8px 0">Keine Checks definiert</div>';
+    container.innerHTML = `<div style="color:var(--text-soft);font-size:13px;padding:8px 0">${t('modal.template.noChecks')}</div>`;
     return;
   }
 
@@ -1257,7 +1258,7 @@ function _renderTemplateCheckDefs() {
           ${['critical','warning','info']
             .map(v => `<option value="${v}" ${def.severity===v?'selected':''}>${v}</option>`).join('')}
         </select>
-        <button type="button" class="btn small ghost" onclick="removeTemplateCheckDef(${i})" title="Entfernen">&#x2715;</button>
+        <button type="button" class="btn small ghost" onclick="removeTemplateCheckDef(${i})" title="${t('modal.template.remove')}">&#x2715;</button>
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;font-size:13px">
         ${_tplCheckConfigFields(def.check_type, cfg, i)}
@@ -1397,7 +1398,7 @@ function _renderTemplateAlertDefs() {
   if (!container) return;
 
   if (state.templateAlertDefs.length === 0) {
-    container.innerHTML = '<div style="color:var(--text-soft);font-size:13px;padding:8px 0">Keine Alerts definiert</div>';
+    container.innerHTML = `<div style="color:var(--text-soft);font-size:13px;padding:8px 0">${t('modal.template.noAlerts')}</div>`;
     return;
   }
 
@@ -1442,7 +1443,7 @@ function _renderTemplateAlertDefs() {
           <span style="font-size:11px">Cooldown</span>
           <input value="${def.cooldown_minutes||30}" onchange="state.templateAlertDefs[${i}].cooldown_minutes=parseInt(this.value)||30" style="width:50px;font-size:12px" type="number" />
         </label>
-        <button type="button" class="btn small ghost" onclick="removeTemplateAlertDef(${i})" title="Entfernen">&#x2715;</button>
+        <button type="button" class="btn small ghost" onclick="removeTemplateAlertDef(${i})" title="${t('modal.template.remove')}">&#x2715;</button>
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;font-size:13px">
         ${channelFields}
@@ -1482,10 +1483,10 @@ document.getElementById('templateForm')?.addEventListener('submit', async (e) =>
     if (state.editingTemplateId) {
       const result = await put(`/api/monitoring/templates/${state.editingTemplateId}`, data);
       const sync = result.syncResult;
-      toast(`Template gespeichert — ${sync.created} erstellt, ${sync.updated} aktualisiert, ${sync.deleted} geloescht (${sync.servers} Server)`);
+      toast(t('toast.template.saved'));
     } else {
       await post('/api/monitoring/templates', data);
-      toast('Template erstellt');
+      toast(t('toast.template.created'));
     }
     closeModal('monitorTemplateModal');
     await loadMonitoring();
@@ -1495,20 +1496,16 @@ document.getElementById('templateForm')?.addEventListener('submit', async (e) =>
 });
 
 function editTemplate(id) {
-  const t = (state.monitorTemplates || []).find(t => t.id === id);
-  if (t) openTemplateModal(t);
+  const tpl = (state.monitorTemplates || []).find(tpl => tpl.id === id);
+  if (tpl) openTemplateModal(tpl);
 }
 
 async function deleteTemplate(id) {
-  const t = (state.monitorTemplates || []).find(t => t.id === id);
-  const serverCount = (t?.assignments || []).length;
-  const msg = serverCount > 0
-    ? `Template "${t.name}" wirklich loeschen? Alle Checks bei ${serverCount} Server(n) werden geloescht!`
-    : `Template "${t?.name}" wirklich loeschen?`;
-  if (!confirm(msg)) return;
+  const tpl = (state.monitorTemplates || []).find(tpl => tpl.id === id);
+  if (!confirm(t('confirm.template.delete'))) return;
   try {
     await del(`/api/monitoring/templates/${id}`);
-    toast('Template geloescht');
+    toast(t('toast.template.deleted'));
     await loadMonitoring();
   } catch (err) {
     toast(err.message, 'error');

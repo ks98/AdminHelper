@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="de" id="htmlRoot">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -31,15 +31,15 @@
       </div>
       <form id="loginForm" class="login-form">
         <div class="field">
-          <label for="loginUser">Benutzername</label>
+          <label for="loginUser" data-i18n="login.username">Benutzername</label>
           <input id="loginUser" type="text" autocomplete="username" required placeholder="admin" />
         </div>
         <div class="field">
-          <label for="loginPass">Passwort</label>
+          <label for="loginPass" data-i18n="login.password">Passwort</label>
           <input id="loginPass" type="password" autocomplete="current-password" required />
         </div>
         <div id="loginError" class="login-error"></div>
-        <button type="submit" class="btn primary">Anmelden</button>
+        <button type="submit" class="btn primary" data-i18n="login.submit">Anmelden</button>
       </form>
     </div>
   </div>
@@ -59,31 +59,31 @@
 
       <nav class="nav">
         <button class="nav-item active" data-page="connections">
-          <i class="nav-icon">⟷</i> Verbindungen
+          <i class="nav-icon">⟷</i> <span data-i18n="nav.connections">Verbindungen</span>
         </button>
         <div id="adminNav" class="hidden">
           <button class="nav-item" data-page="servers">
-            <i class="nav-icon">&#x1F5A5;</i> Server
+            <i class="nav-icon">&#x1F5A5;</i> <span data-i18n="nav.servers">Server</span>
           </button>
           <div class="nav-divider"></div>
           <button class="nav-item" data-page="users">
-            <i class="nav-icon">👥</i> Benutzer
+            <i class="nav-icon">👥</i> <span data-i18n="nav.users">Benutzer</span>
           </button>
           <button class="nav-item" data-page="apikeys">
-            <i class="nav-icon">🔑</i> API-Keys
+            <i class="nav-icon">🔑</i> <span data-i18n="nav.apikeys">API-Keys</span>
           </button>
           <button class="nav-item" data-page="hooks">
-            <i class="nav-icon">⚡</i> Hooks
+            <i class="nav-icon">⚡</i> <span data-i18n="nav.hooks">Hooks</span>
           </button>
           <button class="nav-item" data-page="frp">
-            <i class="nav-icon">🔗</i> FRP Tunnels
+            <i class="nav-icon">🔗</i> <span data-i18n="nav.frp">FRP Tunnels</span>
           </button>
           <div class="nav-divider"></div>
           <button class="nav-item" data-page="ansible">
-            <i class="nav-icon">&#x2699;</i> Ansible
+            <i class="nav-icon">&#x2699;</i> <span data-i18n="nav.ansible">Ansible</span>
           </button>
           <button class="nav-item" data-page="monitoring">
-            <i class="nav-icon">&#x1F4CA;</i> Monitoring
+            <i class="nav-icon">&#x1F4CA;</i> <span data-i18n="nav.monitoring">Monitoring</span>
           </button>
         </div>
       </nav>
@@ -96,7 +96,10 @@
             <div class="user-role" id="userRole">–</div>
           </div>
         </div>
-        <button class="btn small ghost" id="logoutBtn" style="width:100%">Abmelden</button>
+        <div style="display:flex;gap:6px;width:100%">
+          <button class="btn small ghost" id="logoutBtn" style="flex:1" data-i18n="nav.logout">Abmelden</button>
+          <button class="btn small ghost" id="langToggleBtn" style="width:40px;flex-shrink:0;font-weight:600" data-i18n="language.en">EN</button>
+        </div>
       </div>
     </aside>
 
@@ -107,35 +110,35 @@
       <div id="pageConnections" class="page active">
         <div class="page-header">
           <div>
-            <div class="page-title">Verbindungen</div>
-            <div class="page-subtitle" id="connSubtitle">Alle gespeicherten Verbindungen</div>
+            <div class="page-title" data-i18n="page.connections.title">Verbindungen</div>
+            <div class="page-subtitle" id="connSubtitle" data-i18n="page.connections.subtitle">Alle gespeicherten Verbindungen</div>
           </div>
           <div style="display:flex;gap:10px;align-items:center">
             <select id="connTagSelect" class="filter-select">
-              <option value="">Alle Tags</option>
+              <option value="" data-i18n="label.allTags">Alle Tags</option>
             </select>
-            <input id="connSearch" type="search" class="search-input" placeholder="Suchen…" />
-            <button id="exportConnBtn" class="btn ghost hidden">Exportieren</button>
-            <button id="importConnBtn" class="btn ghost hidden">Importieren</button>
-            <button id="addConnBtn" class="btn primary hidden">+ Verbindung</button>
+            <input id="connSearch" type="search" class="search-input" data-i18n-placeholder="action.search" placeholder="Suchen…" />
+            <button id="exportConnBtn" class="btn ghost hidden" data-i18n="action.export">Exportieren</button>
+            <button id="importConnBtn" class="btn ghost hidden" data-i18n="action.import">Importieren</button>
+            <button id="addConnBtn" class="btn primary hidden" data-i18n="page.connections.add">+ Verbindung</button>
           </div>
         </div>
         <div class="panel" style="overflow:auto">
           <table class="data-table" id="connTable">
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Typ</th>
-                <th>Host / URL</th>
+                <th data-i18n="label.name">Name</th>
+                <th data-i18n="label.type">Typ</th>
+                <th data-i18n="page.connections.hostUrl">Host / URL</th>
                 <th>Port</th>
-                <th>Benutzer</th>
-                <th>Tags</th>
+                <th data-i18n="table.user">Benutzer</th>
+                <th data-i18n="label.tags">Tags</th>
                 <th id="connActionsHeader"></th>
               </tr>
             </thead>
             <tbody id="connBody"></tbody>
           </table>
-          <div id="connEmpty" class="empty-state hidden"><p>Keine Verbindungen vorhanden.</p></div>
+          <div id="connEmpty" class="empty-state hidden"><p data-i18n="page.connections.empty">Keine Verbindungen vorhanden.</p></div>
         </div>
       </div>
 
@@ -143,44 +146,44 @@
       <div id="pageServers" class="page">
         <div class="page-header">
           <div>
-            <div class="page-title">Server</div>
-            <div class="page-subtitle">Server und zugeordnete Verbindungen</div>
+            <div class="page-title" data-i18n="page.servers.title">Server</div>
+            <div class="page-subtitle" data-i18n="page.servers.subtitle">Server und zugeordnete Verbindungen</div>
           </div>
           <div style="display:flex;gap:10px;align-items:center">
             <select id="serverTagSelect" class="filter-select">
-              <option value="">Alle Tags</option>
+              <option value="" data-i18n="label.allTags">Alle Tags</option>
             </select>
-            <input id="serverSearch" type="search" class="search-input" placeholder="Suchen..." />
-            <button id="addServerBtn" class="btn primary">+ Server</button>
+            <input id="serverSearch" type="search" class="search-input" data-i18n-placeholder="action.searchDots" placeholder="Suchen..." />
+            <button id="addServerBtn" class="btn primary" data-i18n="page.servers.add">+ Server</button>
           </div>
         </div>
         <div class="panel" id="serverList" style="display:flex;flex-direction:column;gap:12px">
         </div>
-        <div id="serverEmpty" class="empty-state hidden"><p>Keine Server vorhanden.</p></div>
+        <div id="serverEmpty" class="empty-state hidden"><p data-i18n="page.servers.empty">Keine Server vorhanden.</p></div>
       </div>
 
       <!-- Benutzer -->
       <div id="pageUsers" class="page">
         <div class="page-header">
           <div>
-            <div class="page-title">Benutzer</div>
-            <div class="page-subtitle">Zugriffsverwaltung</div>
+            <div class="page-title" data-i18n="page.users.title">Benutzer</div>
+            <div class="page-subtitle" data-i18n="page.users.subtitle">Zugriffsverwaltung</div>
           </div>
-          <button id="addUserBtn" class="btn primary">+ Benutzer</button>
+          <button id="addUserBtn" class="btn primary" data-i18n="page.users.add">+ Benutzer</button>
         </div>
         <div class="panel" style="overflow:auto">
           <table class="data-table" id="userTable">
             <thead>
               <tr>
-                <th>Benutzername</th>
-                <th>Rolle</th>
-                <th>Erstellt</th>
+                <th data-i18n="page.users.username">Benutzername</th>
+                <th data-i18n="page.users.role">Rolle</th>
+                <th data-i18n="label.created">Erstellt</th>
                 <th></th>
               </tr>
             </thead>
             <tbody id="userBody"></tbody>
           </table>
-          <div id="userEmpty" class="empty-state hidden"><p>Keine Benutzer vorhanden.</p></div>
+          <div id="userEmpty" class="empty-state hidden"><p data-i18n="page.users.empty">Keine Benutzer vorhanden.</p></div>
         </div>
       </div>
 
@@ -188,26 +191,26 @@
       <div id="pageHooks" class="page">
         <div class="page-header">
           <div>
-            <div class="page-title">Hooks</div>
-            <div class="page-subtitle">Webhooks, Event-Hooks und Scheduled Hooks</div>
+            <div class="page-title" data-i18n="page.hooks.title">Hooks</div>
+            <div class="page-subtitle" data-i18n="page.hooks.subtitle">Webhooks, Event-Hooks und Scheduled Hooks</div>
           </div>
-          <button id="addHookBtn" class="btn primary">+ Hook</button>
+          <button id="addHookBtn" class="btn primary" data-i18n="page.hooks.add">+ Hook</button>
         </div>
         <div class="panel" style="overflow:auto">
           <table class="data-table" id="hookTable">
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Typ</th>
-                <th>Details</th>
-                <th>Status</th>
-                <th>Letzter Lauf</th>
+                <th data-i18n="label.name">Name</th>
+                <th data-i18n="label.type">Typ</th>
+                <th data-i18n="label.details">Details</th>
+                <th data-i18n="label.status">Status</th>
+                <th data-i18n="page.hooks.lastRun">Letzter Lauf</th>
                 <th></th>
               </tr>
             </thead>
             <tbody id="hookBody"></tbody>
           </table>
-          <div id="hookEmpty" class="empty-state hidden"><p>Keine Hooks vorhanden.</p></div>
+          <div id="hookEmpty" class="empty-state hidden"><p data-i18n="page.hooks.empty">Keine Hooks vorhanden.</p></div>
         </div>
       </div>
 
@@ -215,28 +218,28 @@
       <div id="pageApikeys" class="page">
         <div class="page-header">
           <div>
-            <div class="page-title">API-Keys</div>
-            <div class="page-subtitle">Programmatischer Zugriff (z. B. Client-Sync)</div>
+            <div class="page-title" data-i18n="page.apikeys.title">API-Keys</div>
+            <div class="page-subtitle" data-i18n="page.apikeys.subtitle">Programmatischer Zugriff (z. B. Client-Sync)</div>
           </div>
-          <button id="addApiKeyBtn" class="btn primary">+ API-Key</button>
+          <button id="addApiKeyBtn" class="btn primary" data-i18n="page.apikeys.add">+ API-Key</button>
         </div>
         <div class="panel" style="overflow:auto">
           <table class="data-table" id="apikeyTable">
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Berechtigung</th>
-                <th>Erstellt</th>
+                <th data-i18n="label.name">Name</th>
+                <th data-i18n="page.apikeys.permission">Berechtigung</th>
+                <th data-i18n="label.created">Erstellt</th>
                 <th></th>
               </tr>
             </thead>
             <tbody id="apikeyBody"></tbody>
           </table>
-          <div id="apikeyEmpty" class="empty-state hidden"><p>Keine API-Keys vorhanden.</p></div>
+          <div id="apikeyEmpty" class="empty-state hidden"><p data-i18n="page.apikeys.empty">Keine API-Keys vorhanden.</p></div>
         </div>
         <div class="panel" style="font-size:13px;color:var(--text-soft)">
-          <strong style="color:var(--text)">Client-Sync konfigurieren:</strong><br/>
-          Verwende die Sync-URL im Simple Remote Manager Client:<br/>
+          <strong style="color:var(--text)" data-i18n="page.apikeys.syncTitle">Client-Sync konfigurieren:</strong><br/>
+          <span data-i18n="page.apikeys.syncInfo">Verwende die Sync-URL im Simple Remote Manager Client:</span><br/>
           <code style="color:var(--accent)">http://&lt;server&gt;:8080/api/connections?api_key=&lt;key&gt;</code>
         </div>
       </div>
@@ -245,116 +248,116 @@
       <div id="pageFrp" class="page">
         <div class="page-header">
           <div>
-            <div class="page-title">FRP Tunnels</div>
-            <div class="page-subtitle">Tunnel-Konfigurationen verwalten und TOML-Configs generieren</div>
+            <div class="page-title" data-i18n="page.frp.title">FRP Tunnels</div>
+            <div class="page-subtitle" data-i18n="page.frp.subtitle">Tunnel-Konfigurationen verwalten und TOML-Configs generieren</div>
           </div>
           <div style="display:flex;gap:10px;align-items:center">
             <select id="tunnelTagSelect" class="filter-select">
-              <option value="">Alle Tags</option>
+              <option value="" data-i18n="label.allTags">Alle Tags</option>
             </select>
-            <input id="tunnelSearch" type="search" class="search-input" placeholder="Suchen..." />
+            <input id="tunnelSearch" type="search" class="search-input" data-i18n-placeholder="action.searchDots" placeholder="Suchen..." />
             <button id="bulkZipBtn" class="btn ghost">ZIP Download</button>
-            <button id="addTunnelBtn" class="btn primary">+ Tunnel</button>
+            <button id="addTunnelBtn" class="btn primary" data-i18n="page.frp.add">+ Tunnel</button>
           </div>
         </div>
 
         <!-- FRP Server Config Karte -->
         <div class="panel" id="frpConfigPanel" style="margin-bottom:16px">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-            <h3 style="margin:0;font-size:16px;color:var(--text)">FRP-Server Konfiguration</h3>
+            <h3 style="margin:0;font-size:16px;color:var(--text)" data-i18n="page.frp.configTitle">FRP-Server Konfiguration</h3>
             <div style="display:flex;gap:8px">
               <button id="frpStatusBtn" class="btn small ghost" style="display:none" title="Tunnel-Status abfragen">Status</button>
               <button id="pkiBtn" class="btn small ghost" style="display:none" title="PKI verwalten">PKI</button>
               <button id="downloadFrpsBtn" class="btn small ghost" title="frps.toml herunterladen" style="display:none">frps.toml</button>
               <button id="downloadVisitorBtn" class="btn small ghost" title="Visitor-Config herunterladen" style="display:none">visitor.toml</button>
-              <button id="frpConfigBtn" class="btn small primary">Konfigurieren</button>
+              <button id="frpConfigBtn" class="btn small primary" data-i18n="action.configure">Konfigurieren</button>
             </div>
           </div>
-          <div id="frpConfigInfo" style="font-size:13px;color:var(--text-soft)">
+          <div id="frpConfigInfo" style="font-size:13px;color:var(--text-soft)" data-i18n="page.frp.noConfig">
             Noch keine FRP-Server Konfiguration vorhanden. Klicke auf "Konfigurieren" um zu starten.
           </div>
         </div>
 
         <!-- Tunnel-Liste -->
         <div id="frpTunnelList" style="display:flex;flex-direction:column;gap:12px"></div>
-        <div id="frpEmpty" class="empty-state hidden"><p>Keine Tunnel vorhanden.</p></div>
+        <div id="frpEmpty" class="empty-state hidden"><p data-i18n="page.frp.empty">Keine Tunnel vorhanden.</p></div>
       </div>
 
       <!-- Ansible -->
       <div id="pageAnsible" class="page">
         <div class="page-header">
           <div>
-            <div class="page-title">Ansible Playbooks</div>
-            <div class="page-subtitle">Playbooks verwalten und auf Servern ausfuehren</div>
+            <div class="page-title" data-i18n="page.ansible.title">Ansible Playbooks</div>
+            <div class="page-subtitle" data-i18n="page.ansible.subtitle">Playbooks verwalten und auf Servern ausfuehren</div>
           </div>
           <div style="display:flex;gap:10px;align-items:center">
             <select id="ansibleTagSelect" class="filter-select">
-              <option value="">Alle Tags</option>
+              <option value="" data-i18n="label.allTags">Alle Tags</option>
             </select>
-            <input id="ansibleSearch" type="search" class="search-input" placeholder="Suchen..." />
-            <button id="addPlaybookBtn" class="btn primary">+ Playbook</button>
+            <input id="ansibleSearch" type="search" class="search-input" data-i18n-placeholder="action.searchDots" placeholder="Suchen..." />
+            <button id="addPlaybookBtn" class="btn primary" data-i18n="page.ansible.add">+ Playbook</button>
           </div>
         </div>
         <div id="ansibleList" style="display:flex;flex-direction:column;gap:12px"></div>
-        <div id="ansibleEmpty" class="empty-state hidden"><p>Keine Playbooks vorhanden.</p></div>
+        <div id="ansibleEmpty" class="empty-state hidden"><p data-i18n="page.ansible.empty">Keine Playbooks vorhanden.</p></div>
       </div>
 
       <!-- Monitoring -->
       <div id="pageMonitoring" class="page">
         <div class="page-header">
           <div>
-            <div class="page-title">Monitoring</div>
-            <div class="page-subtitle">Server- und Service-Ueberwachung</div>
+            <div class="page-title" data-i18n="page.monitoring.title">Monitoring</div>
+            <div class="page-subtitle" data-i18n="page.monitoring.subtitle">Server- und Service-Ueberwachung</div>
           </div>
         </div>
 
         <!-- Tab-Leiste -->
         <div class="monitor-tabs">
-          <button class="monitor-tab active" data-mtab="overview">Uebersicht</button>
-          <button class="monitor-tab" data-mtab="alerts">Alert-Rules</button>
-          <button class="monitor-tab" data-mtab="log">Alert-Log</button>
-          <button class="monitor-tab" data-mtab="templates">Templates</button>
+          <button class="monitor-tab active" data-mtab="overview" data-i18n="page.monitoring.tabOverview">Uebersicht</button>
+          <button class="monitor-tab" data-mtab="alerts" data-i18n="page.monitoring.tabAlerts">Alert-Rules</button>
+          <button class="monitor-tab" data-mtab="log" data-i18n="page.monitoring.tabLog">Alert-Log</button>
+          <button class="monitor-tab" data-mtab="templates" data-i18n="page.monitoring.tabTemplates">Templates</button>
         </div>
 
         <!-- Tab: Uebersicht -->
         <div class="monitor-tab-content active" data-mtab="overview">
           <div class="monitor-filters">
-            <select id="monitorServerFilter" class="filter-select"><option value="">Alle Server</option></select>
-            <select id="monitorTypeFilter" class="filter-select"><option value="">Alle Typen</option></select>
+            <select id="monitorServerFilter" class="filter-select"><option value="" data-i18n="label.allServers">Alle Server</option></select>
+            <select id="monitorTypeFilter" class="filter-select"><option value="" data-i18n="label.allTypes">Alle Typen</option></select>
             <select id="monitorStatusFilter" class="filter-select">
-              <option value="">Alle Status</option>
-              <option value="ok">OK</option>
-              <option value="warning">Warnung</option>
-              <option value="critical">Kritisch</option>
-              <option value="unknown">Unbekannt</option>
+              <option value="" data-i18n="label.allStatus">Alle Status</option>
+              <option value="ok" data-i18n="monitor.ok">OK</option>
+              <option value="warning" data-i18n="monitor.warning">Warnung</option>
+              <option value="critical" data-i18n="monitor.critical">Kritisch</option>
+              <option value="unknown" data-i18n="monitor.unknown">Unbekannt</option>
             </select>
-            <select id="monitorTagFilter" class="filter-select"><option value="">Alle Tags</option></select>
-            <input id="monitorSearch" class="search-input" placeholder="Suche..." />
-            <button id="addMonitorCheckBtn" class="btn primary" style="margin-left:auto">+ Check</button>
+            <select id="monitorTagFilter" class="filter-select"><option value="" data-i18n="label.allTags">Alle Tags</option></select>
+            <input id="monitorSearch" class="search-input" data-i18n-placeholder="action.searchShort" placeholder="Suche..." />
+            <button id="addMonitorCheckBtn" class="btn primary" style="margin-left:auto" data-i18n="page.monitoring.addCheck">+ Check</button>
           </div>
           <div id="monitorOverview" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px"></div>
           <div id="monitorCheckList" style="display:flex;flex-direction:column;gap:12px"></div>
-          <div id="monitorEmpty" class="empty-state hidden"><p>Keine Checks vorhanden.</p></div>
+          <div id="monitorEmpty" class="empty-state hidden"><p data-i18n="page.monitoring.empty">Keine Checks vorhanden.</p></div>
         </div>
 
         <!-- Tab: Alert-Rules -->
         <div class="monitor-tab-content" data-mtab="alerts">
           <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
-            <button id="addAlertRuleBtn" class="btn primary">+ Alert-Rule</button>
+            <button id="addAlertRuleBtn" class="btn primary" data-i18n="page.alerts.add">+ Alert-Rule</button>
           </div>
           <div id="monitorAlertList"></div>
-          <div id="monitorAlertEmpty" class="empty-state hidden"><p>Keine Alert-Rules vorhanden.</p></div>
+          <div id="monitorAlertEmpty" class="empty-state hidden"><p data-i18n="page.alerts.empty">Keine Alert-Rules vorhanden.</p></div>
         </div>
 
         <!-- Tab: Alert-Log -->
         <div class="monitor-tab-content" data-mtab="log">
           <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
-            <button class="btn small" onclick="loadAlertLog()">Aktualisieren</button>
+            <button class="btn small" onclick="loadAlertLog()" data-i18n="action.refresh">Aktualisieren</button>
           </div>
           <table class="data-table">
-            <thead><tr><th>Zeit</th><th>Check</th><th>Von</th><th>Nach</th><th>Status</th><th>Fehler</th></tr></thead>
+            <thead><tr><th data-i18n="alertLog.time">Zeit</th><th data-i18n="alertLog.check">Check</th><th data-i18n="alertLog.from">Von</th><th data-i18n="alertLog.to">Nach</th><th data-i18n="alertLog.status">Status</th><th data-i18n="alertLog.error">Fehler</th></tr></thead>
             <tbody id="monitorAlertLogBody">
-              <tr><td colspan="6" style="text-align:center;color:var(--text-soft)">Wird beim Tab-Wechsel geladen</td></tr>
+              <tr><td colspan="6" style="text-align:center;color:var(--text-soft)" data-i18n="alerts.loadOnTab">Wird beim Tab-Wechsel geladen</td></tr>
             </tbody>
           </table>
         </div>
@@ -362,10 +365,10 @@
         <!-- Tab: Templates -->
         <div class="monitor-tab-content" data-mtab="templates">
           <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
-            <button id="addTemplateBtn" class="btn primary">+ Template</button>
+            <button id="addTemplateBtn" class="btn primary" data-i18n="page.templates.add">+ Template</button>
           </div>
           <div id="monitorTemplateList"></div>
-          <div id="monitorTemplateEmpty" class="empty-state hidden"><p>Keine Templates vorhanden.</p></div>
+          <div id="monitorTemplateEmpty" class="empty-state hidden"><p data-i18n="page.templates.empty">Keine Templates vorhanden.</p></div>
         </div>
       </div>
 
@@ -426,8 +429,8 @@
           </div>
         </div>
         <div class="modal-actions">
-          <button type="button" class="btn ghost" data-close="frpConfigModal">Abbrechen</button>
-          <button type="submit" class="btn primary">Speichern</button>
+          <button type="button" class="btn ghost" data-close="frpConfigModal" data-i18n="action.cancel">Abbrechen</button>
+          <button type="submit" class="btn primary" data-i18n="action.save">Speichern</button>
         </div>
       </form>
     </div>
@@ -499,8 +502,8 @@
           </div>
         </div>
         <div class="modal-actions">
-          <button type="button" class="btn ghost" data-close="frpTunnelModal">Abbrechen</button>
-          <button type="submit" class="btn primary" id="tunnelSaveBtn">Speichern</button>
+          <button type="button" class="btn ghost" data-close="frpTunnelModal" data-i18n="action.cancel">Abbrechen</button>
+          <button type="submit" class="btn primary" id="tunnelSaveBtn" data-i18n="action.save">Speichern</button>
         </div>
       </form>
     </div>
@@ -515,8 +518,8 @@
       </div>
       <pre id="frpPreviewContent" style="font-family:monospace;font-size:13px;background:var(--surface);border-radius:var(--radius-sm);padding:14px;max-height:420px;overflow-y:auto;white-space:pre-wrap;word-break:break-all;margin:0"></pre>
       <div class="modal-actions" style="margin-top:16px">
-        <button class="btn primary" id="copyFrpConfigBtn">Kopieren</button>
-        <button class="btn ghost" data-close="frpPreviewModal">Schließen</button>
+        <button class="btn primary" id="copyFrpConfigBtn" data-i18n="action.copy">Kopieren</button>
+        <button class="btn ghost" data-close="frpPreviewModal" data-i18n="action.close">Schließen</button>
       </div>
     </div>
   </div>
@@ -551,7 +554,7 @@
         </div>
       </div>
       <div class="modal-actions" style="margin-top:16px">
-        <button class="btn ghost" data-close="provisionModal">Schlie&#xDF;en</button>
+        <button class="btn ghost" data-close="provisionModal" data-i18n="action.close">Schließen</button>
       </div>
     </div>
   </div>
@@ -617,8 +620,8 @@
           </div>
         </div>
         <div class="modal-actions">
-          <button type="button" class="btn ghost" data-close="connModal">Abbrechen</button>
-          <button type="submit" class="btn primary" id="connSaveBtn">Speichern</button>
+          <button type="button" class="btn ghost" data-close="connModal" data-i18n="action.cancel">Abbrechen</button>
+          <button type="submit" class="btn primary" id="connSaveBtn" data-i18n="action.save">Speichern</button>
         </div>
       </form>
     </div>
@@ -665,8 +668,8 @@
           <small style="color:var(--text-soft)">Mehrfachauswahl: Strg+Klick</small>
         </div>
         <div class="modal-actions">
-          <button type="button" class="btn ghost" data-close="serverModal">Abbrechen</button>
-          <button type="submit" class="btn primary" id="serverSaveBtn">Speichern</button>
+          <button type="button" class="btn ghost" data-close="serverModal" data-i18n="action.cancel">Abbrechen</button>
+          <button type="submit" class="btn primary" id="serverSaveBtn" data-i18n="action.save">Speichern</button>
         </div>
       </form>
     </div>
@@ -697,8 +700,8 @@
           <div id="ufServerList" style="display:flex;flex-direction:column;gap:6px;max-height:180px;overflow-y:auto;background:var(--surface);padding:8px;border-radius:var(--radius-sm)"></div>
         </div>
         <div class="modal-actions">
-          <button type="button" class="btn ghost" data-close="userModal">Abbrechen</button>
-          <button type="submit" class="btn primary">Speichern</button>
+          <button type="button" class="btn ghost" data-close="userModal" data-i18n="action.cancel">Abbrechen</button>
+          <button type="submit" class="btn primary" data-i18n="action.save">Speichern</button>
         </div>
       </form>
     </div>
@@ -716,8 +719,8 @@
       </p>
       <div class="key-reveal" id="keyRevealValue"></div>
       <div class="modal-actions" style="margin-top:16px">
-        <button class="btn primary" id="copyKeyBtn">Kopieren</button>
-        <button class="btn ghost" data-close="keyRevealModal">Schließen</button>
+        <button class="btn primary" id="copyKeyBtn" data-i18n="action.copy">Kopieren</button>
+        <button class="btn ghost" data-close="keyRevealModal" data-i18n="action.close">Schließen</button>
       </div>
     </div>
   </div>
@@ -742,8 +745,8 @@
           </select>
         </div>
         <div class="modal-actions">
-          <button type="button" class="btn ghost" data-close="apiKeyModal">Abbrechen</button>
-          <button type="submit" class="btn primary">Erstellen</button>
+          <button type="button" class="btn ghost" data-close="apiKeyModal" data-i18n="action.cancel">Abbrechen</button>
+          <button type="submit" class="btn primary" data-i18n="action.create">Erstellen</button>
         </div>
       </form>
     </div>
@@ -810,8 +813,8 @@
         </div>
 
         <div class="modal-actions">
-          <button type="button" class="btn ghost" data-close="hookModal">Abbrechen</button>
-          <button type="submit" class="btn primary">Speichern</button>
+          <button type="button" class="btn ghost" data-close="hookModal" data-i18n="action.cancel">Abbrechen</button>
+          <button type="submit" class="btn primary" data-i18n="action.save">Speichern</button>
         </div>
       </form>
     </div>
@@ -833,8 +836,8 @@
         <code id="webhookTriggerUrl" style="color:var(--accent)"></code>
       </p>
       <div class="modal-actions" style="margin-top:16px">
-        <button class="btn primary" id="copyWebhookTokenBtn">Kopieren</button>
-        <button class="btn ghost" data-close="webhookTokenModal">Schließen</button>
+        <button class="btn primary" id="copyWebhookTokenBtn" data-i18n="action.copy">Kopieren</button>
+        <button class="btn ghost" data-close="webhookTokenModal" data-i18n="action.close">Schließen</button>
       </div>
     </div>
   </div>
@@ -848,7 +851,7 @@
       </div>
       <pre id="hookRunResult" style="font-family:monospace;font-size:12px;background:var(--surface);border-radius:var(--radius-sm);padding:14px;max-height:420px;overflow-y:auto;white-space:pre-wrap;word-break:break-all;margin:0"></pre>
       <div class="modal-actions" style="margin-top:16px">
-        <button class="btn ghost" data-close="hookRunModal">Schließen</button>
+        <button class="btn ghost" data-close="hookRunModal" data-i18n="action.close">Schließen</button>
       </div>
     </div>
   </div>
@@ -875,8 +878,8 @@
         <p id="importInfo" style="font-size:13px;color:var(--text-soft);margin:0"></p>
       </div>
       <div class="modal-actions">
-        <button type="button" class="btn ghost" data-close="importModal">Abbrechen</button>
-        <button type="button" id="importSubmitBtn" class="btn primary">Importieren</button>
+        <button type="button" class="btn ghost" data-close="importModal" data-i18n="action.cancel">Abbrechen</button>
+        <button type="button" id="importSubmitBtn" class="btn primary" data-i18n="import.submit">Importieren</button>
       </div>
     </div>
   </div>
@@ -919,8 +922,8 @@
           </div>
         </div>
         <div class="modal-actions">
-          <button type="button" class="btn ghost" data-close="playbookModal">Abbrechen</button>
-          <button type="submit" class="btn primary" id="playbookSaveBtn">Speichern</button>
+          <button type="button" class="btn ghost" data-close="playbookModal" data-i18n="action.cancel">Abbrechen</button>
+          <button type="submit" class="btn primary" id="playbookSaveBtn" data-i18n="action.save">Speichern</button>
         </div>
       </form>
     </div>
@@ -1155,8 +1158,8 @@
           </div>
         </div>
         <div class="modal-actions">
-          <button type="button" class="btn ghost" data-close="monitorCheckModal">Abbrechen</button>
-          <button type="submit" class="btn primary">Speichern</button>
+          <button type="button" class="btn ghost" data-close="monitorCheckModal" data-i18n="action.cancel">Abbrechen</button>
+          <button type="submit" class="btn primary" data-i18n="action.save">Speichern</button>
         </div>
       </form>
     </div>
@@ -1220,8 +1223,8 @@
         </div>
 
         <div class="modal-actions">
-          <button type="button" class="btn ghost" data-close="alertRuleModal">Abbrechen</button>
-          <button type="submit" class="btn primary">Speichern</button>
+          <button type="button" class="btn ghost" data-close="alertRuleModal" data-i18n="action.cancel">Abbrechen</button>
+          <button type="submit" class="btn primary" data-i18n="action.save">Speichern</button>
         </div>
       </form>
     </div>
@@ -1266,8 +1269,8 @@
         </div>
 
         <div class="modal-actions">
-          <button type="button" class="btn ghost" data-close="monitorTemplateModal">Abbrechen</button>
-          <button type="submit" class="btn primary">Speichern</button>
+          <button type="button" class="btn ghost" data-close="monitorTemplateModal" data-i18n="action.cancel">Abbrechen</button>
+          <button type="submit" class="btn primary" data-i18n="action.save">Speichern</button>
         </div>
       </form>
     </div>
@@ -1275,6 +1278,8 @@
 
   <div id="toast" class="toast"></div>
 
+  <script src="/static/js/i18n.js"></script>
+  <script src="/static/js/i18nHelper.js"></script>
   <script src="/static/js/utils.js"></script>
   <script src="/static/js/connections.js"></script>
   <script src="/static/js/users.js"></script>
