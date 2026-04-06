@@ -1,6 +1,9 @@
 /* Simple Remote Manager – Monitoring */
 'use strict';
 
+/** Array-oder-String sicher zu comma-separated String wandeln */
+function _toCSV(v) { return Array.isArray(v) ? v.join(', ') : (v || ''); }
+
 // ── Load ���─────────────────────────────────────────────────────────────────
 // ── Tab-Switching ────────────────────────────────────────────────────────
 document.querySelectorAll('.monitor-tab').forEach(tab => {
@@ -741,15 +744,15 @@ function _formatCheckConfigWeb(check) {
             ['Disk', `Warn ${c.disk_warn || 85}% / Crit ${c.disk_crit || 95}%`]);
   } else if (type === 'service_process') {
     kv.push(['Modus', c.mode || 'auto']);
-    if (c.services?.length) kv.push(['Services', c.services.join(', ')]);
-    if (c.ignore?.length) kv.push(['Ignoriert', c.ignore.join(', ')]);
+    if (c.services?.length) kv.push(['Services', _toCSV(c.services)]);
+    if (c.ignore?.length) kv.push(['Ignoriert', _toCSV(c.ignore)]);
   } else if (type === 'proxmox_backup') {
     kv.push(['Max. Alter', `${c.max_backup_age_hours || 26}h`]);
-    if (c.exclude_vmids?.length) kv.push(['Exclude VMIDs', c.exclude_vmids.join(', ')]);
+    if (c.exclude_vmids?.length) kv.push(['Exclude VMIDs', _toCSV(c.exclude_vmids)]);
   } else if (type === 'zfs_health') {
     kv.push(['Kapazitaet', `Warn ${c.capacity_warn || 80}% / Crit ${c.capacity_crit || 90}%`]);
   } else if (type === 'docker_health') {
-    if (c.ignore_containers?.length) kv.push(['Ignoriert', c.ignore_containers.join(', ')]);
+    if (c.ignore_containers?.length) kv.push(['Ignoriert', _toCSV(c.ignore_containers)]);
     kv.push(['Restart-Check', c.check_restarts !== false ? 'aktiv' : 'aus']);
   }
   return kv;
@@ -826,14 +829,14 @@ function openMonitorCheckModal(check) {
   // Service Process Config
   const svcMode = cfg.mode || 'list';
   document.getElementById('mcServiceMode').value = svcMode;
-  document.getElementById('mcServiceNames').value = (cfg.services || []).join(', ');
-  document.getElementById('mcServiceIgnore').value = (cfg.ignore || []).join(', ');
+  document.getElementById('mcServiceNames').value = _toCSV(cfg.services);
+  document.getElementById('mcServiceIgnore').value = _toCSV(cfg.ignore);
   document.getElementById('mcServiceListFields').classList.toggle('hidden', svcMode !== 'list');
   document.getElementById('mcServiceAutoFields').classList.toggle('hidden', svcMode !== 'auto');
 
   // Proxmox Backup Config
   document.getElementById('mcPveBackupMaxAge').value = cfg.max_backup_age_hours ?? 26;
-  document.getElementById('mcPveBackupExclude').value = (cfg.exclude_vmids || []).join(', ');
+  document.getElementById('mcPveBackupExclude').value = _toCSV(cfg.exclude_vmids);
   document.getElementById('mcPveBackupExcludeStopped').value = (cfg.exclude_stopped !== false) ? 'true' : 'false';
 
   // ZFS Health Config
@@ -841,7 +844,7 @@ function openMonitorCheckModal(check) {
   document.getElementById('mcZfsCapCrit').value = cfg.capacity_crit ?? 90;
 
   // Docker Health Config
-  document.getElementById('mcDockerIgnore').value = (cfg.ignore_containers || []).join(', ');
+  document.getElementById('mcDockerIgnore').value = _toCSV(cfg.ignore_containers);
 
   // Config-Sections umschalten
   const type = check?.checkType || 'ping';
@@ -1066,7 +1069,7 @@ function openAlertRuleModal(rule) {
 
   const cfg = rule?.channelConfig || {};
   document.getElementById('arWebhookUrl').value = cfg.url || '';
-  document.getElementById('arEmailRecipients').value = (cfg.recipients || []).join(', ');
+  document.getElementById('arEmailRecipients').value = _toCSV(cfg.recipients);
 
   const channel = rule?.channel || 'webhook';
   document.getElementById('arWebhookConfig').classList.toggle('hidden', channel !== 'webhook');
@@ -1342,12 +1345,12 @@ function _tplCheckConfigFields(type, cfg, idx) {
     case 'service_process':
       return sel('mode', cfg.mode || 'auto', 'Modus', [{value:'auto',label:'Auto'},{value:'list',label:'Liste'}])
         + (cfg.mode === 'list'
-          ? inp('services', (cfg.services||[]).join(', '), 'Services', {width:'200px'})
-          : inp('ignore', (cfg.ignore||[]).join(', '), 'Ignorieren', {width:'200px'}));
+          ? inp('services', _toCSV(cfg.services), 'Services', {width:'200px'})
+          : inp('ignore', _toCSV(cfg.ignore), 'Ignorieren', {width:'200px'}));
 
     case 'proxmox_backup':
       return inp('max_backup_age_hours', cfg.max_backup_age_hours, 'Max. Alter (h)', {width:'80px', type:'number'})
-        + inp('exclude_vmids', (cfg.exclude_vmids||[]).join(', '), 'VMIDs ausschl.', {width:'120px'})
+        + inp('exclude_vmids', _toCSV(cfg.exclude_vmids), 'VMIDs ausschl.', {width:'120px'})
         + sel('exclude_stopped', String(cfg.exclude_stopped ?? true), 'Gestoppte ign.', [{value:'true',label:'Ja'},{value:'false',label:'Nein'}]);
 
     case 'zfs_health':
@@ -1355,7 +1358,7 @@ function _tplCheckConfigFields(type, cfg, idx) {
         + inp('capacity_crit', cfg.capacity_crit, 'Kap. Crit %', {width:'80px', type:'number'});
 
     case 'docker_health':
-      return inp('ignore_containers', (cfg.ignore_containers||[]).join(', '), 'Ignorieren', {width:'200px'});
+      return inp('ignore_containers', _toCSV(cfg.ignore_containers), 'Ignorieren', {width:'200px'});
 
     default:
       return `<span style="color:var(--text-soft);font-size:12px">Keine Config-Felder</span>`;
