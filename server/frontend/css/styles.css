@@ -1865,7 +1865,7 @@ body {
   text-align: right; white-space: nowrap;
 }
 .mon-gauge-bar {
-  flex: 1; height: 22px; background: rgba(255,255,255,0.06);
+  width: 320px; flex-shrink: 0; height: 22px; background: rgba(255,255,255,0.06);
   border-radius: 4px; overflow: hidden; position: relative;
 }
 .mon-gauge-fill {
