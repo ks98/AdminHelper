@@ -1,0 +1,5 @@
+/bin/
+/build-deb/
+/build-rpm/
+*.deb
+*.rpm

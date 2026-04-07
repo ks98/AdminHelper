@@ -16,26 +16,33 @@ import (
 const defaultInterval = 5 * time.Minute
 
 func runCmd() *cobra.Command {
-	return &cobra.Command{
+	var once bool
+
+	cmd := &cobra.Command{
 		Use:   "run",
-		Short: "Dauerbetrieb: FRPC-Sync + Monitor-Push alle 5 Minuten",
+		Short: "FRPC-Sync + Monitor-Push ausfuehren",
+		Long:  "Ohne --once: Dauerbetrieb (alle 5 Minuten). Mit --once: einmaliger Durchlauf (fuer systemd-Timer).",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if once {
+				runOnce()
+				return nil
+			}
 			return runLoop()
 		},
 	}
+	cmd.Flags().BoolVar(&once, "once", false, "Einmaliger Durchlauf (fuer systemd-Timer / Task Scheduler)")
+	return cmd
 }
 
 func runLoop() error {
 	fmt.Println("[srm-agent] Starte Dauerbetrieb (Intervall: 5 Minuten)")
 
-	// Signal-Handling fuer sauberes Beenden
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
 
 	ticker := time.NewTicker(defaultInterval)
 	defer ticker.Stop()
 
-	// Sofort beim Start einmal ausfuehren
 	runOnce()
 
 	for {
@@ -50,12 +57,9 @@ func runLoop() error {
 }
 
 func runOnce() {
-	// FRPC Sync (Fehler werden geloggt, nicht abgebrochen)
 	if err := frpc.Sync(); err != nil {
 		fmt.Fprintf(os.Stderr, "[srm-agent] FRPC-Sync Fehler: %v\n", err)
 	}
-
-	// Monitor Push
 	if err := monitor.Push(); err != nil {
 		fmt.Fprintf(os.Stderr, "[srm-agent] Monitor-Push Fehler: %v\n", err)
 	}

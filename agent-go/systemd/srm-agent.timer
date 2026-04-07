@@ -1,0 +1,11 @@
+[Unit]
+Description=SRM Agent Timer (FRPC Sync + Monitoring alle 5 Minuten)
+
+[Timer]
+OnBootSec=60
+OnUnitActiveSec=300
+RandomizedDelaySec=30
+Persistent=true
+
+[Install]
+WantedBy=timers.target
