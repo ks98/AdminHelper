@@ -38,12 +38,22 @@ cargo install tauri-cli
 
 ```bash
 cd server
-python3 -m venv venv
-source venv/bin/activate
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### Docker (Server + frps)
+### Go Toolchain (Agent)
+
+```bash
+# Go 1.24+ installieren (siehe https://go.dev/dl/)
+sudo apt install -y golang-go
+# Oder manuell:
+# wget https://go.dev/dl/go1.24.2.linux-amd64.tar.gz
+# sudo tar -C /usr/local -xzf go1.24.2.linux-amd64.tar.gz
+```
+
+### Docker (Server + frps + Monitoring)
 
 Docker und Docker Compose werden fuer das vollstaendige Setup mit frps benoetigt:
 
@@ -71,7 +81,7 @@ sudo apt install -y openssh-client
 
 ```bash
 cd server
-source venv/bin/activate
+source .venv/bin/activate
 DATA_DIR=../data uvicorn app.main:app --reload --host 127.0.0.1 --port 8080
 ```
 
@@ -93,6 +103,8 @@ docker compose up --build -d
 Das startet:
 - **Server** auf `https://localhost:443` (selbstsigniertes Zertifikat)
 - **frps** auf Port 7000 (FRP-Protokoll) und 7443 (HTTPS-vhosts)
+- **Monitoring** auf Port 8480 (Agent-API)
+- **VictoriaMetrics** auf Port 8428 (intern, Time-Series DB)
 
 **Login:** `admin` / `admin`
 
@@ -140,6 +152,48 @@ Diese Binary wird im CI/CD durch die echte frpc-Binary ersetzt.
 1. `chrome://extensions` oeffnen -> **Entwicklermodus** aktivieren
 2. **"Entpackt laden"** -> Verzeichnis `extension/` auswaehlen
 3. Nach Code-Aenderungen: Extension in Chrome neu laden
+
+### Go Agent
+
+```bash
+cd agent-go
+
+# Linux-Binary bauen:
+make build-linux
+
+# Windows-Binary bauen (Cross-Compile):
+make build-windows
+
+# DEB-Paket erstellen:
+make deb
+
+# RPM-Paket erstellen:
+make rpm
+
+# Alles bauen:
+make all
+```
+
+Der Agent laesst sich auch direkt starten:
+
+```bash
+go run ./cmd/srm-agent version
+go run ./cmd/srm-agent run --once
+```
+
+### Monitoring (lokal ohne Docker)
+
+```bash
+cd monitoring
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+
+VICTORIA_METRICS_URL=http://localhost:8428 \
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8081
+```
+
+**Hinweis:** Fuer den vollen Monitoring-Stack wird VictoriaMetrics benoetigt, die per `docker compose up` automatisch mitgestartet wird.
 
 ---
 
@@ -191,7 +245,7 @@ cargo tauri dev
 ### Nur Server-API testen
 
 ```bash
-cd server && source venv/bin/activate
+cd server && source .venv/bin/activate
 DATA_DIR=../data uvicorn app.main:app --reload --host 127.0.0.1 --port 8080
 
 # In einem anderen Terminal:
@@ -243,6 +297,7 @@ curl -sk https://localhost/api/frp/tunnels \
 │  │  │  ├─ password.rs
 │  │  │  ├─ models.rs
 │  │  │  ├─ validation.rs
+│  │  │  ├─ ansible.rs          # Inventory-Generierung + Playbook-Ausfuehrung
 │  │  │  └─ terminal.rs
 │  │  ├─ binaries/            # frpc-Sidecar Binary (gitignored, CI-Download)
 │  │  └─ capabilities/        # Tauri v2 Security Permissions
@@ -251,15 +306,22 @@ curl -sk https://localhost/api/frp/tunnels \
 │  ├─ app/                   # FastAPI-Backend (modularer Monolith)
 │  │  ├─ main.py
 │  │  ├─ core/               # Config, Auth, DB, Middleware
-│  │  └─ modules/            # users, connections, servers, frp, hooks, api_keys
+│  │  └─ modules/            # users, connections, servers, frp, hooks, api_keys, ansible, monitoring_proxy
 │  ├─ frontend/              # Web-Interface (HTML/CSS/JS)
 │  ├─ Dockerfile
 │  └─ requirements.txt
-├─ agent/                    # frpc Sync-Agent + DEB/RPM-Paketierung
-│  ├─ srm-frpc-sync          # POSIX-Shell Sync-Agent
-│  ├─ systemd/               # frpc.service, sync.service, sync.timer
-│  ├─ build-deb.sh
-│  └─ build-rpm.sh
+├─ agent-go/                 # Unified Go Agent (Linux + Windows)
+│  ├─ cmd/srm-agent/         # Cobra CLI (run, frpc, monitor, service, version)
+│  ├─ internal/              # Config, FRPC-Sync, Monitor, Service-Verwaltung
+│  ├─ deb/ + rpm/            # Paket-Metadaten
+│  ├─ systemd/               # srm-agent.service + srm-agent.timer
+│  └─ Makefile               # build-linux, build-windows, deb, rpm
+├─ monitoring/
+│  ├─ app/                   # FastAPI Monitoring-Service
+│  │  ├─ routers/            # checks, templates, alerts, agent, admin
+│  │  ├─ checkers/           # ping, tcp, http, agent, plugins
+│  │  └─ core/               # Config, Auth, DB, VictoriaMetrics-Client
+│  └─ Dockerfile
 ├─ extension/                # Chrome Extension
 ├─ docs/                     # Dokumentation (DE + EN)
 ├─ data/                     # Server-Daten (gitignored, Bind-Mount)
@@ -275,10 +337,16 @@ curl -sk https://localhost/api/frp/tunnels \
 
 ```bash
 # Server venv entfernen
-rm -rf server/venv
+rm -rf server/.venv
+
+# Monitoring venv entfernen
+rm -rf monitoring/.venv
 
 # Rust Build-Cache leeren
 cd desktop/src-tauri && cargo clean
+
+# Go Build-Cache leeren
+cd agent-go && go clean
 
 # Docker aufraeumen
 docker compose down -v
@@ -287,4 +355,4 @@ docker compose down -v
 rm -rf desktop/src-tauri/binaries/
 ```
 
-Alle generierten Dateien (`venv/`, `target/`, `data/`, `binaries/`, `__pycache__/`) sind in `.gitignore` eingetragen und landen nicht im Repository.
+Alle generierten Dateien (`.venv/`, `target/`, `data/`, `binaries/`, `__pycache__/`) sind in `.gitignore` eingetragen und landen nicht im Repository.

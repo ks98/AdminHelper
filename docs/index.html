@@ -45,7 +45,7 @@
     <main class="page">
       <section class="hero reveal">
         <p class="kicker">Dokumentation</p>
-        <h1 class="page-title">Gesamtdoku für Client, Server und Browser-Extension</h1>
+        <h1 class="page-title">Gesamtdoku für Client, Server, Agent, Monitoring und Browser-Extension</h1>
         <p class="page-subtitle">
           Diese Website dokumentiert das komplette Projekt aus Entwickler- und Betriebs-Perspektive.
           Alle Inhalte basieren auf dem aktuellen Repository-Stand und decken Installation,
@@ -62,7 +62,7 @@
           <section id="scope" class="panel reveal">
             <h2>Projektumfang</h2>
             <p>
-              <span class="inline-code">simple remotemanager</span> besteht aus drei lauffähigen Teilen,
+              <span class="inline-code">simple remotemanager</span> besteht aus mehreren lauffähigen Teilen,
               die getrennt deployt werden können, aber zusammen eine Team-Remote-Plattform bilden.
             </p>
             <div class="cards cols-3">
@@ -70,14 +70,21 @@
                 <h3>Desktop-Client</h3>
                 <p>
                   Tauri v2 App (Rust + HTML/CSS/JS) für SSH, RDP und Web-Verbindungen,
-                  inklusive lokaler Datenspeicherung und optionalem Sync.
+                  inklusive lokaler Datenspeicherung, Sync und Ansible-Integration.
                 </p>
               </article>
               <article class="card">
                 <h3>Server</h3>
                 <p>
                   FastAPI-Backend mit Web-UI, JWT-Login, Rollenmodell, API-Keys,
-                  Hooks (Webhook/Event/Schedule), JWT-Login, API-Keys und TLS via Docker.
+                  Hooks, FRP-Tunnel, Ansible-Playbooks und TLS via Docker.
+                </p>
+              </article>
+              <article class="card">
+                <h3>Monitoring + Agent</h3>
+                <p>
+                  Separater Monitoring-Service mit VictoriaMetrics und Unified Go Agent
+                  für Ressourcen-Überwachung (CPU, RAM, Disk, Services, Docker, ZFS, Proxmox).
                 </p>
               </article>
               <article class="card">
@@ -109,12 +116,22 @@
                 <tr>
                   <td>Server API</td>
                   <td>Python, FastAPI, SQLAlchemy, SQLite</td>
-                  <td>Auth, Nutzerverwaltung, API-Keys, Connection-CRUD, Hooks (Webhook/Event/Schedule)</td>
+                  <td>Auth, Nutzerverwaltung, API-Keys, Connection-CRUD, Hooks, FRP-Tunnel, Ansible-Playbooks</td>
                 </tr>
                 <tr>
                   <td>Server UI</td>
                   <td>Statische SPA in <span class="inline-code">server/frontend</span></td>
-                  <td>Admin-Oberfläche für Verbindungen, Benutzer, API-Keys und Hooks</td>
+                  <td>Admin-Oberfläche für Verbindungen, Benutzer, API-Keys, Hooks, Monitoring und Ansible</td>
+                </tr>
+                <tr>
+                  <td>Monitoring-Service</td>
+                  <td>Python, FastAPI, APScheduler, VictoriaMetrics</td>
+                  <td>Check-Engine (Ping/TCP/HTTP/SNMP/Agent), Templates, Alerting (Webhook/E-Mail)</td>
+                </tr>
+                <tr>
+                  <td>Agent</td>
+                  <td>Go, gopsutil, Cobra CLI</td>
+                  <td>Unified Agent für Linux + Windows: FRP-Config-Sync und Ressourcen-Monitoring</td>
                 </tr>
                 <tr>
                   <td>Browser Extension</td>
@@ -212,6 +229,8 @@ cargo tauri dev</code></pre>
               <span>Tauri v2</span>
               <span>FastAPI</span>
               <span>SQLite</span>
+              <span>Go Agent</span>
+              <span>VictoriaMetrics</span>
               <span>Manifest V3</span>
             </div>
           </section>
@@ -230,7 +249,7 @@ cargo tauri dev</code></pre>
       </div>
 
       <footer class="footer">
-        Stand der Doku: 10.03.2026. Erstellt aus aktuellem Repository-Quellcode.
+        Stand der Doku: 07.04.2026. Erstellt aus aktuellem Repository-Quellcode.
         © <span id="year"></span>
       </footer>
     </main>

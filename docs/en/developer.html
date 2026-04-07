@@ -85,6 +85,16 @@
                   <td>Chrome/Chromium</td>
                   <td>Manifest V3 extension, loaded unpacked for local testing.</td>
                 </tr>
+                <tr>
+                  <td>Agent</td>
+                  <td>Go 1.24+, make</td>
+                  <td>Unified Go agent for Linux + Windows (FRP sync + monitoring).</td>
+                </tr>
+                <tr>
+                  <td>Monitoring</td>
+                  <td>Python 3.12+, pip</td>
+                  <td>FastAPI monitoring service, started via Docker Compose.</td>
+                </tr>
               </tbody>
             </table>
 
@@ -139,12 +149,23 @@ docker compose up -d</code></pre>
 │  ├─ src/               # frontend (vanilla JS, HTML, CSS)
 │  └─ src-tauri/         # Rust backend + OS integrations
 ├─ server/
-│  ├─ app/               # FastAPI routes, auth, storage
-│  ├─ frontend/          # server web UI
+│  ├─ app/               # FastAPI backend (modular monolith)
+│  │  ├─ core/           # config, auth, DB, middleware
+│  │  └─ modules/        # users, connections, servers, frp, hooks, api_keys, ansible, monitoring_proxy
+│  ├─ frontend/          # server web UI (SPA)
 │  └─ Dockerfile
-├─ extension/            # browser extension
-├─ docker-compose.yml
-└─ .env.example</code></pre>
+├─ agent-go/             # unified Go agent (Linux + Windows)
+│  ├─ cmd/srm-agent/     # Cobra CLI
+│  ├─ internal/          # config, FRPC sync, monitor, service
+│  └─ Makefile
+├─ monitoring/           # monitoring service (FastAPI + VictoriaMetrics)
+│  ├─ app/               # checks, alerts, templates, agent API
+│  └─ Dockerfile
+├─ extension/            # browser extension (Popup + Options + SW)
+├─ docs/                 # documentation (DE + EN)
+├─ docker-compose.yml    # multi-container deployment
+├─ .gitlab-ci.yml        # CI/CD pipeline
+└─ .env.example          # compose environment template</code></pre>
           </section>
 
           <section id="client" class="panel reveal">
@@ -183,6 +204,11 @@ docker compose up -d</code></pre>
                   <td><span class="inline-code">password.rs</span></td>
                   <td>RDP only; keyring/Credential Manager integration.</td>
                 </tr>
+                <tr>
+                  <td>Ansible</td>
+                  <td><span class="inline-code">ansible.rs</span></td>
+                  <td>Generate INI inventory from servers, store playbook, launch <span class="inline-code">ansible-playbook</span> in terminal.</td>
+                </tr>
               </tbody>
             </table>
             <div class="callout warn">
@@ -196,39 +222,68 @@ docker compose up -d</code></pre>
               Entry point: <span class="inline-code">server/app/main.py</span>.
               At startup, DB tables are created and an initial admin user is created if the DB is empty.
             </p>
+            <p>
+              Modular structure under <span class="inline-code">app/core/</span> (config, auth, DB, middleware, events)
+              and <span class="inline-code">app/modules/</span>:
+            </p>
             <table>
               <thead>
                 <tr>
-                  <th>Area</th>
-                  <th>Files</th>
+                  <th>Module</th>
+                  <th>Path</th>
                   <th>Details</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
                   <td>Auth</td>
-                  <td><span class="inline-code">auth.py</span>, <span class="inline-code">routers/auth.py</span></td>
+                  <td><span class="inline-code">core/auth.py</span>, <span class="inline-code">modules/users/auth_router.py</span></td>
                   <td>JWT bearer auth, bcrypt with SHA-256 pre-hash.</td>
                 </tr>
                 <tr>
-                  <td>DB models</td>
-                  <td><span class="inline-code">database.py</span>, <span class="inline-code">models.py</span></td>
-                  <td>Users, API keys, webhook metadata in SQLite.</td>
+                  <td>Users</td>
+                  <td><span class="inline-code">modules/users/</span></td>
+                  <td>User management, login/logout, token refresh.</td>
                 </tr>
                 <tr>
                   <td>Connections</td>
-                  <td><span class="inline-code">storage.py</span>, <span class="inline-code">routers/connections.py</span></td>
-                  <td>Connections are file-based JSON, not SQL rows.</td>
+                  <td><span class="inline-code">modules/connections/</span></td>
+                  <td>Connection CRUD (SQLite). Auto-migration from JSON to SQL at startup.</td>
                 </tr>
                 <tr>
-                  <td>IP filtering</td>
-                  <td><span class="inline-code">middleware.py</span></td>
-                  <td>IP/CIDR allowlist with optional trusted proxy support.</td>
+                  <td>Servers</td>
+                  <td><span class="inline-code">modules/servers/</span></td>
+                  <td>Server registry with tags, host, port.</td>
+                </tr>
+                <tr>
+                  <td>FRP</td>
+                  <td><span class="inline-code">modules/frp/</span></td>
+                  <td>Hierarchical: config, tunnel, generate, status, PKI, provision (6 sub-routers).</td>
                 </tr>
                 <tr>
                   <td>Hooks</td>
-                  <td><span class="inline-code">routers/hooks.py</span>, <span class="inline-code">script_runner.py</span>, <span class="inline-code">event_bus.py</span>, <span class="inline-code">scheduler.py</span></td>
-                  <td>Three types: Webhook (URL), Event (internal), Schedule (APScheduler). Full builtins incl. <span class="inline-code">import</span> (admin-only).</td>
+                  <td><span class="inline-code">modules/hooks/</span></td>
+                  <td>Webhook, event, schedule (APScheduler). Script runner with full Python access (admin-only).</td>
+                </tr>
+                <tr>
+                  <td>API Keys</td>
+                  <td><span class="inline-code">modules/api_keys/</span></td>
+                  <td>API key management, SHA-256 hashed in DB.</td>
+                </tr>
+                <tr>
+                  <td>Ansible</td>
+                  <td><span class="inline-code">modules/ansible/</span></td>
+                  <td>Playbook CRUD with YAML validation. Files stored under <span class="inline-code">DATA_DIR/ansible/playbooks/</span>.</td>
+                </tr>
+                <tr>
+                  <td>Monitoring Proxy</td>
+                  <td><span class="inline-code">modules/monitoring_proxy.py</span></td>
+                  <td>Reverse proxy to the monitoring service for the web UI.</td>
+                </tr>
+                <tr>
+                  <td>IP Filtering</td>
+                  <td><span class="inline-code">core/middleware.py</span></td>
+                  <td>IP/CIDR allowlist with optional trusted proxy support.</td>
                 </tr>
               </tbody>
             </table>
@@ -443,8 +498,14 @@ log(f"Cleaned up at {triggered_at}: removed {removed} duplicate(s)")</code></pre
             <h2>11) CI/CD Pipeline (.gitlab-ci.yml)</h2>
             <ul>
               <li><strong>docker:</strong> builds and pushes server image to registry.</li>
-              <li><strong>build:</strong> creates Linux binary and Debian package for client.</li>
-              <li><strong>publish:</strong> optional Debian publishing via Aptly API script.</li>
+              <li><strong>download:</strong> fetches frpc binary (v0.61.1).</li>
+              <li><strong>build:</strong> creates in parallel:
+                <ul>
+                  <li>Desktop: DEB + RPM + Linux binary (Debian Trixie)</li>
+                  <li>Go Agent: Linux + Windows binaries, DEB + RPM packages</li>
+                </ul>
+              </li>
+              <li><strong>publish:</strong> DEB publishing via Aptly API script (on tags).</li>
             </ul>
             <p>
               Publishing script: <span class="inline-code">desktop/scripts/ci_publish_via_api.sh</span>
@@ -549,8 +610,11 @@ cargo tauri build</code></pre>
             <ul>
               <li><span class="inline-code">desktop/src-tauri/src/commands.rs</span></li>
               <li><span class="inline-code">desktop/src-tauri/src/connection/rdp.rs</span></li>
-              <li><span class="inline-code">server/app/routers/*.py</span></li>
-              <li><span class="inline-code">server/app/script_runner.py</span></li>
+              <li><span class="inline-code">desktop/src-tauri/src/ansible.rs</span></li>
+              <li><span class="inline-code">server/app/modules/*/router.py</span></li>
+              <li><span class="inline-code">server/app/modules/hooks/script_runner.py</span></li>
+              <li><span class="inline-code">agent-go/cmd/srm-agent/main.go</span></li>
+              <li><span class="inline-code">monitoring/app/routers/*.py</span></li>
               <li><span class="inline-code">extension/popup.js</span></li>
             </ul>
           </section>

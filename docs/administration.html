@@ -143,6 +143,31 @@ docker compose up -d</code></pre>
                   <td>172.17.0.1,10.0.0.0/8</td>
                   <td>Empfohlene sichere Variante hinter Reverse Proxy.</td>
                 </tr>
+                <tr>
+                  <td><span class="inline-code">MONITOR_API_KEY</span></td>
+                  <td>openssl rand -hex 32</td>
+                  <td>Shared Secret zwischen Server und Monitoring-Service.</td>
+                </tr>
+                <tr>
+                  <td><span class="inline-code">MONITOR_AGENT_API_KEYS</span></td>
+                  <td>key1,key2</td>
+                  <td>Kommagetrennte API-Keys für Agent-Authentifizierung.</td>
+                </tr>
+                <tr>
+                  <td><span class="inline-code">MONITOR_AGENT_PORT</span></td>
+                  <td>8480</td>
+                  <td>Externer Port für den Monitoring-Agent-Endpoint.</td>
+                </tr>
+                <tr>
+                  <td><span class="inline-code">FRP_BIND_PORT</span></td>
+                  <td>7000</td>
+                  <td>FRP-Protokoll-Port (Client-Verbindungen).</td>
+                </tr>
+                <tr>
+                  <td><span class="inline-code">FRP_HTTPS_PORT</span></td>
+                  <td>7443</td>
+                  <td>FRP HTTPS-vhost-Port für Web-Tunnel.</td>
+                </tr>
               </tbody>
             </table>
 
@@ -322,8 +347,95 @@ log(f"Bereinigt am {triggered_at}: {removed} Duplikat(e)")</code></pre>
             </ul>
           </section>
 
+          <section id="monitoring" class="panel reveal">
+            <h2>7) Monitoring</h2>
+            <p>
+              Der Monitoring-Service läuft als separater Container und überwacht registrierte Server
+              über einen leichtgewichtigen Go-Agent. Metriken werden in VictoriaMetrics gespeichert (90 Tage Retention).
+            </p>
+
+            <h3>Deployment</h3>
+            <p>
+              Monitoring und VictoriaMetrics werden automatisch mit <span class="inline-code">docker compose up -d</span> gestartet.
+              Konfiguration über <span class="inline-code">.env</span>:
+              <span class="inline-code">MONITOR_API_KEY</span> (Shared Secret) und
+              <span class="inline-code">MONITOR_AGENT_API_KEYS</span> (Agent-Keys) setzen.
+            </p>
+
+            <h3>Agent installieren</h3>
+            <p>
+              Der Unified Go Agent (<span class="inline-code">srm-agent</span>) vereint FRP-Sync und Monitoring.
+              Verfügbar als DEB- und RPM-Paket für Linux, sowie als Windows-Binary.
+            </p>
+            <pre class="code-block"><code># DEB installieren:
+apt install ./srm-agent_0.8.0_amd64.deb
+
+# Monitoring einrichten:
+sudo srm-agent monitor init \
+  --url https://&lt;server&gt;/api/monitoring \
+  --api-key &lt;MONITOR_AGENT_API_KEY&gt; \
+  --server-id &lt;SERVER-ID&gt;
+
+# FRP-Sync einrichten (optional):
+sudo srm-agent frpc init \
+  --url https://&lt;server&gt; \
+  --token &lt;PROVISION-TOKEN&gt; \
+  --server-id &lt;SERVER-ID&gt;
+
+# Als systemd-Service installieren:
+sudo srm-agent service install</code></pre>
+
+            <h3>Features</h3>
+            <div class="cards cols-2">
+              <article class="card">
+                <h3>Check-Typen</h3>
+                <p>Ping, TCP, HTTP, SNMP und Agent-basierte Ressourcen-Checks (CPU, RAM, Disk, Services).</p>
+              </article>
+              <article class="card">
+                <h3>Agent-Plugins</h3>
+                <p>Docker, ZFS, Proxmox/PBS werden automatisch erkannt. Systemd- und Windows-Services überwachbar.</p>
+              </article>
+              <article class="card">
+                <h3>Templates</h3>
+                <p>Monitoring-Konfigurationen als Templates definieren und an Server zuweisen.</p>
+              </article>
+              <article class="card">
+                <h3>Alerting</h3>
+                <p>Webhook- und E-Mail-Benachrichtigungen mit Cooldown. Recovery-Alerts bei Wiederherstellung.</p>
+              </article>
+            </div>
+          </section>
+
+          <section id="ansible" class="panel reveal">
+            <h2>8) Ansible Playbooks</h2>
+            <p>
+              Die integrierte Ansible-Verwaltung ermöglicht zentrale Playbook-Verwaltung über den Server
+              und lokale Ausführung über den Desktop-Client.
+            </p>
+
+            <h3>Playbooks verwalten (Web-UI)</h3>
+            <p>
+              Im Admin-Bereich unter <span class="inline-code">Ansible</span>: Playbooks erstellen,
+              bearbeiten und löschen. YAML-Inhalt wird beim Speichern validiert.
+              Tag-basierte Filterung und Suche sind verfügbar.
+            </p>
+
+            <h3>Playbooks ausführen (Desktop-Client)</h3>
+            <ol>
+              <li>Im Desktop-Client (Server-Modus): Seite <span class="inline-code">Playbooks</span> öffnen.</li>
+              <li>Playbook auswählen.</li>
+              <li>Ziel-Server auswählen (einzeln oder nach Tags).</li>
+              <li><span class="inline-code">Playbook ausführen</span> klicken — öffnet ein Terminal mit <span class="inline-code">ansible-playbook</span>.</li>
+            </ol>
+
+            <div class="callout">
+              <strong>Voraussetzung:</strong> <span class="inline-code">ansible-playbook</span> muss auf dem Desktop-Rechner
+              installiert sein. Der Client generiert automatisch ein INI-Inventory aus den ausgewählten Servern.
+            </div>
+          </section>
+
           <section id="backup" class="panel reveal">
-            <h2>7) Backup und Restore</h2>
+            <h2>9) Backup und Restore</h2>
             <h3>Backup (Dateibasiert)</h3>
             <pre class="code-block"><code># im Projektroot
 mkdir -p backups
@@ -343,7 +455,7 @@ docker compose up -d</code></pre>
           </section>
 
           <section id="updates" class="panel reveal">
-            <h2>8) Updates und Rollback</h2>
+            <h2>10) Updates und Rollback</h2>
             <h3>Standard-Update</h3>
             <pre class="code-block"><code>docker compose pull
 docker compose up -d</code></pre>
@@ -357,7 +469,7 @@ docker compose up -d</code></pre>
           </section>
 
           <section id="hardening" class="panel reveal">
-            <h2>9) Security-Härtung Checkliste</h2>
+            <h2>11) Security-Härtung Checkliste</h2>
             <ul>
               <li><span class="inline-code">SECRET_KEY</span> mit starker Entropie setzen und geheim halten.</li>
               <li><span class="inline-code">ADMIN_PASSWORD</span> sofort ändern und separaten Admin-User anlegen.</li>
@@ -370,7 +482,7 @@ docker compose up -d</code></pre>
           </section>
 
           <section id="runbook" class="panel reveal">
-            <h2>10) Incident-Runbook (Kurzfassung)</h2>
+            <h2>12) Incident-Runbook (Kurzfassung)</h2>
             <div class="cards cols-2">
               <article class="card">
                 <h3>Login schlägt fehl</h3>
@@ -402,10 +514,12 @@ docker compose up -d</code></pre>
               <li><a href="#operations">4) Betrieb</a></li>
               <li><a href="#hook-ops">5) Hooks</a></li>
               <li><a href="#sync">6) Sync/Extension</a></li>
-              <li><a href="#backup">7) Backup</a></li>
-              <li><a href="#updates">8) Updates</a></li>
-              <li><a href="#hardening">9) Hardening</a></li>
-              <li><a href="#runbook">10) Runbook</a></li>
+              <li><a href="#monitoring">7) Monitoring</a></li>
+              <li><a href="#ansible">8) Ansible</a></li>
+              <li><a href="#backup">9) Backup</a></li>
+              <li><a href="#updates">10) Updates</a></li>
+              <li><a href="#hardening">11) Hardening</a></li>
+              <li><a href="#runbook">12) Runbook</a></li>
             </ul>
           </section>
 

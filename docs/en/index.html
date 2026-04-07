@@ -45,7 +45,7 @@
     <main class="page">
       <section class="hero reveal">
         <p class="kicker">Documentation</p>
-        <h1 class="page-title">Complete docs for client, server, and browser extension</h1>
+        <h1 class="page-title">Complete docs for client, server, agent, monitoring, and browser extension</h1>
         <p class="page-subtitle">
           This website covers the whole repository from both perspectives:
           engineering and operations. It includes installation, usage,
@@ -62,16 +62,20 @@
           <section id="scope" class="panel reveal">
             <h2>Project Scope</h2>
             <p>
-              <span class="inline-code">Simple Remote Manager</span> consists of three deployable parts.
+              <span class="inline-code">Simple Remote Manager</span> consists of several deployable parts.
             </p>
             <div class="cards cols-3">
               <article class="card">
                 <h3>Desktop Client</h3>
-                <p>Tauri v2 app (Rust + HTML/CSS/JS) to manage SSH, RDP, and Web targets.</p>
+                <p>Tauri v2 app (Rust + HTML/CSS/JS) to manage SSH, RDP, and Web targets with Ansible integration.</p>
               </article>
               <article class="card">
                 <h3>Server</h3>
-                <p>FastAPI backend with web UI, JWT auth, API keys, role model, hooks (webhook/event/schedule), and TLS runtime.</p>
+                <p>FastAPI backend with web UI, JWT auth, API keys, hooks, FRP tunnels, Ansible playbooks, and TLS runtime.</p>
+              </article>
+              <article class="card">
+                <h3>Monitoring + Agent</h3>
+                <p>Separate monitoring service with VictoriaMetrics and unified Go agent for resource monitoring (CPU, RAM, Disk, Services, Docker, ZFS, Proxmox).</p>
               </article>
               <article class="card">
                 <h3>Chrome Extension</h3>
@@ -99,12 +103,22 @@
                 <tr>
                   <td>Server API</td>
                   <td>Python, FastAPI, SQLAlchemy, SQLite</td>
-                  <td>Authentication, users, API keys, connection CRUD, hooks (webhook/event/schedule).</td>
+                  <td>Authentication, users, API keys, connection CRUD, hooks, FRP tunnels, Ansible playbooks.</td>
                 </tr>
                 <tr>
                   <td>Server UI</td>
                   <td>Static SPA in <span class="inline-code">server/frontend</span></td>
-                  <td>Admin pages for users, API keys, hooks, and connections.</td>
+                  <td>Admin pages for connections, users, API keys, hooks, monitoring, and Ansible.</td>
+                </tr>
+                <tr>
+                  <td>Monitoring Service</td>
+                  <td>Python, FastAPI, APScheduler, VictoriaMetrics</td>
+                  <td>Check engine (Ping/TCP/HTTP/SNMP/Agent), templates, alerting (webhook/email).</td>
+                </tr>
+                <tr>
+                  <td>Agent</td>
+                  <td>Go, gopsutil, Cobra CLI</td>
+                  <td>Unified agent for Linux + Windows: FRP config sync and resource monitoring.</td>
                 </tr>
                 <tr>
                   <td>Browser Extension</td>
@@ -186,6 +200,8 @@ cargo tauri dev</code></pre>
               <span>Tauri v2</span>
               <span>FastAPI</span>
               <span>SQLite</span>
+              <span>Go Agent</span>
+              <span>VictoriaMetrics</span>
               <span>Manifest V3</span>
             </div>
           </section>
@@ -204,7 +220,7 @@ cargo tauri dev</code></pre>
       </div>
 
       <footer class="footer">
-        Documentation baseline date: 10.03.2026. Built from the current repository source.
+        Documentation baseline date: 07.04.2026. Built from the current repository source.
       </footer>
     </main>
 

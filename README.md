@@ -243,41 +243,79 @@ Der **Monitoring-Service** läuft als separater Container neben dem Server und �
 
 ### Agent installieren
 
-Der Monitor-Agent wird als DEB-Paket bereitgestellt (`srm-monitor-agent`):
+Der **Unified Go Agent** (`srm-agent`) vereint FRP-Sync und Monitoring in einem einzigen Paket fuer Linux und Windows:
 
 ```bash
-apt install ./srm-monitor-agent_0.1.0_all.deb
+# DEB installieren:
+apt install ./srm-agent_0.8.0_amd64.deb
 
-# Einrichtung (mit CA-Zertifikat fuer self-signed Server):
-sudo srm-monitor-agent --init \
+# Monitoring einrichten:
+sudo srm-agent monitor init \
   --url https://<server>/api/monitoring \
   --api-key <KEY> \
-  --server-id <SERVER-ID> \
-  --cacert /pfad/zum/ca.crt
+  --server-id <SERVER-ID>
 
-# Oder ohne SSL-Verifikation (nur zum Testen):
-sudo srm-monitor-agent --init \
-  --url https://<server>/api/monitoring \
-  --api-key <KEY> \
-  --server-id <SERVER-ID> \
-  --insecure
-```
-
-Der Agent pusht Metriken per Timer an den Monitoring-Service und erkennt automatisch vorhandene Subsysteme (Docker, ZFS, Proxmox).
-
-### FRP-Client Agent
-
-Der FRP-Client-Agent (`srm-frpc-client`) synchronisiert die frpc-Konfiguration vom Server:
-
-```bash
-apt install ./srm-frpc-client_0.1.0_amd64.deb
-
-sudo srm-frpc-sync --init \
+# FRP-Sync einrichten:
+sudo srm-agent frpc init \
   --url https://<server> \
   --token <PROVISION-TOKEN> \
-  --server-id <SERVER-ID> \
-  --cacert /pfad/zum/ca.crt
+  --server-id <SERVER-ID>
+
+# Dauerbetrieb starten (FRP-Sync + Monitor-Push alle 5 Min):
+sudo srm-agent run
+
+# Als systemd-Service installieren:
+sudo srm-agent service install
 ```
+
+**Agent-Subcommands:**
+
+| Befehl | Funktion |
+|--------|----------|
+| `srm-agent run [--once]` | FRP-Sync + Monitor-Push (Loop oder einmalig) |
+| `srm-agent frpc init` | FRP-Ersteinrichtung mit Provision-Token |
+| `srm-agent frpc sync` | Einmaliger Config-Sync |
+| `srm-agent monitor init` | Monitoring-Ersteinrichtung |
+| `srm-agent monitor push` | Einmaliger Metriken-Push |
+| `srm-agent service install` | OS-Service registrieren (systemd/Windows) |
+| `srm-agent service uninstall` | OS-Service deregistrieren |
+| `srm-agent version` | Version anzeigen |
+
+Der Agent erkennt automatisch vorhandene Subsysteme (Docker, ZFS, Proxmox) und sammelt CPU-, RAM-, Disk- und Service-Metriken. Metriken werden in **VictoriaMetrics** gespeichert (90 Tage Retention).
+
+---
+
+## Ansible
+
+Die integrierte **Ansible-Verwaltung** ermoeglicht zentrale Playbook-Verwaltung ueber den Server und lokale Ausfuehrung ueber den Desktop-Client.
+
+### Features
+
+- **Playbook-CRUD** im Server-Web-Interface (Admin-only)
+- **YAML-Validierung** beim Erstellen und Bearbeiten
+- **Tag-basierte Filterung** und Suche
+- **Desktop-Integration** mit 3-Schritt-Workflow:
+  1. Playbook auswaehlen
+  2. Ziel-Server auswaehlen (einzeln oder nach Tags)
+  3. Lokal via `ansible-playbook` ausfuehren
+
+### Voraussetzungen
+
+- `ansible-playbook` muss auf dem Desktop-Rechner installiert sein
+- Server muessen im Server-Web-Interface unter "Server" angelegt sein
+
+### API
+
+```
+GET    /api/ansible/playbooks              # Alle Playbooks auflisten
+POST   /api/ansible/playbooks              # Playbook erstellen (Admin)
+GET    /api/ansible/playbooks/{id}         # Playbook-Metadaten
+GET    /api/ansible/playbooks/{id}/content # YAML-Inhalt abrufen
+PUT    /api/ansible/playbooks/{id}         # Playbook aktualisieren (Admin)
+DELETE /api/ansible/playbooks/{id}         # Playbook loeschen (Admin)
+```
+
+Der Desktop-Client generiert automatisch ein INI-Inventory aus den ausgewaehlten Servern und startet `ansible-playbook` in einem nativen Terminal.
 
 ---
 
@@ -333,6 +371,7 @@ cargo tauri build
 │  │  │  ├─ password.rs
 │  │  │  ├─ models.rs
 │  │  │  ├─ validation.rs
+│  │  │  ├─ ansible.rs          # Inventory-Generierung + Playbook-Ausfuehrung
 │  │  │  └─ terminal.rs
 │  │  ├─ binaries/            # frpc-Sidecar (gitignored, CI-Download)
 │  │  └─ capabilities/        # Tauri v2 Security Permissions
@@ -341,7 +380,7 @@ cargo tauri build
 │  ├─ app/                   # FastAPI-Backend (modularer Monolith)
 │  │  ├─ main.py
 │  │  ├─ core/               # Config, Auth, DB, Middleware
-│  │  └─ modules/            # users, connections, servers, frp, hooks, api_keys, monitoring_proxy
+│  │  └─ modules/            # users, connections, servers, frp, hooks, api_keys, ansible, monitoring_proxy
 │  ├─ frontend/              # Web-Interface (HTML/CSS/JS)
 │  ├─ Dockerfile
 │  └─ requirements.txt
@@ -353,14 +392,13 @@ cargo tauri build
 │  │  ├─ core/               # Config, Auth, DB
 │  │  └─ scheduler.py        # APScheduler fuer periodische Checks
 │  └─ Dockerfile
-├─ agent/                    # Client-Agents + DEB/RPM-Paketierung
-│  ├─ srm-frpc-sync          # POSIX-Shell FRP-Sync-Agent
-│  ├─ srm-monitor-agent      # Python Monitoring-Agent (CPU, RAM, Disk, Plugins)
-│  ├─ systemd/               # Service- und Timer-Units
-│  ├─ build-deb.sh           # FRP-Client DEB-Build
-│  ├─ build-monitor-deb.sh   # Monitor-Agent DEB-Build
-│  ├─ build-rpm.sh           # FRP-Client RPM-Build
-│  └─ build-monitor-rpm.sh   # Monitor-Agent RPM-Build
+├─ agent-go/                 # Unified Go Agent (Linux + Windows)
+│  ├─ cmd/srm-agent/         # Cobra CLI (run, frpc, monitor, service, version)
+│  ├─ internal/              # Config, FRPC-Sync, Monitor, Service-Verwaltung
+│  ├─ deb/                   # Debian-Paketierung
+│  ├─ rpm/                   # RPM-Paketierung
+│  ├─ systemd/               # srm-agent.service + srm-agent.timer
+│  └─ Makefile               # build-linux, build-windows, deb, rpm
 ├─ extension/                # Chrome Extension
 ├─ docs/                     # Dokumentation (DE + EN)
 ├─ data/                     # Server-Daten (gitignored, Bind-Mount)
