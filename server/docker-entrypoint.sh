@@ -4,17 +4,45 @@ set -e
 CERT=/app/certs/cert.pem
 KEY=/app/certs/key.pem
 DOMAIN="${DOMAIN:-localhost}"
+# Komma-separierte Liste zusaetzlicher SANs (IPs oder DNS-Namen)
+# Beispiel: EXTRA_SANS=192.168.1.10,myhost.local
+EXTRA_SANS="${EXTRA_SANS:-}"
 
 mkdir -p /app/certs
 
 if [ -f "$CERT" ] && [ -f "$KEY" ]; then
     echo "[entrypoint] Vorhandene Zertifikate werden verwendet"
 else
-    echo "[entrypoint] Generiere selbstsigniertes Zertifikat für '${DOMAIN}'..."
+    # SAN-Liste aufbauen: DOMAIN + localhost + 127.0.0.1 + EXTRA_SANS
+    SAN_LIST="DNS:${DOMAIN},DNS:localhost,IP:127.0.0.1"
+
+    if [ -n "$EXTRA_SANS" ]; then
+        IFS=','
+        for entry in $EXTRA_SANS; do
+            entry=$(echo "$entry" | tr -d ' ')
+            # Pruefen ob IP-Adresse oder DNS-Name
+            if echo "$entry" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$'; then
+                SAN_LIST="${SAN_LIST},IP:${entry}"
+            elif echo "$entry" | grep -qE '^[0-9a-fA-F:]+$'; then
+                SAN_LIST="${SAN_LIST},IP:${entry}"
+            else
+                SAN_LIST="${SAN_LIST},DNS:${entry}"
+            fi
+        done
+        unset IFS
+    fi
+
+    # DOMAIN selbst auch als IP eintragen falls es eine IP ist
+    if echo "$DOMAIN" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$'; then
+        SAN_LIST="${SAN_LIST},IP:${DOMAIN}"
+    fi
+
+    echo "[entrypoint] Generiere selbstsigniertes Zertifikat fuer '${DOMAIN}'..."
+    echo "[entrypoint] SANs: ${SAN_LIST}"
     openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
         -keyout "$KEY" -out "$CERT" \
         -subj "/CN=${DOMAIN}" \
-        -addext "subjectAltName=DNS:${DOMAIN},DNS:localhost,IP:127.0.0.1" \
+        -addext "subjectAltName=${SAN_LIST}" \
         -addext "basicConstraints=critical,CA:FALSE" \
         -addext "keyUsage=critical,digitalSignature,keyEncipherment" \
         -addext "extendedKeyUsage=serverAuth"

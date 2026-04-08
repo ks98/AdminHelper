@@ -10,6 +10,7 @@ services:
     environment:
       - TZ=${TZ:-Europe/Berlin}
       - DOMAIN=${DOMAIN:-localhost}
+      - EXTRA_SANS=${EXTRA_SANS:-}
       - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}
       - FRP_CONFIG_DIR=/app/frp-config
