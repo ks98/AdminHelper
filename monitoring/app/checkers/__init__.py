@@ -20,6 +20,7 @@ def get_checker(check_type: str) -> Checker:
     from app.checkers.http import HttpChecker
     from app.checkers.agent import AgentPingChecker, AgentResourcesChecker, ServiceProcessChecker
     from app.checkers.plugins import ProxmoxBackupChecker, ZfsHealthChecker, DockerHealthChecker
+    from app.checkers.smart import SmartHealthChecker
 
     _REGISTRY: dict[str, Checker] = {
         "ping": PingChecker(),
@@ -31,6 +32,7 @@ def get_checker(check_type: str) -> Checker:
         "proxmox_backup": ProxmoxBackupChecker(),
         "zfs_health": ZfsHealthChecker(),
         "docker_health": DockerHealthChecker(),
+        "smart_health": SmartHealthChecker(),
     }
 
     checker = _REGISTRY.get(check_type)

@@ -36,12 +36,14 @@ CHECK_TYPE_METRICS: dict[str, list[str]] = {
     ],
     "zfs_health": [],  # dynamisch: monitor_zfs_capacity_{pool}_value
     "docker_health": ["monitor_docker_ok_value", "monitor_docker_critical_value", "monitor_docker_warning_value"],
+    "smart_health": ["monitor_smart_disks_ok_value", "monitor_smart_disks_warning_value", "monitor_smart_disks_critical_value"],
 }
 
 # Check-Typen mit dynamischen Metrik-Namen (Regex-Query)
 _DYNAMIC_METRIC_PATTERNS: dict[str, str] = {
     "zfs_health": "monitor_zfs_capacity_.*_value",
-    "agent_resources": "monitor_agent_disk_percent.*_value",
+    "agent_resources": "monitor_agent_(disk_percent|temp).*_value",
+    "smart_health": "monitor_smart_(temp|reallocated|pending)_.*_value",
 }
 
 

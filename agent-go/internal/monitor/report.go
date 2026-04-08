@@ -36,6 +36,9 @@ func BuildReport(serviceNames []string) map[string]any {
 	if disks := collectDisks(); len(disks) > 0 {
 		resources["disks"] = disks
 	}
+	if temps := collectTemperatures(); len(temps) > 0 {
+		resources["temperatures"] = temps
+	}
 
 	report := map[string]any{
 		"report_version": 2,
@@ -65,6 +68,9 @@ func BuildReport(serviceNames []string) map[string]any {
 	}
 	if zfs := collectZFS(); zfs != nil {
 		report["zfs"] = zfs
+	}
+	if smart := collectSmart(); smart != nil {
+		report["smart"] = smart
 	}
 
 	return report

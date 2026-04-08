@@ -18,7 +18,7 @@ scheduler = BackgroundScheduler(timezone="UTC")
 
 # Agent-Push-Checks werden nur vom Agent-Report-Endpoint ausgewertet,
 # nicht vom Scheduler. agent_ping ist Ausnahme: prueft ob Agent stale ist.
-PUSH_ONLY_TYPES = {"agent_resources", "service_process", "docker_health", "proxmox_backup", "zfs_health"}
+PUSH_ONLY_TYPES = {"agent_resources", "service_process", "docker_health", "proxmox_backup", "zfs_health", "smart_health"}
 
 _INTERVAL_MAP = {
     "1m": {"minutes": 1},

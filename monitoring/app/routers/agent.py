@@ -30,6 +30,7 @@ def agent_report(server_id: str, report: dict, db: Session = Depends(get_db), au
     import time as _time
     from app.checkers.agent import AgentResourcesChecker, ServiceProcessChecker, record_agent_report
     from app.checkers.plugins import ProxmoxBackupChecker, ZfsHealthChecker, DockerHealthChecker
+    from app.checkers.smart import SmartHealthChecker
 
     record_agent_report(server_id)
 
@@ -52,9 +53,25 @@ def agent_report(server_id: str, report: dict, db: Session = Depends(get_db), au
             if disk.get("percent") is not None:
                 lines.append(format_line("monitor_agent_disk_percent", disk_tags, disk["percent"], ts))
 
+        for sensor in resources.get("temperatures", []):
+            temp_c = sensor.get("temp_c", 0)
+            if temp_c > 0:
+                sensor_tags = {**base_tags, "sensor": sensor.get("sensor", "unknown")}
+                lines.append(format_line("monitor_agent_temp", sensor_tags, temp_c, ts))
+
     uptime = report.get("uptime_seconds")
     if uptime is not None:
         lines.append(format_line("monitor_agent_uptime_seconds", base_tags, uptime, ts))
+
+    # SMART Disk-Metriken
+    for disk in report.get("smart", []):
+        device = disk.get("device", "unknown")
+        safe_dev = device.replace("/", "_").lstrip("_")
+        smart_tags = {**base_tags, "device": device}
+        if disk.get("temp_c", 0) > 0:
+            lines.append(format_line(f"monitor_smart_temp_{safe_dev}", smart_tags, disk["temp_c"], ts))
+        lines.append(format_line(f"monitor_smart_reallocated_{safe_dev}", smart_tags, disk.get("reallocated_sectors", 0), ts))
+        lines.append(format_line(f"monitor_smart_pending_{safe_dev}", smart_tags, disk.get("pending_sectors", 0), ts))
 
     if lines:
         victoria.write(lines)
@@ -67,7 +84,8 @@ def agent_report(server_id: str, report: dict, db: Session = Depends(get_db), au
             MonitorCheck.server_id == server_id,
             MonitorCheck.enabled == True,  # noqa: E712
             MonitorCheck.check_type.in_(["agent_ping", "agent_resources", "service_process",
-                                        "proxmox_backup", "zfs_health", "docker_health"]),
+                                        "proxmox_backup", "zfs_health", "docker_health",
+                                        "smart_health"]),
         )
         .all()
     )
@@ -90,6 +108,8 @@ def agent_report(server_id: str, report: dict, db: Session = Depends(get_db), au
             result_status, message, metrics = ZfsHealthChecker().evaluate(config, report)
         elif check.check_type == "docker_health":
             result_status, message, metrics = DockerHealthChecker().evaluate(config, report)
+        elif check.check_type == "smart_health":
+            result_status, message, metrics = SmartHealthChecker().evaluate(config, report)
         else:
             continue
 

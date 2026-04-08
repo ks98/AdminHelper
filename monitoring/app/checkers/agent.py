@@ -138,6 +138,28 @@ class AgentResourcesChecker:
                 if status != "critical":
                     status = "warning"
 
+        # Temperaturen (optional — VMs liefern keine Sensordaten)
+        temperatures = resources.get("temperatures", [])
+        if temperatures:
+            temp_crit = config.get("temp_crit", 95)
+            temp_warn = config.get("temp_warn", 80)
+            max_temp = 0.0
+            max_sensor = ""
+            for sensor in temperatures:
+                temp_c = sensor.get("temp_c", 0)
+                sensor_name = sensor.get("sensor", "?")
+                metrics[f"agent_temp_{sensor_name}"] = temp_c
+                if temp_c > max_temp:
+                    max_temp = temp_c
+                    max_sensor = sensor_name
+            if max_temp >= temp_crit:
+                problems.append(f"Temp {max_sensor} {max_temp}\u00b0C (>={temp_crit}\u00b0C)")
+                status = "critical"
+            elif max_temp >= temp_warn:
+                problems.append(f"Temp {max_sensor} {max_temp}\u00b0C (>={temp_warn}\u00b0C)")
+                if status != "critical":
+                    status = "warning"
+
         if problems:
             message = "; ".join(problems)
         else:
@@ -157,6 +179,11 @@ class AgentResourcesChecker:
                 {"mount": d.get("mount", "/"), "percent": d.get("percent", 0),
                  "total_gb": d.get("total_gb"), "used_gb": d.get("used_gb")}
                 for d in disks
+            ],
+            "temperatures": [
+                {"sensor": s.get("sensor", "?"), "temp_c": s.get("temp_c", 0),
+                 "high": s.get("high", 0), "critical": s.get("critical", 0)}
+                for s in temperatures
             ],
         }
 
