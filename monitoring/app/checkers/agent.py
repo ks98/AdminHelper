@@ -143,22 +143,21 @@ class AgentResourcesChecker:
         if temperatures:
             temp_crit = config.get("temp_crit", 95)
             temp_warn = config.get("temp_warn", 80)
-            max_temp = 0.0
-            max_sensor = ""
+            temp_overrides = config.get("temp_overrides", {})
             for sensor in temperatures:
                 temp_c = sensor.get("temp_c", 0)
                 sensor_name = sensor.get("sensor", "?")
                 metrics[f"agent_temp_{sensor_name}"] = temp_c
-                if temp_c > max_temp:
-                    max_temp = temp_c
-                    max_sensor = sensor_name
-            if max_temp >= temp_crit:
-                problems.append(f"Temp {max_sensor} {max_temp}\u00b0C (>={temp_crit}\u00b0C)")
-                status = "critical"
-            elif max_temp >= temp_warn:
-                problems.append(f"Temp {max_sensor} {max_temp}\u00b0C (>={temp_warn}\u00b0C)")
-                if status != "critical":
-                    status = "warning"
+                ov = temp_overrides.get(sensor_name, {})
+                s_crit = ov.get("crit", temp_crit)
+                s_warn = ov.get("warn", temp_warn)
+                if temp_c >= s_crit:
+                    problems.append(f"Temp {sensor_name} {temp_c}\u00b0C (>={s_crit}\u00b0C)")
+                    status = "critical"
+                elif temp_c >= s_warn:
+                    problems.append(f"Temp {sensor_name} {temp_c}\u00b0C (>={s_warn}\u00b0C)")
+                    if status != "critical":
+                        status = "warning"
 
         if problems:
             message = "; ".join(problems)

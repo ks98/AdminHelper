@@ -1076,6 +1076,18 @@
               <label>Disk Kritisch (%)</label>
               <input id="mcAgentDiskCrit" type="number" value="95" min="0" max="100" />
             </div>
+            <div class="field">
+              <label data-i18n="modal.check.tempWarn">Temp Warnung (°C)</label>
+              <input id="mcAgentTempWarn" type="number" value="80" min="0" max="120" />
+            </div>
+            <div class="field">
+              <label data-i18n="modal.check.tempCrit">Temp Kritisch (°C)</label>
+              <input id="mcAgentTempCrit" type="number" value="95" min="0" max="120" />
+            </div>
+            <div id="mcTempOverridesContainer" class="field full hidden">
+              <label data-i18n="modal.check.tempOverrides">Sensor-Schwellwerte (leer = global)</label>
+              <div id="mcTempOverridesList"></div>
+            </div>
           </div>
 
           <!-- Service Process Config -->
