@@ -1271,7 +1271,7 @@ function _tplCheckDefaults(type) {
     case 'tcp':            return { target: h, port: 22, timeout: 5 };
     case 'http':           return { url: 'http://{{hostname}}', method: 'GET', expected_status: 200, timeout: 10, verify_ssl: true };
     case 'agent_ping':      return { server_id: '{{server_id}}', stale_minutes: 5 };
-    case 'agent_resources': return { cpu_warn: 80, cpu_crit: 95, memory_warn: 80, memory_crit: 95 };
+    case 'agent_resources': return { cpu_warn: 80, cpu_crit: 95, memory_warn: 80, memory_crit: 95, disk_warn: 85, disk_crit: 95 };
     case 'service_process': return { mode: 'auto', ignore: [] };
     case 'proxmox_backup':  return { max_backup_age_hours: 26, exclude_vmids: [], exclude_stopped: true };
     case 'zfs_health':      return { capacity_warn: 80, capacity_crit: 90 };
@@ -1346,7 +1346,9 @@ function _tplCheckConfigFields(type, cfg, idx) {
       return inp('cpu_warn', cfg.cpu_warn, 'CPU Warn %', {width:'70px', type:'number'})
         + inp('cpu_crit', cfg.cpu_crit, 'CPU Crit %', {width:'70px', type:'number'})
         + inp('memory_warn', cfg.memory_warn, 'RAM Warn %', {width:'70px', type:'number'})
-        + inp('memory_crit', cfg.memory_crit, 'RAM Crit %', {width:'70px', type:'number'});
+        + inp('memory_crit', cfg.memory_crit, 'RAM Crit %', {width:'70px', type:'number'})
+        + inp('disk_warn', cfg.disk_warn, 'Disk Warn %', {width:'70px', type:'number'})
+        + inp('disk_crit', cfg.disk_crit, 'Disk Crit %', {width:'70px', type:'number'});
 
     case 'service_process':
       return sel('mode', cfg.mode || 'auto', 'Modus', [{value:'auto',label:'Auto'},{value:'list',label:'Liste'}])
