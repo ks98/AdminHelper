@@ -526,14 +526,9 @@ export function initMonitoring(state, t, monitoringApiFactory) {
       }
       container.appendChild(list);
     } else {
-      // list mode
+      // list mode – immer alle Services einzeln anzeigen
       const watched = details.watched || [];
       if (watched.length === 0) return;
-      const allOk = watched.every((s) => s.running);
-      if (allOk) {
-        container.innerHTML = `<div class="mon-all-ok"><span class="mon-item-dot item-ok"></span> Alle ${watched.length} Services aktiv</div>`;
-        return;
-      }
       const list = document.createElement("div");
       list.className = "mon-item-list";
       for (const svc of watched) {

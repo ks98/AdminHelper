@@ -433,11 +433,9 @@ function _renderServiceListHtml(details) {
     html += '</div>';
     return html;
   }
-  // list mode
+  // list mode – immer alle Services einzeln anzeigen
   const watched = details.watched || [];
   if (watched.length === 0) return '';
-  const allOk = watched.every(s => s.running);
-  if (allOk) return `<div class="mon-all-ok"><span class="mon-item-dot item-ok"></span> ${t('monitor.allServicesActive', { count: watched.length })}</div>`;
   let html = '<div class="mon-item-list">';
   for (const svc of watched) {
     html += _itemRowHtml(svc.name, svc.running ? 'ok' : 'critical', svc.running ? 'running' : 'down');
