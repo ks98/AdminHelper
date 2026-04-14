@@ -27,6 +27,8 @@
     }
   },
   "bundle": {
+    "publisher": "Kevin Stenzel",
+    "homepage": "https://adminhelper.de",
     "shortDescription": "AdminHelper — Remote-Verwaltung mit FRP-Tunneln",
     "longDescription": "Desktop-Client fuer AdminHelper. Verwaltet Remote-Verbindungen (RDP, SSH, VNC, HTTP) ueber sichere FRP-Tunnel mit zentralem Server, PKI-gestuetzter Verschluesselung und integriertem Monitoring.",
     "externalBin": ["binaries/frpc"],

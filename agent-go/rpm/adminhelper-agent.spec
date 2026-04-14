@@ -3,7 +3,9 @@ Version:        __VERSION__
 Release:        1%{?dist}
 Summary:        AdminHelper Agent — FRPC Sync + Monitoring
 License:        Proprietary
-URL:            https://gitlab.local/adminhelper/adminhelper
+URL:            https://adminhelper.de
+Vendor:         Kevin Stenzel <kevin@ks98.de>
+Packager:       Kevin Stenzel <kevin@ks98.de>
 
 Source0:        %{name}-%{version}.tar.gz
 

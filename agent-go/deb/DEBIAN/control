@@ -1,13 +1,13 @@
 Package: adminhelper-agent
 Version: __VERSION__
 Architecture: amd64
-Maintainer: AdminHelper <noreply@adminhelper.local>
+Maintainer: Kevin Stenzel <kevin@ks98.de>
 Depends: systemd
 Replaces: srm-frpc-client, srm-monitor-agent, srm-agent
 Conflicts: srm-frpc-client, srm-monitor-agent, srm-agent
 Section: net
 Priority: optional
-Homepage: https://gitlab.local/adminhelper/adminhelper
+Homepage: https://adminhelper.de
 Description: AdminHelper Agent — FRPC Sync + Monitoring
  Unified agent for AdminHelper. Combines FRP Client
  (frpc) with automatic config sync and system monitoring in a single
