@@ -138,13 +138,9 @@ class ZfsHealthChecker:
             cap = pool.get("capacity_percent", 0)
             metrics[f"zfs_capacity_{name}"] = cap
 
-            if health in ("FAULTED", "OFFLINE", "UNAVAIL"):
+            if health in ("FAULTED", "OFFLINE", "UNAVAIL", "DEGRADED"):
                 problems.append(f"{name}: {health}")
                 status = "critical"
-            elif health == "DEGRADED":
-                problems.append(f"{name}: DEGRADED")
-                if status != "critical":
-                    status = "warning"
 
             if cap >= cap_crit:
                 problems.append(f"{name}: {cap}% voll (>={cap_crit}%)")
