@@ -5,6 +5,7 @@
   import Router from '$lib/components/layout/Router.svelte';
   import Sidebar from '$lib/components/layout/Sidebar.svelte';
   import Toast from '$lib/components/ui/Toast.svelte';
+  import ConfirmDialog from '$lib/components/ui/ConfirmDialog.svelte';
   import Login from './pages/Login.svelte';
   import { routes } from './routes';
 
@@ -35,6 +36,7 @@
 {/if}
 
 <Toast />
+<ConfirmDialog />
 
 <style>
   .boot-loader {
