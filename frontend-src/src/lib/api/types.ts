@@ -11,10 +11,45 @@ export interface RefreshResponse {
 }
 
 export interface User {
-  id: string;
+  id: number;
   username: string;
   is_admin: boolean;
   created_at?: string;
+  server_ids?: string[];
+}
+
+export interface UserCreate {
+  username: string;
+  password: string;
+  is_admin: boolean;
+  server_ids: string[];
+}
+
+export interface UserUpdate {
+  is_admin: boolean;
+  server_ids: string[];
+  password?: string;
+}
+
+export type ApiKeyPermission = 'read' | 'read_write';
+
+export interface ApiKey {
+  id: number;
+  name: string;
+  permission: ApiKeyPermission;
+  created_at?: string;
+}
+
+export interface ApiKeyCreate {
+  name: string;
+  permission: ApiKeyPermission;
+}
+
+export interface ApiKeyCreateResult {
+  key: string;
+  id: number;
+  name: string;
+  permission: ApiKeyPermission;
 }
 
 export class ApiError extends Error {
