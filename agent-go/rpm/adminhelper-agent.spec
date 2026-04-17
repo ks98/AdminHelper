@@ -57,7 +57,10 @@ for unit in srm-frpc-sync.timer srm-frpc-sync.service srm-monitor-agent.timer sr
     fi
 done
 systemctl daemon-reload
-echo "adminhelper-agent installiert."
+# Timer aktivieren: laeuft ohne Config harmlos (Sync/Push skippen still).
+# $1 == 1: frische Installation, $1 == 2: Upgrade — beide sollen enablen.
+systemctl enable --now adminhelper-agent.timer >/dev/null 2>&1 || true
+echo "adminhelper-agent installiert. Timer ist aktiv (laeuft alle 5 Minuten)."
 echo "FRPC Einrichtung:    sudo adminhelper-agent frpc init --url <ADMINHELPER_URL> --token <TOKEN> --server-id <ID>"
 echo "Monitor Einrichtung: sudo adminhelper-agent monitor init --url <MONITOR_URL> --api-key <KEY> --server-id <ID>"
 
