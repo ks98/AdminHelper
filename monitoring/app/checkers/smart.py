@@ -9,6 +9,24 @@ Auf VMs ohne smartctl liefert der Agent keinen smart-Key — das ist OK, kein Fe
 from __future__ import annotations
 
 
+# NVMe critical_warning Bit-Feld laut NVMe Base Spec 1.4, Figure 94.
+NVME_CRITICAL_BITS = {
+    0x01: "spare_capacity_below_threshold",
+    0x02: "temperature_above_threshold",
+    0x04: "nvm_subsystem_reliability_degraded",
+    0x08: "media_read_only",
+    0x10: "volatile_memory_backup_failed",
+    0x20: "persistent_memory_region_unreliable",
+}
+
+
+def _decode_nvme_critical_warning(bits: int) -> list[str]:
+    """Uebersetzt das NVMe critical_warning Bit-Feld in lesbare Reasons."""
+    if not bits:
+        return []
+    return [name for mask, name in NVME_CRITICAL_BITS.items() if bits & mask]
+
+
 class SmartHealthChecker:
     """Prueft SMART-Gesundheit aller Festplatten.
 
@@ -22,6 +40,12 @@ class SmartHealthChecker:
         "nvme_spare_crit": 10,
         "nvme_used_warn": 90,
         "nvme_used_crit": 100,
+        "temp_hdd_warn": 55,
+        "temp_hdd_crit": 60,
+        "temp_ssd_warn": 60,
+        "temp_ssd_crit": 70,
+        "temp_nvme_warn": 65,
+        "temp_nvme_crit": 75,
         "ignore_devices": []
     }
     """
@@ -44,6 +68,11 @@ class SmartHealthChecker:
         nvme_spare_crit = config.get("nvme_spare_crit", 10)
         nvme_used_warn = config.get("nvme_used_warn", 90)
         nvme_used_crit = config.get("nvme_used_crit", 100)
+        temp_thresholds = {
+            "HDD": (config.get("temp_hdd_warn", 55), config.get("temp_hdd_crit", 60)),
+            "SATA-SSD": (config.get("temp_ssd_warn", 60), config.get("temp_ssd_crit", 70)),
+            "NVMe": (config.get("temp_nvme_warn", 65), config.get("temp_nvme_crit", 75)),
+        }
 
         critical_problems = []
         warning_problems = []
@@ -58,6 +87,7 @@ class SmartHealthChecker:
             model = disk.get("model", "?")
             label = f"{device} ({model})"
             protocol = disk.get("protocol", "ATA")
+            kind = disk.get("kind") or ("NVMe" if protocol == "NVMe" else "HDD")
             category = "ok"
 
             # Universelle Checks (ATA + NVMe)
@@ -72,6 +102,37 @@ class SmartHealthChecker:
             if disk.get("uncorrectable", 0) > 0:
                 critical_problems.append(f"{label}: {disk['uncorrectable']} offline uncorrectable")
                 category = "critical"
+
+            # smartctl Exit-Code auswerten (Bit-Flags).
+            # Bit 0x10 = Prefail-Attribut unter Threshold → kritisch.
+            # Bits 0x20 (past), 0x40 (error log), 0x80 (selftest fail) → warnend.
+            ec = int(disk.get("smartctl_status", 0) or 0)
+            if ec & 0x10:
+                critical_problems.append(f"{label}: Prefail-Attribut unter Schwelle (smartctl 0x10)")
+                category = "critical"
+            if ec & 0x20:
+                warning_problems.append(f"{label}: Threshold in Vergangenheit ueberschritten (smartctl 0x20)")
+                if category != "critical":
+                    category = "warning"
+            if ec & 0x40:
+                warning_problems.append(f"{label}: Eintraege im Fehler-Log (smartctl 0x40)")
+                if category != "critical":
+                    category = "warning"
+            if ec & 0x80:
+                warning_problems.append(f"{label}: Self-Test fehlgeschlagen (smartctl 0x80)")
+                if category != "critical":
+                    category = "warning"
+
+            # Temperatur pro Kind-Klasse
+            temp = int(disk.get("temp_c", 0) or 0)
+            temp_warn, temp_crit = temp_thresholds.get(kind, temp_thresholds["HDD"])
+            if temp >= temp_crit:
+                critical_problems.append(f"{label}: {temp}°C (>={temp_crit}°C)")
+                category = "critical"
+            elif temp >= temp_warn:
+                warning_problems.append(f"{label}: {temp}°C (>={temp_warn}°C)")
+                if category != "critical":
+                    category = "warning"
 
             # ATA-spezifisch (HDD + SSD)
             if protocol == "ATA":
@@ -93,12 +154,23 @@ class SmartHealthChecker:
             if category == "ok":
                 ok_count += 1
 
+            cw_bits = _decode_nvme_critical_warning(int(disk.get("critical_warning", 0) or 0))
             disk_details.append({
                 "device": device, "model": model,
-                "protocol": protocol, "category": category,
+                "protocol": protocol, "kind": kind, "category": category,
                 "smart_passed": disk.get("smart_passed", True),
                 "temp_c": disk.get("temp_c", 0),
+                "temp_warn": temp_warn, "temp_crit": temp_crit,
                 "power_on_hours": disk.get("power_on_hours", 0),
+                "reallocated_sectors": disk.get("reallocated_sectors", 0),
+                "pending_sectors": disk.get("pending_sectors", 0),
+                "udma_crc_errors": disk.get("udma_crc_errors", 0),
+                "available_spare_pct": disk.get("available_spare_pct"),
+                "percentage_used": disk.get("percentage_used"),
+                "media_errors": disk.get("media_errors", 0),
+                "critical_warning": disk.get("critical_warning", 0),
+                "critical_warning_bits": cw_bits,
+                "smartctl_status": ec,
             })
 
         metrics = {
@@ -182,8 +254,11 @@ class SmartHealthChecker:
     def _check_nvme(disk, label, category, critical_problems, warning_problems,
                     nvme_spare_warn, nvme_spare_crit, nvme_used_warn, nvme_used_crit):
         """Prueft NVMe-spezifische SMART-Attribute."""
-        if disk.get("critical_warning", 0) != 0:
-            critical_problems.append(f"{label}: NVMe critical_warning={disk['critical_warning']}")
+        cw = int(disk.get("critical_warning", 0) or 0)
+        if cw != 0:
+            reasons = _decode_nvme_critical_warning(cw)
+            detail = ", ".join(reasons) if reasons else f"0x{cw:02x}"
+            critical_problems.append(f"{label}: NVMe critical_warning ({detail})")
             category = "critical"
 
         if disk.get("media_errors", 0) > 0:

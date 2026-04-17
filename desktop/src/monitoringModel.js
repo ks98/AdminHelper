@@ -105,6 +105,17 @@ export function formatCheckConfig(check) {
   } else if (type === "docker_health") {
     if (c.ignore_containers?.length) kv.push(["Ignoriert", c.ignore_containers.join(", ")]);
     kv.push(["Restart-Check", c.check_restarts !== false ? "aktiv" : "aus"]);
+  } else if (type === "smart_health") {
+    kv.push(
+      ["Realloc", `Warn ${c.reallocated_warn ?? 1} / Crit ${c.reallocated_crit ?? 10}`],
+      ["Pending", `Warn ${c.pending_warn ?? 1} / Crit ${c.pending_crit ?? 5}`],
+      ["NVMe Spare", `Warn <${c.nvme_spare_warn ?? 20}% / Crit <${c.nvme_spare_crit ?? 10}%`],
+      ["NVMe Wear", `Warn ${c.nvme_used_warn ?? 90}% / Crit ${c.nvme_used_crit ?? 100}%`],
+      ["Temp HDD", `Warn ${c.temp_hdd_warn ?? 55}\u00b0C / Crit ${c.temp_hdd_crit ?? 60}\u00b0C`],
+      ["Temp SSD", `Warn ${c.temp_ssd_warn ?? 60}\u00b0C / Crit ${c.temp_ssd_crit ?? 70}\u00b0C`],
+      ["Temp NVMe", `Warn ${c.temp_nvme_warn ?? 65}\u00b0C / Crit ${c.temp_nvme_crit ?? 75}\u00b0C`],
+    );
+    if (c.ignore_devices?.length) kv.push(["Ignoriert", c.ignore_devices.join(", ")]);
   }
 
   return kv;

@@ -963,6 +963,7 @@
               <option value="proxmox_backup">Plugin: Proxmox Backup</option>
               <option value="zfs_health">Plugin: ZFS Health</option>
               <option value="docker_health">Plugin: Docker Health</option>
+              <option value="smart_health">Plugin: SMART Disk Health</option>
             </select>
           </div>
           <div class="field">
@@ -1165,6 +1166,77 @@
             <div class="field full">
               <label>Container ignorieren (kommagetrennt)</label>
               <input id="mcDockerIgnore" placeholder="watchtower, portainer-agent" />
+            </div>
+          </div>
+
+          <!-- SMART Health Config -->
+          <div id="mcSmartConfig" class="hidden">
+            <div class="field full" style="color:var(--text-muted);font-size:13px;margin-bottom:8px">
+              Prueft SMART-Werte aller Festplatten (HDD/SSD/NVMe). Benoetigt smartctl auf dem Host.
+              Hardware-RAID-Controller werden nicht unterstuetzt.
+            </div>
+            <div class="field full" style="font-weight:600;color:var(--text-muted);font-size:12px;margin-top:4px">ATA (HDD + SATA-SSD)</div>
+            <div class="field">
+              <label>Reallocated Sectors Warn</label>
+              <input id="mcSmartReallocWarn" type="number" value="1" min="0" />
+            </div>
+            <div class="field">
+              <label>Reallocated Sectors Crit</label>
+              <input id="mcSmartReallocCrit" type="number" value="10" min="0" />
+            </div>
+            <div class="field">
+              <label>Pending Sectors Warn</label>
+              <input id="mcSmartPendingWarn" type="number" value="1" min="0" />
+            </div>
+            <div class="field">
+              <label>Pending Sectors Crit</label>
+              <input id="mcSmartPendingCrit" type="number" value="5" min="0" />
+            </div>
+            <div class="field full" style="font-weight:600;color:var(--text-muted);font-size:12px;margin-top:8px">NVMe</div>
+            <div class="field">
+              <label>Available Spare Warn (%)</label>
+              <input id="mcSmartNvmeSpareWarn" type="number" value="20" min="0" max="100" />
+            </div>
+            <div class="field">
+              <label>Available Spare Crit (%)</label>
+              <input id="mcSmartNvmeSpareCrit" type="number" value="10" min="0" max="100" />
+            </div>
+            <div class="field">
+              <label>Percentage Used Warn (%)</label>
+              <input id="mcSmartNvmeUsedWarn" type="number" value="90" min="0" max="200" />
+            </div>
+            <div class="field">
+              <label>Percentage Used Crit (%)</label>
+              <input id="mcSmartNvmeUsedCrit" type="number" value="100" min="0" max="200" />
+            </div>
+            <div class="field full" style="font-weight:600;color:var(--text-muted);font-size:12px;margin-top:8px">Temperatur-Grenzwerte (&deg;C)</div>
+            <div class="field">
+              <label>HDD Warn</label>
+              <input id="mcSmartTempHddWarn" type="number" value="55" min="0" max="120" />
+            </div>
+            <div class="field">
+              <label>HDD Crit</label>
+              <input id="mcSmartTempHddCrit" type="number" value="60" min="0" max="120" />
+            </div>
+            <div class="field">
+              <label>SATA-SSD Warn</label>
+              <input id="mcSmartTempSsdWarn" type="number" value="60" min="0" max="120" />
+            </div>
+            <div class="field">
+              <label>SATA-SSD Crit</label>
+              <input id="mcSmartTempSsdCrit" type="number" value="70" min="0" max="120" />
+            </div>
+            <div class="field">
+              <label>NVMe Warn</label>
+              <input id="mcSmartTempNvmeWarn" type="number" value="65" min="0" max="120" />
+            </div>
+            <div class="field">
+              <label>NVMe Crit</label>
+              <input id="mcSmartTempNvmeCrit" type="number" value="75" min="0" max="120" />
+            </div>
+            <div class="field full">
+              <label>Geraete ignorieren (ein Pfad pro Zeile)</label>
+              <textarea id="mcSmartIgnore" rows="3" placeholder="/dev/sdz&#10;/dev/nvme1"></textarea>
             </div>
           </div>
 

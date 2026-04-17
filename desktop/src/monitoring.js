@@ -376,6 +376,7 @@ export function initMonitoring(state, t, monitoringApiFactory) {
       case "docker_health": return renderContainerList(container, details);
       case "proxmox_backup": return renderBackupList(container, details);
       case "zfs_health": return renderZfsGauges(container, details);
+      case "smart_health": return renderSmartDisks(container, details);
       case "agent_ping": return renderAgentPingValue(container, check);
       default: break; // ping, tcp, http - nur Chart
     }
@@ -629,6 +630,60 @@ export function initMonitoring(state, t, monitoringApiFactory) {
       grid.appendChild(item);
     }
     container.appendChild(grid);
+  }
+
+  function renderSmartDisks(container, details) {
+    if (!details?.disks?.length) return;
+    const grid = document.createElement("div");
+    grid.className = "mon-gauge-grid";
+    for (const disk of details.disks) {
+      const cat = disk.category || "ok";
+      const badgeCls = cat === "critical" ? "health-faulted" : cat === "warning" ? "health-degraded" : "health-online";
+      const badgeText = cat === "critical" ? "CRIT" : cat === "warning" ? "WARN" : "OK";
+      const temp = Number(disk.temp_c) || 0;
+      const tempWarn = Number(disk.temp_warn) || 60;
+      const tempCrit = Number(disk.temp_crit) || 70;
+      const tempPct = Math.min(temp / tempCrit * 100, 100);
+      const kindLabel = disk.kind || disk.protocol || "Disk";
+      const secondary = smartSecondaryStat(disk);
+      const cwBits = Array.isArray(disk.critical_warning_bits) && disk.critical_warning_bits.length
+        ? `<span class="mon-gauge-detail" style="color:var(--status-crit)">${disk.critical_warning_bits.join(", ")}</span>`
+        : "";
+      const item = document.createElement("div");
+      item.className = "mon-gauge-item";
+      item.innerHTML = `
+        <span class="mon-gauge-label">${disk.device} [${kindLabel}]</span>
+        <div class="mon-gauge-bar">
+          <div class="mon-gauge-fill ${gaugeClass(temp, tempWarn, tempCrit)}" style="width:${tempPct}%"></div>
+          <span class="mon-gauge-text">${temp}\u00b0C</span>
+        </div>
+        <span class="mon-gauge-detail">${disk.model || ""}</span>
+        ${secondary ? `<span class="mon-gauge-detail">${secondary}</span>` : ""}
+        ${cwBits}
+        <span class="mon-health-badge ${badgeCls}">${badgeText}</span>
+      `;
+      grid.appendChild(item);
+    }
+    container.appendChild(grid);
+  }
+
+  function smartSecondaryStat(disk) {
+    const hours = Number(disk.power_on_hours) || 0;
+    const hoursStr = hours > 0 ? `${hours.toLocaleString("de-DE")} h` : null;
+    if (disk.kind === "NVMe") {
+      const parts = [];
+      if (disk.available_spare_pct != null) parts.push(`Spare ${disk.available_spare_pct}%`);
+      if (disk.percentage_used != null) parts.push(`Wear ${disk.percentage_used}%`);
+      if (hoursStr) parts.push(hoursStr);
+      return parts.join(" | ");
+    }
+    const parts = [];
+    const realloc = Number(disk.reallocated_sectors) || 0;
+    const pending = Number(disk.pending_sectors) || 0;
+    if (realloc > 0) parts.push(`Realloc ${realloc}`);
+    if (pending > 0) parts.push(`Pending ${pending}`);
+    if (hoursStr) parts.push(hoursStr);
+    return parts.join(" | ");
   }
 
   function renderAgentPingValue(container, check) {

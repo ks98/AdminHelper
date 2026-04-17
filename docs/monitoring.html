@@ -248,11 +248,21 @@
               <article class="card">
                 <h3>smart_health — Festplatten S.M.A.R.T.</h3>
                 <p>
-                  Uberwacht S.M.A.R.T.-Werte der Festplatten. Automatische Erkennung
-                  durch den Agent.
+                  Uberwacht S.M.A.R.T.-Werte aller Festplatten (HDD, SATA-SSD, NVMe).
+                  Automatische Erkennung durch den Agent via <span class="inline-code">smartctl</span>.
+                  Geraete werden anhand <span class="inline-code">rotation_rate</span> + Protokoll
+                  in HDD / SATA-SSD / NVMe klassifiziert; Temperatur-Grenzwerte sind pro Kind konfigurierbar.
                 </p>
                 <p>
-                  <strong>Pruft:</strong> Reallocated Sectors, Pending Sectors, Temperature
+                  <strong>Prueft:</strong> SMART-Status, Reallocated / Pending / Uncorrectable Sectors,
+                  UDMA CRC Errors, Temperatur (pro Kind), NVMe Available Spare & Percentage Used,
+                  NVMe <span class="inline-code">critical_warning</span> Bit-Feld (Spare / Temp /
+                  Reliability / Read-Only / Volatile Memory Backup / PMR) sowie den smartctl-Exit-Code
+                  (Prefail-Bit 0x10 = kritisch, 0x20/0x40/0x80 = Warnung).
+                </p>
+                <p>
+                  <strong>Hinweis:</strong> Hardware-RAID-Controller werden nicht unterstuetzt —
+                  <span class="inline-code">smartctl -d &lt;controller&gt;</span> muesste separat gepflegt werden.
                 </p>
               </article>
             </div>

@@ -248,11 +248,22 @@
               <article class="card">
                 <h3>smart_health — Disk S.M.A.R.T.</h3>
                 <p>
-                  Monitors S.M.A.R.T. values of hard drives. Automatic detection
-                  by the agent.
+                  Monitors S.M.A.R.T. values of all drives (HDD, SATA-SSD, NVMe).
+                  Automatic detection by the agent via <span class="inline-code">smartctl</span>.
+                  Devices are classified as HDD / SATA-SSD / NVMe using
+                  <span class="inline-code">rotation_rate</span> + protocol;
+                  temperature thresholds can be configured per kind.
                 </p>
                 <p>
-                  <strong>Checks:</strong> Reallocated Sectors, Pending Sectors, Temperature
+                  <strong>Checks:</strong> SMART status, Reallocated / Pending / Uncorrectable Sectors,
+                  UDMA CRC Errors, Temperature (per kind), NVMe Available Spare &amp; Percentage Used,
+                  NVMe <span class="inline-code">critical_warning</span> bit field (Spare / Temp /
+                  Reliability / Read-Only / Volatile Memory Backup / PMR), and the smartctl exit code
+                  (Prefail bit 0x10 = critical, 0x20/0x40/0x80 = warning).
+                </p>
+                <p>
+                  <strong>Note:</strong> Hardware RAID controllers are not supported —
+                  <span class="inline-code">smartctl -d &lt;controller&gt;</span> would need to be managed separately.
                 </p>
               </article>
             </div>

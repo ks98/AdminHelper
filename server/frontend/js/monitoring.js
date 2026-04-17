@@ -365,6 +365,7 @@ function _renderTypeContentHtml(check) {
     case 'docker_health': return _renderContainerListHtml(details);
     case 'proxmox_backup': return _renderBackupListHtml(details);
     case 'zfs_health': return _renderZfsGaugesHtml(details);
+    case 'smart_health': return _renderSmartDisksHtml(details);
     case 'agent_ping': return _renderAgentPingHtml(check);
     default: return '';
   }
@@ -528,6 +529,63 @@ function _renderZfsGaugesHtml(details) {
   }
   html += '</div>';
   return html;
+}
+
+function _renderSmartDisksHtml(details) {
+  if (!details?.disks?.length) return '';
+  let html = '<div class="mon-gauge-grid">';
+  for (const disk of details.disks) {
+    const cat = disk.category || 'ok';
+    const badgeCls = cat === 'critical' ? 'health-faulted' : cat === 'warning' ? 'health-degraded' : 'health-online';
+    const badgeText = cat === 'critical' ? 'CRIT' : cat === 'warning' ? 'WARN' : 'OK';
+    const temp = Number(disk.temp_c) || 0;
+    const tempWarn = Number(disk.temp_warn) || 60;
+    const tempCrit = Number(disk.temp_crit) || 70;
+    const tempPct = Math.min(temp / tempCrit * 100, 100);
+    const tempCls = _gaugeClass(temp, tempWarn, tempCrit);
+    const kindLabel = disk.kind || disk.protocol || 'Disk';
+    const deviceLabel = `${disk.device} [${kindLabel}]`;
+    const secondary = _smartSecondaryStat(disk);
+    const cwNote = (disk.critical_warning_bits && disk.critical_warning_bits.length)
+      ? `<span class="mon-gauge-detail" style="color:var(--status-crit)">${esc(disk.critical_warning_bits.join(', '))}</span>`
+      : '';
+    html += `<div class="mon-gauge-item">
+      <span class="mon-gauge-label">${esc(deviceLabel)}</span>
+      <div class="mon-gauge-bar">
+        <div class="mon-gauge-fill ${tempCls}" style="width:${tempPct}%"></div>
+        <span class="mon-gauge-text">${temp}\u00b0C</span>
+      </div>
+      <span class="mon-gauge-detail">${esc(disk.model || '')}</span>
+      ${secondary ? `<span class="mon-gauge-detail">${esc(secondary)}</span>` : ''}
+      ${cwNote}
+      <span class="mon-health-badge ${badgeCls}">${badgeText}</span>
+    </div>`;
+  }
+  html += '</div>';
+  return html;
+}
+
+// Baut den sekundaeren Stat-Text pro Disk (unter Temp-Gauge).
+function _smartSecondaryStat(disk) {
+  const hours = Number(disk.power_on_hours) || 0;
+  const hoursStr = hours > 0 ? `${hours.toLocaleString('de-DE')} h` : null;
+  if (disk.kind === 'NVMe') {
+    const spare = disk.available_spare_pct;
+    const used = disk.percentage_used;
+    const parts = [];
+    if (spare != null) parts.push(`Spare ${spare}%`);
+    if (used != null) parts.push(`Wear ${used}%`);
+    if (hoursStr) parts.push(hoursStr);
+    return parts.join(' | ');
+  }
+  // ATA (HDD + SATA-SSD)
+  const parts = [];
+  const realloc = Number(disk.reallocated_sectors) || 0;
+  const pending = Number(disk.pending_sectors) || 0;
+  if (realloc > 0) parts.push(`Realloc ${realloc}`);
+  if (pending > 0) parts.push(`Pending ${pending}`);
+  if (hoursStr) parts.push(hoursStr);
+  return parts.join(' | ');
 }
 
 function _renderAgentPingHtml(check) {
@@ -789,6 +847,15 @@ function _formatCheckConfigWeb(check) {
   } else if (type === 'docker_health') {
     if (c.ignore_containers?.length) kv.push([t('monitor.cfg.ignored'), _toCSV(c.ignore_containers)]);
     kv.push([t('monitor.cfg.restartCheck'), c.check_restarts !== false ? t('monitor.cfg.restartActive') : t('monitor.cfg.restartOff')]);
+  } else if (type === 'smart_health') {
+    kv.push(['Realloc', `Warn ${c.reallocated_warn ?? 1} / Crit ${c.reallocated_crit ?? 10}`],
+            ['Pending', `Warn ${c.pending_warn ?? 1} / Crit ${c.pending_crit ?? 5}`],
+            ['NVMe Spare', `Warn <${c.nvme_spare_warn ?? 20}% / Crit <${c.nvme_spare_crit ?? 10}%`],
+            ['NVMe Wear', `Warn ${c.nvme_used_warn ?? 90}% / Crit ${c.nvme_used_crit ?? 100}%`],
+            ['Temp HDD', `Warn ${c.temp_hdd_warn ?? 55}\u00b0C / Crit ${c.temp_hdd_crit ?? 60}\u00b0C`],
+            ['Temp SSD', `Warn ${c.temp_ssd_warn ?? 60}\u00b0C / Crit ${c.temp_ssd_crit ?? 70}\u00b0C`],
+            ['Temp NVMe', `Warn ${c.temp_nvme_warn ?? 65}\u00b0C / Crit ${c.temp_nvme_crit ?? 75}\u00b0C`]);
+    if (c.ignore_devices?.length) kv.push([t('monitor.cfg.ignored'), _toCSV(c.ignore_devices)]);
   }
   return kv;
 }
@@ -813,6 +880,7 @@ document.getElementById('mcCheckType').addEventListener('change', function() {
   document.getElementById('mcProxmoxBackupConfig').classList.toggle('hidden', this.value !== 'proxmox_backup');
   document.getElementById('mcZfsHealthConfig').classList.toggle('hidden', this.value !== 'zfs_health');
   document.getElementById('mcDockerHealthConfig').classList.toggle('hidden', this.value !== 'docker_health');
+  document.getElementById('mcSmartConfig').classList.toggle('hidden', this.value !== 'smart_health');
 });
 
 // Service-Modus umschalten
@@ -912,6 +980,23 @@ function openMonitorCheckModal(check) {
   // Docker Health Config
   document.getElementById('mcDockerIgnore').value = _toCSV(cfg.ignore_containers);
 
+  // SMART Health Config
+  document.getElementById('mcSmartReallocWarn').value = cfg.reallocated_warn ?? 1;
+  document.getElementById('mcSmartReallocCrit').value = cfg.reallocated_crit ?? 10;
+  document.getElementById('mcSmartPendingWarn').value = cfg.pending_warn ?? 1;
+  document.getElementById('mcSmartPendingCrit').value = cfg.pending_crit ?? 5;
+  document.getElementById('mcSmartNvmeSpareWarn').value = cfg.nvme_spare_warn ?? 20;
+  document.getElementById('mcSmartNvmeSpareCrit').value = cfg.nvme_spare_crit ?? 10;
+  document.getElementById('mcSmartNvmeUsedWarn').value = cfg.nvme_used_warn ?? 90;
+  document.getElementById('mcSmartNvmeUsedCrit').value = cfg.nvme_used_crit ?? 100;
+  document.getElementById('mcSmartTempHddWarn').value = cfg.temp_hdd_warn ?? 55;
+  document.getElementById('mcSmartTempHddCrit').value = cfg.temp_hdd_crit ?? 60;
+  document.getElementById('mcSmartTempSsdWarn').value = cfg.temp_ssd_warn ?? 60;
+  document.getElementById('mcSmartTempSsdCrit').value = cfg.temp_ssd_crit ?? 70;
+  document.getElementById('mcSmartTempNvmeWarn').value = cfg.temp_nvme_warn ?? 65;
+  document.getElementById('mcSmartTempNvmeCrit').value = cfg.temp_nvme_crit ?? 75;
+  document.getElementById('mcSmartIgnore').value = Array.isArray(cfg.ignore_devices) ? cfg.ignore_devices.join('\n') : '';
+
   // Config-Sections umschalten
   const type = check?.checkType || 'ping';
   document.getElementById('mcPingConfig').classList.toggle('hidden', type !== 'ping');
@@ -922,6 +1007,7 @@ function openMonitorCheckModal(check) {
   document.getElementById('mcProxmoxBackupConfig').classList.toggle('hidden', type !== 'proxmox_backup');
   document.getElementById('mcZfsHealthConfig').classList.toggle('hidden', type !== 'zfs_health');
   document.getElementById('mcDockerHealthConfig').classList.toggle('hidden', type !== 'docker_health');
+  document.getElementById('mcSmartConfig').classList.toggle('hidden', type !== 'smart_health');
 
   showModal('monitorCheckModal');
 }
@@ -1012,6 +1098,26 @@ function _buildCheckConfig() {
     return {
       ignore_containers: document.getElementById('mcDockerIgnore').value
         .split(',').map(s => s.trim()).filter(Boolean),
+    };
+  }
+  if (type === 'smart_health') {
+    return {
+      reallocated_warn: parseInt(document.getElementById('mcSmartReallocWarn').value) || 1,
+      reallocated_crit: parseInt(document.getElementById('mcSmartReallocCrit').value) || 10,
+      pending_warn: parseInt(document.getElementById('mcSmartPendingWarn').value) || 1,
+      pending_crit: parseInt(document.getElementById('mcSmartPendingCrit').value) || 5,
+      nvme_spare_warn: parseInt(document.getElementById('mcSmartNvmeSpareWarn').value) || 20,
+      nvme_spare_crit: parseInt(document.getElementById('mcSmartNvmeSpareCrit').value) || 10,
+      nvme_used_warn: parseInt(document.getElementById('mcSmartNvmeUsedWarn').value) || 90,
+      nvme_used_crit: parseInt(document.getElementById('mcSmartNvmeUsedCrit').value) || 100,
+      temp_hdd_warn: parseInt(document.getElementById('mcSmartTempHddWarn').value) || 55,
+      temp_hdd_crit: parseInt(document.getElementById('mcSmartTempHddCrit').value) || 60,
+      temp_ssd_warn: parseInt(document.getElementById('mcSmartTempSsdWarn').value) || 60,
+      temp_ssd_crit: parseInt(document.getElementById('mcSmartTempSsdCrit').value) || 70,
+      temp_nvme_warn: parseInt(document.getElementById('mcSmartTempNvmeWarn').value) || 65,
+      temp_nvme_crit: parseInt(document.getElementById('mcSmartTempNvmeCrit').value) || 75,
+      ignore_devices: document.getElementById('mcSmartIgnore').value
+        .split('\n').map(s => s.trim()).filter(Boolean),
     };
   }
   return {};
@@ -1328,7 +1434,7 @@ function _renderTemplateCheckDefs() {
         <span class="badge badge-${def.check_type || 'ping'}" style="flex-shrink:0;font-size:10px">${esc(typeBadge)}</span>
         <input value="${esc(def.name || '')}" onchange="state.templateCheckDefs[${i}].name=this.value" style="flex:1;min-width:120px" placeholder="Name ({{server_name}})" />
         <select onchange="state.templateCheckDefs[${i}].check_type=this.value;state.templateCheckDefs[${i}].config=_tplCheckDefaults(this.value);_renderTemplateCheckDefs()" style="width:110px">
-          ${['ping','tcp','http','agent_ping','agent_resources','service_process','proxmox_backup','zfs_health','docker_health']
+          ${['ping','tcp','http','agent_ping','agent_resources','service_process','proxmox_backup','zfs_health','docker_health','smart_health']
             .map(t => `<option value="${t}" ${def.check_type===t?'selected':''}>${t}</option>`).join('')}
         </select>
         <select onchange="state.templateCheckDefs[${i}].interval=this.value" style="width:65px">
@@ -1360,6 +1466,16 @@ function _tplCheckDefaults(type) {
     case 'proxmox_backup':  return { max_backup_age_hours: 26, exclude_vmids: [], exclude_stopped: true };
     case 'zfs_health':      return { capacity_warn: 80, capacity_crit: 90 };
     case 'docker_health':   return { ignore_containers: [] };
+    case 'smart_health':    return {
+      reallocated_warn: 1, reallocated_crit: 10,
+      pending_warn: 1, pending_crit: 5,
+      nvme_spare_warn: 20, nvme_spare_crit: 10,
+      nvme_used_warn: 90, nvme_used_crit: 100,
+      temp_hdd_warn: 55, temp_hdd_crit: 60,
+      temp_ssd_warn: 60, temp_ssd_crit: 70,
+      temp_nvme_warn: 65, temp_nvme_crit: 75,
+      ignore_devices: [],
+    };
     default:                return {};
   }
 }
@@ -1453,6 +1569,23 @@ function _tplCheckConfigFields(type, cfg, idx) {
 
     case 'docker_health':
       return inp('ignore_containers', _toCSV(cfg.ignore_containers), 'Ignorieren', {width:'200px', csv: true});
+
+    case 'smart_health':
+      return inp('reallocated_warn', cfg.reallocated_warn, 'Realloc Warn', {width:'80px', type:'number'})
+        + inp('reallocated_crit', cfg.reallocated_crit, 'Realloc Crit', {width:'80px', type:'number'})
+        + inp('pending_warn', cfg.pending_warn, 'Pending Warn', {width:'80px', type:'number'})
+        + inp('pending_crit', cfg.pending_crit, 'Pending Crit', {width:'80px', type:'number'})
+        + inp('nvme_spare_warn', cfg.nvme_spare_warn, 'NVMe Spare Warn %', {width:'90px', type:'number'})
+        + inp('nvme_spare_crit', cfg.nvme_spare_crit, 'NVMe Spare Crit %', {width:'90px', type:'number'})
+        + inp('nvme_used_warn', cfg.nvme_used_warn, 'NVMe Wear Warn %', {width:'90px', type:'number'})
+        + inp('nvme_used_crit', cfg.nvme_used_crit, 'NVMe Wear Crit %', {width:'90px', type:'number'})
+        + inp('temp_hdd_warn', cfg.temp_hdd_warn, 'HDD Temp Warn', {width:'80px', type:'number'})
+        + inp('temp_hdd_crit', cfg.temp_hdd_crit, 'HDD Temp Crit', {width:'80px', type:'number'})
+        + inp('temp_ssd_warn', cfg.temp_ssd_warn, 'SSD Temp Warn', {width:'80px', type:'number'})
+        + inp('temp_ssd_crit', cfg.temp_ssd_crit, 'SSD Temp Crit', {width:'80px', type:'number'})
+        + inp('temp_nvme_warn', cfg.temp_nvme_warn, 'NVMe Temp Warn', {width:'80px', type:'number'})
+        + inp('temp_nvme_crit', cfg.temp_nvme_crit, 'NVMe Temp Crit', {width:'80px', type:'number'})
+        + inp('ignore_devices', _toCSV(cfg.ignore_devices), 'Geraete ignorieren', {width:'200px', csv: true});
 
     default:
       return `<span style="color:var(--text-muted);font-size:12px">Keine Config-Felder</span>`;

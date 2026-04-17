@@ -1,20 +1,26 @@
 package monitor
 
 import (
+	"context"
 	"encoding/json"
 	"os/exec"
 	"strings"
+	"time"
 )
 
 // SmartDisk enthaelt die SMART-Gesundheitsdaten einer Festplatte.
 type SmartDisk struct {
-	Device    string `json:"device"`
-	Model     string `json:"model"`
-	Serial    string `json:"serial"`
-	Protocol  string `json:"protocol"` // "ATA" oder "NVMe"
-	Passed    bool   `json:"smart_passed"`
-	TempC     int    `json:"temp_c"`
-	PowerOnH  int    `json:"power_on_hours"`
+	Device   string `json:"device"`
+	Model    string `json:"model"`
+	Serial   string `json:"serial"`
+	Protocol string `json:"protocol"` // "ATA" oder "NVMe"
+	Kind     string `json:"kind"`     // "HDD", "SATA-SSD" oder "NVMe"
+	Passed   bool   `json:"smart_passed"`
+	TempC    int    `json:"temp_c"`
+	PowerOnH int    `json:"power_on_hours"`
+
+	// smartctl Exit-Code (Bit-Flags). 0 = alles ok.
+	SmartctlStatus int `json:"smartctl_status"`
 
 	// ATA-spezifisch (SSDs + HDDs)
 	ReallocatedSectors int `json:"reallocated_sectors"`
@@ -40,8 +46,10 @@ func collectSmart() []SmartDisk {
 		return nil
 	}
 
-	// Alle SMART-faehigen Geraete scannen
-	scanOut, err := exec.Command(smartctl, "--scan", "--json=c").Output()
+	// Alle SMART-faehigen Geraete scannen (mit Timeout, falls Controller haengt)
+	ctxScan, cancelScan := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancelScan()
+	scanOut, err := exec.CommandContext(ctxScan, smartctl, "--scan", "--json=c").Output()
 	if err != nil {
 		return nil
 	}
@@ -72,14 +80,20 @@ func collectSmart() []SmartDisk {
 }
 
 func querySmartDevice(smartctl, device, protocol string) *SmartDisk {
-	out, err := exec.Command(smartctl, "--all", "--json=c", device).Output()
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, smartctl, "--all", "--json=c", device)
+	out, err := cmd.Output()
+
+	// smartctl nutzt Bit-Flags im Exit-Code. Wir behalten den vollen Code,
+	// damit der Server Bit 0x10 (Prefail) als kritisch auswerten kann.
+	exitCode := 0
 	if err != nil {
-		// smartctl nutzt Bit-Flags im Exit-Code:
 		// Bits 0-2 (1,2,4) = echte Fehler (CLI/Device/Command)
 		// Bits 3-7 (8+)    = Warnungen, JSON ist trotzdem nutzbar
 		if exitErr, ok := err.(*exec.ExitError); ok {
-			code := exitErr.ExitCode()
-			if code&0x07 != 0 && len(out) == 0 {
+			exitCode = exitErr.ExitCode()
+			if exitCode&0x07 != 0 && len(out) == 0 {
 				return nil
 			}
 		} else {
@@ -96,12 +110,13 @@ func querySmartDevice(smartctl, device, protocol string) *SmartDisk {
 	}
 
 	disk := &SmartDisk{
-		Device:   device,
-		Model:    raw.ModelName,
-		Serial:   raw.SerialNumber,
-		Passed:   raw.SmartStatus.Passed,
-		TempC:    raw.Temperature.Current,
-		PowerOnH: raw.PowerOnTime.Hours,
+		Device:         device,
+		Model:          raw.ModelName,
+		Serial:         raw.SerialNumber,
+		Passed:         raw.SmartStatus.Passed,
+		TempC:          raw.Temperature.Current,
+		PowerOnH:       raw.PowerOnTime.Hours,
+		SmartctlStatus: exitCode,
 	}
 
 	// Protokoll aus smartctl-Ausgabe bestimmen
@@ -109,16 +124,29 @@ func querySmartDevice(smartctl, device, protocol string) *SmartDisk {
 	if proto == "" {
 		proto = strings.ToUpper(protocol)
 	}
-	disk.Protocol = proto
 
 	if proto == "NVME" {
+		disk.Protocol = "NVMe"
 		parseNVMeHealth(disk, &raw)
 	} else {
 		disk.Protocol = "ATA"
 		parseATAHealth(disk, &raw)
 	}
 
+	disk.Kind = determineKind(disk.Protocol, raw.RotationRate)
 	return disk
+}
+
+// determineKind klassifiziert die Platte anhand Protokoll + Rotation Rate.
+// smartctl liefert rotation_rate=0 fuer SSDs, >0 (RPM) fuer HDDs.
+func determineKind(protocol string, rotationRate int) string {
+	if protocol == "NVMe" {
+		return "NVMe"
+	}
+	if rotationRate == 0 {
+		return "SATA-SSD"
+	}
+	return "HDD"
 }
 
 func parseATAHealth(disk *SmartDisk, raw *smartctlJSON) {
@@ -158,6 +186,7 @@ type smartctlJSON struct {
 	} `json:"device"`
 	ModelName    string `json:"model_name"`
 	SerialNumber string `json:"serial_number"`
+	RotationRate int    `json:"rotation_rate"`
 	SmartStatus  struct {
 		Passed bool `json:"passed"`
 	} `json:"smart_status"`
