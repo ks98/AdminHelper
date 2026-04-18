@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { MonitoringMetricsResponse } from '$lib/api/types';
-  import { checkTypeUnit } from '$lib/models/monitoring';
+  import { checkTypeUnit, metricLabel } from '$lib/models/monitoring';
 
   interface Props {
     metrics: MonitoringMetricsResponse | null;
@@ -22,14 +22,8 @@
       if (values.length === 0) continue;
       const last = parseFloat(values[values.length - 1][1]);
       if (Number.isNaN(last)) continue;
-      const label = name
-        .replace('monitor_check_', '')
-        .replace('monitor_agent_', '')
-        .replace('monitor_', '')
-        .replace(/_value$/, '')
-        .replace(/_/g, ' ');
       const formatted = Number.isInteger(last) ? String(last) : last.toFixed(1);
-      out.push({ label, value: `${formatted}${unit}` });
+      out.push({ label: metricLabel(name), value: `${formatted}${unit}` });
     }
     return out;
   });

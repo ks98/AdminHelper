@@ -2,7 +2,7 @@
   import { onDestroy } from 'svelte';
   import uPlot, { type AlignedData, type Options } from 'uplot';
   import type { MonitoringMetricsResponse, MonitoringMetricSeries } from '$lib/api/types';
-  import { checkTypeUnit, isPercentCheck } from '$lib/models/monitoring';
+  import { checkTypeUnit, isPercentCheck, metricLabel } from '$lib/models/monitoring';
 
   interface Props {
     metrics: MonitoringMetricsResponse | null;
@@ -25,15 +25,6 @@
       resizer.disconnect();
       resizer = null;
     }
-  }
-
-  function labelOf(name: string): string {
-    return name
-      .replace('monitor_check_', '')
-      .replace('monitor_agent_', '')
-      .replace('monitor_', '')
-      .replace(/_value$/, '')
-      .replace(/_/g, ' ');
   }
 
   function render(el: HTMLDivElement, data: MonitoringMetricsResponse): void {
@@ -61,7 +52,7 @@
       aligned.push(values);
       const metricName = series[i].metric?.__name__ || `Series ${i + 1}`;
       uplotSeries.push({
-        label: labelOf(metricName),
+        label: metricLabel(metricName),
         stroke: COLORS[i % COLORS.length],
         width: 2,
         fill: ['service_process', 'proxmox_backup', 'docker_health'].includes(checkType)

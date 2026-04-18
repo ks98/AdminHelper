@@ -2,7 +2,6 @@
 // Formatierung. 1:1-Port von desktop/src/monitoringModel.js.
 
 import type {
-  AlertLogEntry,
   MonCheckSummary,
   MonStatus,
   MonitorCheck,
@@ -160,6 +159,15 @@ export function formatCheckConfig(check: MonitorCheck): KV[] {
   return kv;
 }
 
+export function metricLabel(name: string): string {
+  return name
+    .replace('monitor_check_', '')
+    .replace('monitor_agent_', '')
+    .replace('monitor_', '')
+    .replace(/_value$/, '')
+    .replace(/_/g, ' ');
+}
+
 export function checkTypeUnit(checkType: MonitorCheckType | string): string {
   if (['ping', 'tcp', 'http'].includes(checkType)) return 'ms';
   if (['agent_resources', 'zfs_health'].includes(checkType)) return '%';
@@ -191,6 +199,3 @@ export function computeSummary(checks: MonCheckSummary[] | MonitorCheck[]): Moni
   return s;
 }
 
-export function formatAlertLogTime(entry: AlertLogEntry): string {
-  return formatCheckTime(entry.sentAt);
-}
