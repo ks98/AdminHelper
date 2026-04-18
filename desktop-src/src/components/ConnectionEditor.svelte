@@ -11,6 +11,7 @@
   import { reportError, showStatus } from '$lib/stores/statusBar';
   import { initiateConnect } from '$lib/stores/connectFlow';
   import * as bridge from '$lib/bridge';
+  import { accelerateScroll, PANEL_FACTOR } from '$lib/utils/scrollAcceleration';
 
   let form = $state<Connection>(emptyConnection());
   let tagsInput = $state('');
@@ -99,7 +100,7 @@
     onkeydown={(e) => e.key === 'Escape' && onClose()}
     tabindex="-1"
   >
-    <div class="editor-panel">
+    <div class="editor-panel" use:accelerateScroll={PANEL_FACTOR}>
       <div class="panel-header">
         <h2 class="panel-title">{isNew ? 'Neue Verbindung' : form.name || 'Verbindung'}</h2>
         <button class="btn ghost small" onclick={onClose} aria-label="Schliessen">×</button>

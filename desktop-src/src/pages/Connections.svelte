@@ -15,6 +15,7 @@
   import { openEditor } from '$lib/stores/editor';
   import { initiateConnect } from '$lib/stores/connectFlow';
   import { t } from '$lib/i18n';
+  import { accelerateScroll, LIST_FACTOR } from '$lib/utils/scrollAcceleration';
 
   onMount(async () => {
     await loadConnections();
@@ -125,11 +126,11 @@
 </div>
 
 {#if $connections.length === 0}
-  <div class="list">
+  <div class="list" use:accelerateScroll={LIST_FACTOR}>
     <div class="dash-empty" style="padding: var(--sp-6);">Noch keine Verbindungen angelegt</div>
   </div>
 {:else if $viewMode === 'list' && $groupFilter === 'single'}
-  <div class="list">
+  <div class="list" use:accelerateScroll={LIST_FACTOR}>
     {#if $filteredConnections.length === 0}
       <div class="dash-empty" style="padding: var(--sp-6);">Keine Treffer fuer deine Filter</div>
     {:else}
@@ -166,7 +167,7 @@
     {/if}
   </div>
 {:else if $viewMode === 'list' && $groupFilter === 'grouped'}
-  <div class="list">
+  <div class="list" use:accelerateScroll={LIST_FACTOR}>
     {#if $groupedConnections.length === 0}
       <div class="dash-empty" style="padding: var(--sp-6);">Keine Treffer fuer deine Filter</div>
     {:else}
@@ -200,7 +201,7 @@
     {/if}
   </div>
 {:else}
-  <div class="tree">
+  <div class="tree" use:accelerateScroll={LIST_FACTOR}>
     {#if treeNodes.length === 0}
       <div class="dash-empty" style="padding: var(--sp-6);">Keine Treffer fuer deine Filter</div>
     {:else}
