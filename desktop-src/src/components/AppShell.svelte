@@ -1,5 +1,41 @@
 <script lang="ts">
+  import { path, navigate } from '$lib/router';
   import { session, settings, logout } from '$lib/stores/session';
+  import { searchTerm } from '$lib/stores/connections';
+  import Dashboard from '../pages/Dashboard.svelte';
+  import Connections from '../pages/Connections.svelte';
+
+  interface NavItem {
+    id: 'dashboard' | 'connections' | 'monitoring' | 'ansible';
+    label: string;
+    href: string;
+    serverOnly?: boolean;
+  }
+
+  const navItems: NavItem[] = [
+    { id: 'dashboard', label: 'Dashboard', href: '/dashboard' },
+    { id: 'connections', label: 'Verbindungen', href: '/connections' },
+    { id: 'monitoring', label: 'Monitoring', href: '/monitoring', serverOnly: true },
+    { id: 'ansible', label: 'Ansible', href: '/ansible', serverOnly: true },
+  ];
+
+  let isServerMode = $derived($settings?.mode === 'server' && $session !== null);
+
+  let visibleNav = $derived(navItems.filter((n) => !n.serverOnly || isServerMode));
+
+  let currentId = $derived.by<NavItem['id']>(() => {
+    const p = $path;
+    if (p.startsWith('/connections')) return 'connections';
+    if (p.startsWith('/monitoring')) return 'monitoring';
+    if (p.startsWith('/ansible')) return 'ansible';
+    return 'dashboard';
+  });
+
+  let title = $derived(navItems.find((n) => n.id === currentId)?.label ?? 'Dashboard');
+
+  function go(item: NavItem): void {
+    navigate(item.href);
+  }
 </script>
 
 <div class="app-shell">
@@ -15,18 +51,15 @@
     </div>
 
     <nav class="sidebar-nav">
-      <button class="sidebar-item active">
-        <span class="sidebar-label">Dashboard</span>
-      </button>
-      <button class="sidebar-item">
-        <span class="sidebar-label">Verbindungen</span>
-      </button>
-      <button class="sidebar-item">
-        <span class="sidebar-label">Monitoring</span>
-      </button>
-      <button class="sidebar-item">
-        <span class="sidebar-label">Ansible</span>
-      </button>
+      {#each visibleNav as item (item.id)}
+        <button
+          class="sidebar-item"
+          class:active={currentId === item.id}
+          onclick={() => go(item)}
+        >
+          <span class="sidebar-label">{item.label}</span>
+        </button>
+      {/each}
     </nav>
 
     <div class="sidebar-spacer"></div>
@@ -38,11 +71,20 @@
 
   <header class="content-header">
     <div class="content-header-left">
-      <h1 class="page-title">Dashboard</h1>
+      <h1 class="page-title">{title}</h1>
     </div>
     <div class="content-header-right">
+      {#if currentId === 'connections'}
+        <label class="search-box">
+          <input
+            type="search"
+            placeholder="Name, Host, URL"
+            bind:value={$searchTerm}
+          />
+        </label>
+      {/if}
       {#if $session}
-        <span style="color: var(--text-muted); margin-right: var(--sp-3);">
+        <span style="color: var(--text-muted); margin: 0 var(--sp-3);">
           {$session.username}
         </span>
         <button class="btn ghost small" onclick={() => logout()}>Abmelden</button>
@@ -54,11 +96,21 @@
 
   <main class="content-main">
     <section class="content-section">
-      <div style="padding: var(--sp-6); color: var(--text-muted);">
-        <h2 style="margin-top: 0;">Phase 5 erreicht</h2>
-        <p>Auth-Flow und Session-Store sind aktiv.</p>
-        <p>Dashboard-Cards, Connection-Liste, Monitoring etc. folgen in Phase 6+.</p>
-      </div>
+      {#if currentId === 'dashboard'}
+        <Dashboard />
+      {:else if currentId === 'connections'}
+        <Connections />
+      {:else if currentId === 'monitoring'}
+        <div style="padding: var(--sp-6); color: var(--text-muted);">
+          <h2>Monitoring</h2>
+          <p>Kommt in Phase 8.</p>
+        </div>
+      {:else if currentId === 'ansible'}
+        <div style="padding: var(--sp-6); color: var(--text-muted);">
+          <h2>Ansible</h2>
+          <p>Kommt in Phase 9.</p>
+        </div>
+      {/if}
     </section>
   </main>
 </div>
