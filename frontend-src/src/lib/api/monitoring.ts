@@ -1,6 +1,19 @@
 import { http } from './client';
-import type { MonCheckSummary, MonitoringTemplate, TemplateAssignment } from './types';
+import type {
+  MonCheckSummary,
+  MonitoringTemplate,
+  TemplateAssignment,
+  MonitorCheck,
+  MonitorCheckInput,
+  AlertRule,
+  AlertRuleInput,
+  AlertLogEntry,
+  MonitoringMetricsResponse,
+  MonitoringTemplateFull,
+  MonitoringTemplateInput,
+} from './types';
 
+// ── Legacy / Server-Modal-Aufrufe ────────────────────────────────────────
 export function listStatus(): Promise<MonCheckSummary[]> {
   return http.get<MonCheckSummary[]>('/api/monitoring/status');
 }
@@ -28,4 +41,83 @@ export function assignTemplate(
 
 export function unassignTemplate(templateId: string, serverId: string): Promise<void> {
   return http.del<void>(`/api/monitoring/templates/${templateId}/assign/${serverId}`);
+}
+
+// ── Checks (volle Monitoring-Seite) ──────────────────────────────────────
+export function listChecks(): Promise<MonitorCheck[]> {
+  return http.get<MonitorCheck[]>('/api/monitoring/status');
+}
+
+export function createCheck(data: MonitorCheckInput): Promise<MonitorCheck> {
+  return http.post<MonitorCheck>('/api/monitoring/checks', data);
+}
+
+export function updateCheck(id: string, data: MonitorCheckInput): Promise<MonitorCheck> {
+  return http.put<MonitorCheck>(`/api/monitoring/checks/${id}`, data);
+}
+
+export function removeCheck(id: string): Promise<void> {
+  return http.del<void>(`/api/monitoring/checks/${id}`);
+}
+
+export function runCheck(id: string): Promise<MonitorCheck> {
+  return http.post<MonitorCheck>(`/api/monitoring/checks/${id}/run`);
+}
+
+export function toggleCheck(id: string): Promise<MonitorCheck> {
+  return http.post<MonitorCheck>(`/api/monitoring/checks/${id}/toggle`);
+}
+
+export function checkMetrics(
+  id: string,
+  period: '1h' | '6h' | '24h' | '7d',
+): Promise<MonitoringMetricsResponse> {
+  return http.get<MonitoringMetricsResponse>(
+    `/api/monitoring/checks/${id}/metrics?period=${period}`,
+  );
+}
+
+// ── Alerts ───────────────────────────────────────────────────────────────
+export function listAlerts(): Promise<AlertRule[]> {
+  return http.get<AlertRule[]>('/api/monitoring/alerts');
+}
+
+export function createAlert(data: AlertRuleInput): Promise<AlertRule> {
+  return http.post<AlertRule>('/api/monitoring/alerts', data);
+}
+
+export function updateAlert(id: string, data: AlertRuleInput): Promise<AlertRule> {
+  return http.put<AlertRule>(`/api/monitoring/alerts/${id}`, data);
+}
+
+export function removeAlert(id: string): Promise<void> {
+  return http.del<void>(`/api/monitoring/alerts/${id}`);
+}
+
+export function toggleAlert(id: string): Promise<AlertRule> {
+  return http.post<AlertRule>(`/api/monitoring/alerts/${id}/toggle`);
+}
+
+export function alertLog(limit = 50): Promise<AlertLogEntry[]> {
+  return http.get<AlertLogEntry[]>(`/api/monitoring/alerts/log?limit=${limit}`);
+}
+
+// ── Templates (volle Definitionen) ───────────────────────────────────────
+export function listTemplatesFull(): Promise<MonitoringTemplateFull[]> {
+  return http.get<MonitoringTemplateFull[]>('/api/monitoring/templates');
+}
+
+export function createTemplate(data: MonitoringTemplateInput): Promise<MonitoringTemplateFull> {
+  return http.post<MonitoringTemplateFull>('/api/monitoring/templates', data);
+}
+
+export function updateTemplate(
+  id: string,
+  data: MonitoringTemplateInput,
+): Promise<MonitoringTemplateFull> {
+  return http.put<MonitoringTemplateFull>(`/api/monitoring/templates/${id}`, data);
+}
+
+export function removeTemplate(id: string): Promise<void> {
+  return http.del<void>(`/api/monitoring/templates/${id}`);
 }

@@ -7,6 +7,7 @@ import ApiKeys from './pages/ApiKeys.svelte';
 import Hooks from './pages/Hooks.svelte';
 import Ansible from './pages/Ansible.svelte';
 import Frp from './pages/Frp.svelte';
+import Monitoring from './pages/Monitoring.svelte';
 
 export const routes: Record<string, Component> = {
   '/connections': Connections,
@@ -16,6 +17,6 @@ export const routes: Record<string, Component> = {
   '/hooks': Hooks,
   '/frp': Frp,
   '/ansible': Ansible,
-  '/monitoring': Placeholder,
+  '/monitoring': Monitoring,
   '*': Placeholder,
 };
