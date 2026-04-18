@@ -12,6 +12,7 @@
   import { initiateConnect } from '$lib/stores/connectFlow';
   import * as bridge from '$lib/bridge';
   import { accelerateScroll, PANEL_FACTOR } from '$lib/utils/scrollAcceleration';
+  import { t } from '$lib/i18n';
 
   let form = $state<Connection>(emptyConnection());
   let tagsInput = $state('');
@@ -38,12 +39,12 @@
     const conn = collect();
     const result = validateConnection(conn);
     if (!result.ok) {
-      reportError(result.message ?? 'Validierung fehlgeschlagen');
+      reportError(result.message ?? $t('editor.validation.failed'));
       return;
     }
     try {
       await upsert(conn);
-      showStatus('Gespeichert');
+      showStatus($t('editor.status.saved'));
       isNew = false;
       form = conn;
     } catch (err) {
@@ -63,7 +64,7 @@
           // non-fatal
         }
       }
-      showStatus('Geloescht');
+      showStatus($t('editor.status.deleted'));
       closeEditor();
     } catch (err) {
       reportError(err instanceof Error ? err.message : String(err));
@@ -74,7 +75,7 @@
     const conn = collect();
     const result = validateConnection(conn);
     if (!result.ok) {
-      reportError(result.message ?? 'Validierung fehlgeschlagen');
+      reportError(result.message ?? $t('editor.validation.failed'));
       return;
     }
     await initiateConnect(conn, true);
@@ -102,23 +103,23 @@
   >
     <div class="editor-panel" use:accelerateScroll={PANEL_FACTOR}>
       <div class="panel-header">
-        <h2 class="panel-title">{isNew ? 'Neue Verbindung' : form.name || 'Verbindung'}</h2>
-        <button class="btn ghost small" onclick={onClose} aria-label="Schliessen">×</button>
+        <h2 class="panel-title">{isNew ? $t('editor.title.new') : form.name || $t('editor.title.fallback')}</h2>
+        <button class="btn ghost small" onclick={onClose} aria-label={$t('editor.close')}>×</button>
       </div>
 
       <div class="form-grid">
         <label class="field">
-          <span class="field-label">Name</span>
+          <span class="field-label">{$t('editor.field.name')}</span>
           <input
             type="text"
             bind:value={form.name}
-            placeholder="z.B. Prod-Gateway"
+            placeholder={$t('editor.field.name.placeholder')}
             required
           />
         </label>
 
         <label class="field">
-          <span class="field-label">Typ</span>
+          <span class="field-label">{$t('editor.field.kind')}</span>
           <select value={form.kind} onchange={(e) => setKind((e.currentTarget as HTMLSelectElement).value as ConnectionKind)}>
             <option value="ssh">SSH</option>
             <option value="rdp">RDP</option>
@@ -128,12 +129,12 @@
 
         {#if form.kind !== 'web'}
           <label class="field">
-            <span class="field-label">Host</span>
-            <input type="text" bind:value={form.host} placeholder="host.example.com" />
+            <span class="field-label">{$t('editor.field.host')}</span>
+            <input type="text" bind:value={form.host} placeholder={$t('editor.field.host.placeholder')} />
           </label>
 
           <label class="field">
-            <span class="field-label">Port</span>
+            <span class="field-label">{$t('editor.field.port')}</span>
             <input
               type="number"
               value={form.port ?? ''}
@@ -146,47 +147,47 @@
           </label>
 
           <label class="field">
-            <span class="field-label">Benutzername</span>
+            <span class="field-label">{$t('editor.field.username')}</span>
             <input type="text" bind:value={form.username} />
           </label>
 
           {#if form.kind === 'rdp'}
             <label class="field">
-              <span class="field-label">Domain</span>
+              <span class="field-label">{$t('editor.field.domain')}</span>
               <input type="text" bind:value={form.domain} />
             </label>
 
             <label class="field checkbox">
               <input type="checkbox" bind:checked={form.trustCert} />
-              <span>Zertifikat vertrauen (Self-Signed)</span>
+              <span>{$t('editor.field.trustCert')}</span>
             </label>
           {/if}
 
           {#if form.kind === 'ssh'}
             <label class="field">
-              <span class="field-label">Key-Pfad</span>
-              <input type="text" bind:value={form.keyPath} placeholder="~/.ssh/id_ed25519" />
+              <span class="field-label">{$t('editor.field.keyPath')}</span>
+              <input type="text" bind:value={form.keyPath} placeholder={$t('editor.field.keyPath.placeholder')} />
             </label>
           {/if}
         {:else}
           <label class="field" style="grid-column: span 2;">
-            <span class="field-label">URL</span>
-            <input type="url" bind:value={form.url} placeholder="https://..." required />
+            <span class="field-label">{$t('editor.field.url')}</span>
+            <input type="url" bind:value={form.url} placeholder={$t('editor.field.url.placeholder')} required />
           </label>
         {/if}
 
         <label class="field" style="grid-column: span 2;">
-          <span class="field-label">Tags (Komma-getrennt)</span>
-          <input type="text" bind:value={tagsInput} placeholder="prod, db" />
+          <span class="field-label">{$t('editor.field.tags')}</span>
+          <input type="text" bind:value={tagsInput} placeholder={$t('editor.field.tags.placeholder')} />
         </label>
 
         <label class="field" style="grid-column: span 2;">
-          <span class="field-label">Notizen</span>
+          <span class="field-label">{$t('editor.field.notes')}</span>
           <textarea rows="3" bind:value={form.notes}></textarea>
         </label>
 
         <div class="field" style="grid-column: span 2;">
-          <span class="field-label">Zuletzt verwendet</span>
+          <span class="field-label">{$t('editor.field.lastUsed')}</span>
           <div style="color: var(--text-muted);">
             {form.lastUsed ? new Date(form.lastUsed).toLocaleString() : '-'}
           </div>
@@ -195,12 +196,12 @@
 
       <div class="panel-actions">
         {#if !isNew}
-          <button class="btn danger" onclick={onDelete}>Loeschen</button>
+          <button class="btn danger" onclick={onDelete}>{$t('action.delete')}</button>
         {/if}
         <div style="flex: 1;"></div>
-        <button class="btn" onclick={onClose}>Abbrechen</button>
-        <button class="btn" onclick={onSave}>Speichern</button>
-        <button class="btn primary" onclick={onConnect}>Verbinden</button>
+        <button class="btn" onclick={onClose}>{$t('action.cancel')}</button>
+        <button class="btn" onclick={onSave}>{$t('action.save')}</button>
+        <button class="btn primary" onclick={onConnect}>{$t('action.connect')}</button>
       </div>
     </div>
   </div>

@@ -3,6 +3,7 @@
   import { statusClass, formatCheckTime } from '$lib/models/monitoring';
   import { toggleCheck, runCheck, toggleExpanded, monitoring } from '$lib/stores/monitoring';
   import MonDetailPanel from './MonDetailPanel.svelte';
+  import { t } from '$lib/i18n';
 
   interface Props { check: MonitorCheck; }
   let { check }: Props = $props();
@@ -43,14 +44,14 @@
         onclick={onToggle}
         onkeydown={(e) => e.key === 'Enter' && onToggle(e)}
       >
-        {check.enabled ? 'Deaktivieren' : 'Aktivieren'}
+        {check.enabled ? $t('monitoring.check.disable') : $t('monitoring.check.enable')}
       </button>
       <button
         class="btn small accent"
         onclick={onRun}
         onkeydown={(e) => e.key === 'Enter' && onRun(e)}
       >
-        Jetzt pruefen
+        {$t('monitoring.check.runNow')}
       </button>
     </div>
   </div>

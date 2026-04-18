@@ -19,6 +19,7 @@
     toggleTag,
     runPlaybook,
   } from '$lib/stores/ansible';
+  import { t } from '$lib/i18n';
 
   onMount(() => {
     activateAnsible();
@@ -36,15 +37,15 @@
 
 <section class="ansible-root">
   {#if $ansibleLoading}
-    <div class="ansible-empty">Lade …</div>
+    <div class="ansible-empty">{$t('ansible.loading')}</div>
   {:else if $ansibleLoadError}
-    <div class="ansible-empty error">Fehler: {$ansibleLoadError}</div>
+    <div class="ansible-empty error">{$t('ansible.error', { message: $ansibleLoadError })}</div>
   {:else}
     <!-- Step 1: Playbook -->
     <div class="ansible-step active" data-step="playbook">
-      <div class="ansible-step-title">1. Playbook auswaehlen</div>
+      <div class="ansible-step-title">{$t('ansible.step.playbook')}</div>
       {#if $ansiblePlaybooks.length === 0}
-        <div class="ansible-empty">Keine Playbooks verfuegbar.</div>
+        <div class="ansible-empty">{$t('ansible.empty.playbooks')}</div>
       {:else}
         <div class="ansible-playbook-list">
           {#each $ansiblePlaybooks as pb (pb.id)}
@@ -72,7 +73,7 @@
 
     <!-- Step 2: Targets -->
     <div class="ansible-step" class:active={!!$ansibleSelectedPlaybookId} data-step="targets">
-      <div class="ansible-step-title">2. Ziele waehlen</div>
+      <div class="ansible-step-title">{$t('ansible.step.targets')}</div>
 
       <div class="ansible-target-mode">
         <button
@@ -81,7 +82,7 @@
           class:active={$ansibleTargetMode === 'servers'}
           onclick={() => setTargetMode('servers')}
         >
-          Nach Servern
+          {$t('ansible.mode.servers')}
         </button>
         <button
           type="button"
@@ -89,13 +90,13 @@
           class:active={$ansibleTargetMode === 'tags'}
           onclick={() => setTargetMode('tags')}
         >
-          Nach Tags
+          {$t('ansible.mode.tags')}
         </button>
       </div>
 
       {#if $ansibleTargetMode === 'servers'}
         {#if $ansibleServers.length === 0}
-          <div class="ansible-empty">Keine Server verfuegbar.</div>
+          <div class="ansible-empty">{$t('ansible.empty.servers')}</div>
         {:else}
           <div class="ansible-server-list">
             {#each $ansibleServers as srv (srv.id)}
@@ -118,7 +119,7 @@
         {/if}
       {:else}
         {#if Object.keys($ansibleTagGroups).length === 0}
-          <div class="ansible-empty">Keine Tags vorhanden.</div>
+          <div class="ansible-empty">{$t('ansible.empty.tags')}</div>
         {:else}
           <div class="ansible-tag-list">
             {#each Object.keys($ansibleTagGroups).sort() as tag (tag)}
@@ -138,13 +139,13 @@
 
     <!-- Step 3: Run -->
     <div class="ansible-step" class:active={$ansibleCanRun || $ansibleRunning} data-step="run">
-      <div class="ansible-step-title">3. Ausfuehren</div>
+      <div class="ansible-step-title">{$t('ansible.step.run')}</div>
       <div class="ansible-run-summary">
         {#if $ansibleSelectedPlaybook && $ansibleSelectedServerIds.size > 0}
           <strong>{$ansibleSelectedPlaybook.name}</strong>
-          auf <strong>{$ansibleSelectedServerIds.size}</strong> Server(n)
+          {$t('ansible.run.on')} <strong>{$ansibleSelectedServerIds.size}</strong> {$t('ansible.run.servers')}
         {:else}
-          <span class="ansible-empty">Waehle ein Playbook und mindestens einen Server.</span>
+          <span class="ansible-empty">{$t('ansible.hint.select')}</span>
         {/if}
       </div>
       <button
@@ -152,7 +153,7 @@
         disabled={!$ansibleCanRun}
         onclick={() => void runPlaybook()}
       >
-        {$ansibleRunning ? 'Starte im Terminal…' : 'Playbook ausfuehren'}
+        {$ansibleRunning ? $t('ansible.run.running') : $t('ansible.run.button')}
       </button>
     </div>
   {/if}

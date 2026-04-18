@@ -3,6 +3,7 @@
   import uPlot, { type AlignedData, type Options } from 'uplot';
   import type { MonitoringMetricsResponse, MonitoringMetricSeries } from '$lib/api/types';
   import { checkTypeUnit, isPercentCheck, metricLabel } from '$lib/models/monitoring';
+  import { tNow } from '$lib/i18n';
 
   interface Props {
     metrics: MonitoringMetricsResponse | null;
@@ -33,7 +34,7 @@
 
     const results: MonitoringMetricSeries[] = data?.data || [];
     if (results.length === 0) {
-      el.innerHTML = '<div class="mon-chart-loading">Keine Daten</div>';
+      el.innerHTML = `<div class="mon-chart-loading">${tNow('monitoring.chart.noData')}</div>`;
       return;
     }
 
@@ -104,7 +105,7 @@
   $effect(() => {
     if (!container) return;
     if (!metrics) {
-      container.innerHTML = '<div class="mon-chart-loading">Lade…</div>';
+      container.innerHTML = `<div class="mon-chart-loading">${tNow('monitoring.chart.loading')}</div>`;
       return;
     }
     render(container, metrics);

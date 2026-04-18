@@ -11,6 +11,7 @@
   import type { Connection } from '$lib/bridge/types';
   import { initiateConnect } from '$lib/stores/connectFlow';
   import { openEditor } from '$lib/stores/editor';
+  import { t } from '$lib/i18n';
 
   let stats = $state({ total: 0, ssh: 0, rdp: 0, web: 0 });
   let recent = $state<Connection[]>([]);
@@ -41,25 +42,25 @@
 <div class="dash-stats">
   <div class="stat-card --accent">
     <div class="stat-value">{stats.total}</div>
-    <div class="stat-label">Verbindungen gesamt</div>
+    <div class="stat-label">{$t('dashboard.total')}</div>
   </div>
   <div class="stat-card">
     <div class="stat-value">{stats.ssh}</div>
-    <div class="stat-label">SSH</div>
+    <div class="stat-label">{$t('dashboard.ssh')}</div>
   </div>
   <div class="stat-card">
     <div class="stat-value">{stats.rdp}</div>
-    <div class="stat-label">RDP</div>
+    <div class="stat-label">{$t('dashboard.rdp')}</div>
   </div>
   <div class="stat-card">
     <div class="stat-value">{stats.web}</div>
-    <div class="stat-label">Web</div>
+    <div class="stat-label">{$t('dashboard.web')}</div>
   </div>
 </div>
 
 <div class="dash-grid">
   <div class="dash-panel">
-    <div class="dash-panel-title">Zuletzt genutzt</div>
+    <div class="dash-panel-title">{$t('dashboard.recent')}</div>
     {#if recent.length > 0}
       <div class="dash-list">
         {#each recent as conn (conn.id)}
@@ -80,16 +81,16 @@
         {/each}
       </div>
     {:else}
-      <div class="dash-empty">Noch keine Verbindungen genutzt</div>
+      <div class="dash-empty">{$t('dashboard.empty')}</div>
     {/if}
   </div>
 </div>
 
 <div class="dash-actions">
   <button class="btn primary" onclick={() => openEditor(null)}>
-    Neue Verbindung
+    {$t('connections.new')}
   </button>
   <button class="btn" onclick={() => navigate('/connections')}>
-    Zur Liste
+    {$t('dashboard.toList')}
   </button>
 </div>

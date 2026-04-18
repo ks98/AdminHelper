@@ -1,6 +1,7 @@
 <script lang="ts">
   import { settings, session } from '$lib/stores/session';
   import { settingsModalOpen, closeSettings, saveSettings, serverLogout } from '$lib/stores/settings';
+  import { t } from '$lib/i18n';
   import {
     RDP_WINDOW_MODES,
     RDP_PERFORMANCE_PROFILES,
@@ -59,15 +60,26 @@
     await serverLogout();
   }
 
-  function rdpScalingLabel(m: RdpScalingMode): string {
-    return { auto: 'Automatisch', normal: 'Normal', hdpi: 'HiDPI' }[m];
-  }
-  function rdpWindowLabel(m: RdpWindowMode): string {
-    return { fit: 'Eingepasst', fullscreen: 'Vollbild', multimon: 'Mehrfach-Monitor', custom: 'Benutzerdefiniert' }[m];
-  }
-  function rdpPerfLabel(m: RdpPerformanceProfile): string {
-    return { auto: 'Automatisch', lan: 'LAN', broadband: 'Breitband', low: 'Niedrig' }[m];
-  }
+  let rdpScalingLabels = $derived({
+    auto: $t('settings.rdp.scaling.auto'),
+    normal: $t('settings.rdp.scaling.normal'),
+    hdpi: $t('settings.rdp.scaling.hdpi'),
+  });
+  let rdpWindowLabels = $derived({
+    fit: $t('settings.rdp.window.fit'),
+    fullscreen: $t('settings.rdp.window.fullscreen'),
+    multimon: $t('settings.rdp.window.multimon'),
+    custom: $t('settings.rdp.window.custom'),
+  });
+  let rdpPerfLabels = $derived({
+    auto: $t('settings.rdp.perf.auto'),
+    lan: $t('settings.rdp.perf.lan'),
+    broadband: $t('settings.rdp.perf.broadband'),
+    low: $t('settings.rdp.perf.low'),
+  });
+  function rdpScalingLabel(m: RdpScalingMode): string { return rdpScalingLabels[m]; }
+  function rdpWindowLabel(m: RdpWindowMode): string { return rdpWindowLabels[m]; }
+  function rdpPerfLabel(m: RdpPerformanceProfile): string { return rdpPerfLabels[m]; }
 </script>
 
 {#if $settingsModalOpen}
@@ -81,57 +93,57 @@
   >
     <div class="sm-panel">
       <div class="panel-header">
-        <h2 class="panel-title">Einstellungen</h2>
-        <button class="btn ghost small" onclick={closeSettings}>Schliessen</button>
+        <h2 class="panel-title">{$t('settings.title')}</h2>
+        <button class="btn ghost small" onclick={closeSettings}>{$t('editor.close')}</button>
       </div>
 
       <div class="sm-section">
-        <div class="sm-section-title">Modus</div>
+        <div class="sm-section-title">{$t('settings.section.mode')}</div>
         <div class="sm-radio-group">
           <label class="sm-radio">
             <input type="radio" name="syncMode" value="local" checked={mode === 'local'} onchange={() => (mode = 'local')} />
-            <span>Lokal</span>
+            <span>{$t('settings.mode.local')}</span>
           </label>
           <label class="sm-radio">
             <input type="radio" name="syncMode" value="sync" checked={mode === 'sync'} onchange={() => (mode = 'sync')} />
-            <span>Sync (JSON)</span>
+            <span>{$t('settings.mode.syncLabel')}</span>
           </label>
           <label class="sm-radio">
             <input type="radio" name="syncMode" value="server" checked={mode === 'server'} onchange={() => (mode = 'server')} />
-            <span>Server</span>
+            <span>{$t('settings.mode.server')}</span>
           </label>
         </div>
       </div>
 
       {#if mode === 'sync'}
         <label class="field">
-          <span class="field-label">Sync-URL (HTTPS)</span>
-          <input type="url" bind:value={url} placeholder="https://…/connections.json" />
+          <span class="field-label">{$t('settings.syncUrl')}</span>
+          <input type="url" bind:value={url} placeholder={$t('settings.syncUrl.placeholder')} />
         </label>
         <label class="field">
-          <span class="field-label">Intervall (Minuten)</span>
+          <span class="field-label">{$t('settings.interval')}</span>
           <input type="number" min="1" max="1440" bind:value={intervalMinutes} />
         </label>
         <label class="field checkbox">
           <input type="checkbox" bind:checked={allowSelfSignedCerts} />
-          <span>Selbstsignierte Zertifikate erlauben</span>
+          <span>{$t('settings.allowSelfSigned')}</span>
         </label>
       {:else if mode === 'server'}
         <label class="field">
-          <span class="field-label">Server-URL</span>
-          <input type="url" bind:value={serverUrl} placeholder="https://adminhelper.example" />
+          <span class="field-label">{$t('settings.serverUrl')}</span>
+          <input type="url" bind:value={serverUrl} placeholder={$t('settings.serverUrl.placeholder')} />
         </label>
         {#if $session}
           <div class="sm-session-row">
-            <span class="field-label">Angemeldet als</span>
+            <span class="field-label">{$t('settings.loggedInAs')}</span>
             <strong>{$session.username}</strong>
-            <button class="btn ghost small" onclick={onLogout}>Abmelden</button>
+            <button class="btn ghost small" onclick={onLogout}>{$t('settings.logout')}</button>
           </div>
         {/if}
       {/if}
 
       <div class="sm-section">
-        <div class="sm-section-title">Sprache</div>
+        <div class="sm-section-title">{$t('settings.section.language')}</div>
         <label class="field">
           <select bind:value={language}>
             <option value="de">Deutsch</option>
@@ -141,17 +153,17 @@
       </div>
 
       <div class="sm-section">
-        <div class="sm-section-title">Passwoerter</div>
+        <div class="sm-section-title">{$t('settings.section.passwords')}</div>
         <label class="field checkbox">
           <input type="checkbox" bind:checked={storePasswords} />
-          <span>Passwoerter im System-Keyring speichern</span>
+          <span>{$t('settings.storePasswords')}</span>
         </label>
       </div>
 
       <div class="sm-section">
-        <div class="sm-section-title">RDP</div>
+        <div class="sm-section-title">{$t('settings.section.rdp')}</div>
         <label class="field">
-          <span class="field-label">Skalierung</span>
+          <span class="field-label">{$t('settings.rdp.scaling')}</span>
           <select bind:value={rdpScalingMode}>
             {#each RDP_SCALING_MODES as m (m)}
               <option value={m}>{rdpScalingLabel(m)}</option>
@@ -159,7 +171,7 @@
           </select>
         </label>
         <label class="field">
-          <span class="field-label">Fenstermodus</span>
+          <span class="field-label">{$t('settings.rdp.windowMode')}</span>
           <select bind:value={rdpWindowMode}>
             {#each RDP_WINDOW_MODES as m (m)}
               <option value={m}>{rdpWindowLabel(m)}</option>
@@ -168,12 +180,12 @@
         </label>
         {#if rdpWindowMode === 'custom'}
           <label class="field">
-            <span class="field-label">Benutzerdefinierte Groesse (z. B. 1920x1080)</span>
-            <input type="text" bind:value={rdpCustomSize} placeholder="1920x1080" />
+            <span class="field-label">{$t('settings.rdp.customSize')}</span>
+            <input type="text" bind:value={rdpCustomSize} placeholder={$t('settings.rdp.customSize.placeholder')} />
           </label>
         {/if}
         <label class="field">
-          <span class="field-label">Leistungsprofil</span>
+          <span class="field-label">{$t('settings.rdp.performance')}</span>
           <select bind:value={rdpPerformanceProfile}>
             {#each RDP_PERFORMANCE_PROFILES as m (m)}
               <option value={m}>{rdpPerfLabel(m)}</option>
@@ -184,8 +196,8 @@
 
       <div class="panel-actions">
         <div style="flex: 1;"></div>
-        <button class="btn" onclick={closeSettings}>Abbrechen</button>
-        <button class="btn primary" onclick={onSave}>Speichern</button>
+        <button class="btn" onclick={closeSettings}>{$t('action.cancel')}</button>
+        <button class="btn primary" onclick={onSave}>{$t('action.save')}</button>
       </div>
     </div>
   </div>

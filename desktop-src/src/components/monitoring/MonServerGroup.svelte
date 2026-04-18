@@ -1,6 +1,7 @@
 <script lang="ts">
   import { worstStatus, statusClass, type ServerGroup } from '$lib/models/monitoring';
   import MonCheckRow from './MonCheckRow.svelte';
+  import { t } from '$lib/i18n';
 
   interface Props { group: ServerGroup; }
   let { group }: Props = $props();
@@ -23,7 +24,7 @@
   >
     <span class="mon-chevron">▸</span>
     <span class="mon-dot {statusClass(worst)}"></span>
-    <span class="mon-server-name">{group.serverName || group.serverId || 'Ohne Server'}</span>
+    <span class="mon-server-name">{group.serverName || group.serverId || $t('monitoring.server.noServer')}</span>
     <span class="mon-server-count">{group.checks.length}</span>
   </div>
   <div class="mon-server-body">

@@ -9,6 +9,7 @@
   import MonitoringOverview from '../components/monitoring/MonitoringOverview.svelte';
   import MonitoringAlerts from '../components/monitoring/MonitoringAlerts.svelte';
   import MonitoringLog from '../components/monitoring/MonitoringLog.svelte';
+  import { t } from '$lib/i18n';
 
   onMount(() => {
     activateMonitoring();
@@ -24,13 +25,13 @@
 <div class="section-toolbar">
   <div class="mon-tabs">
     <button class="mon-tab" class:active={tab === 'overview'} onclick={() => setTab('overview')}>
-      Uebersicht
+      {$t('monitoring.tab.overview')}
     </button>
     <button class="mon-tab" class:active={tab === 'alerts'} onclick={() => setTab('alerts')}>
-      Alerts
+      {$t('monitoring.tab.alerts')}
     </button>
     <button class="mon-tab" class:active={tab === 'log'} onclick={() => setTab('log')}>
-      Log
+      {$t('monitoring.tab.log')}
     </button>
   </div>
 </div>

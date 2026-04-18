@@ -1,5 +1,6 @@
 <script lang="ts">
   import { login } from '$lib/stores/session';
+  import { t } from '$lib/i18n';
 
   let { onBack }: { onBack?: () => void } = $props();
 
@@ -31,25 +32,25 @@
     <div class="login-logo" aria-label="AdminHelper Logo">
       <img src="/logo.svg" alt="AdminHelper" width="48" height="48" />
     </div>
-    <h2>AdminHelper</h2>
-    <p class="login-subtitle">Mit Server verbinden</p>
+    <h2>{$t('login.title')}</h2>
+    <p class="login-subtitle">{$t('login.subtitle')}</p>
     <form autocomplete="off" onsubmit={handleSubmit}>
       <label class="field">
-        <span>Server URL</span>
+        <span>{$t('login.serverUrl')}</span>
         <input
           type="url"
-          placeholder="https://adminhelper.example.com"
+          placeholder={$t('login.serverUrl.placeholder')}
           bind:value={serverUrl}
           required
           disabled={busy}
         />
       </label>
       <label class="field">
-        <span>Benutzername</span>
+        <span>{$t('login.username')}</span>
         <input type="text" bind:value={username} required disabled={busy} />
       </label>
       <label class="field">
-        <span>Passwort</span>
+        <span>{$t('login.password')}</span>
         <input type="password" bind:value={password} required disabled={busy} />
       </label>
 
@@ -58,12 +59,12 @@
       {/if}
 
       <button type="submit" class="btn accent login-btn" disabled={busy}>
-        {busy ? 'Anmelden…' : 'Anmelden'}
+        {busy ? $t('login.signingIn') : $t('login.signIn')}
       </button>
     </form>
     {#if onBack}
       <button type="button" class="btn ghost login-back" onclick={onBack}>
-        Zurueck zu Einstellungen
+        {$t('login.back')}
       </button>
     {/if}
   </div>

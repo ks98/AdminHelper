@@ -1,5 +1,6 @@
 <script lang="ts">
   import { passwordPromptState, resolvePrompt } from '$lib/stores/passwordPrompt';
+  import { t } from '$lib/i18n';
 
   let username = $state('');
   let domain = $state('');
@@ -61,40 +62,40 @@
   >
     <div class="pw-panel">
       <div class="panel-header">
-        <h2 class="panel-title">RDP-Anmeldung</h2>
+        <h2 class="panel-title">{$t('passwordPrompt.title')}</h2>
       </div>
       <p class="pw-hint">
         {$passwordPromptState.allowRemember
-          ? 'Bitte Benutzername und Passwort eingeben. Optional im System-Keyring speichern.'
-          : 'Bitte Benutzername und Passwort eingeben.'}
+          ? $t('passwordPrompt.hint.withRemember')
+          : $t('passwordPrompt.hint.default')}
       </p>
 
       <label class="field">
-        <span class="field-label">Benutzername</span>
+        <span class="field-label">{$t('passwordPrompt.username')}</span>
         <input type="text" bind:value={username} required />
       </label>
 
       <label class="field">
-        <span class="field-label">Domain (optional)</span>
+        <span class="field-label">{$t('passwordPrompt.domain')}</span>
         <input type="text" bind:value={domain} />
       </label>
 
       <label class="field">
-        <span class="field-label">Passwort</span>
+        <span class="field-label">{$t('passwordPrompt.password')}</span>
         <input type="password" bind:value={password} bind:this={passwordInput} required />
       </label>
 
       {#if $passwordPromptState.allowRemember}
         <label class="field checkbox">
           <input type="checkbox" bind:checked={remember} />
-          <span>Im System-Keyring speichern</span>
+          <span>{$t('passwordPrompt.remember')}</span>
         </label>
       {/if}
 
       <div class="panel-actions">
         <div style="flex: 1;"></div>
-        <button class="btn" onclick={onCancel}>Abbrechen</button>
-        <button class="btn primary" onclick={onConfirm}>Verbinden</button>
+        <button class="btn" onclick={onCancel}>{$t('action.cancel')}</button>
+        <button class="btn primary" onclick={onConfirm}>{$t('action.connect')}</button>
       </div>
     </div>
   </div>

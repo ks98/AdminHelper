@@ -7,6 +7,7 @@
   import MonCurrentValues from './MonCurrentValues.svelte';
   import MonStatusTimeline from './MonStatusTimeline.svelte';
   import TypeContent from './detail/TypeContent.svelte';
+  import { t } from '$lib/i18n';
 
   interface Props { check: MonitorCheck; }
   let { check }: Props = $props();
@@ -89,9 +90,9 @@
     </div>
 
     {#if loading}
-      <div class="mon-chart-loading">Lade…</div>
+      <div class="mon-chart-loading">{$t('monitoring.detail.loading')}</div>
     {:else if error}
-      <div class="mon-chart-loading">Fehler beim Laden</div>
+      <div class="mon-chart-loading">{$t('monitoring.detail.error')}</div>
     {:else}
       <MonChart {metrics} checkType={check.checkType} />
       <MonStatusTimeline statusHistory={metrics?.statusHistory} />

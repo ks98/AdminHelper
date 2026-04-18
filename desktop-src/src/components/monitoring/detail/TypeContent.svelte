@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { MonitorCheck } from '$lib/api/types';
+  import { t } from '$lib/i18n';
 
   interface Props { check: MonitorCheck; }
   let { check }: Props = $props();
@@ -167,11 +168,11 @@
 
 {#if serviceAuto}
   {#if serviceAuto.failed.length === 0 && serviceAuto.inactive.length === 0}
-    <div class="mon-all-ok"><span class="mon-item-dot item-ok"></span> Alle Units OK</div>
+    <div class="mon-all-ok"><span class="mon-item-dot item-ok"></span> {$t('monitoring.service.allOk')}</div>
   {:else}
     <div class="mon-item-list">
       {#if serviceAuto.failed.length > 0}
-        <div class="mon-section-title">Failed</div>
+        <div class="mon-section-title">{$t('monitoring.service.failed')}</div>
         {#each serviceAuto.failed as svc}
           <div class="mon-item-row">
             <span class="mon-item-dot item-crit"></span>
@@ -181,7 +182,7 @@
         {/each}
       {/if}
       {#if serviceAuto.inactive.length > 0}
-        <div class="mon-section-title">Inaktiv (Autostart)</div>
+        <div class="mon-section-title">{$t('monitoring.service.inactive')}</div>
         {#each serviceAuto.inactive as svc}
           <div class="mon-item-row">
             <span class="mon-item-dot item-warn"></span>
@@ -208,7 +209,7 @@
 
 {#if containers}
   {#if containers.allOk}
-    <div class="mon-all-ok"><span class="mon-item-dot item-ok"></span> Alle {containers.total} Container laufen</div>
+    <div class="mon-all-ok"><span class="mon-item-dot item-ok"></span> {$t('monitoring.docker.allOk', { count: containers.total })}</div>
   {:else}
     <div class="mon-item-list">
       {#each containers.sorted as c}
@@ -227,7 +228,7 @@
 
 {#if vms}
   {#if vms.allOk}
-    <div class="mon-all-ok"><span class="mon-item-dot item-ok"></span> Alle {vms.total} VMs/CTs haben aktuelle Backups</div>
+    <div class="mon-all-ok"><span class="mon-item-dot item-ok"></span> {$t('monitoring.proxmox.allOk', { count: vms.total })}</div>
   {:else}
     <div class="mon-item-list">
       {#each vms.sorted as v}
@@ -237,10 +238,10 @@
           <span class="mon-item-name">{v.name} ({v.vmid})</span>
           <span class="mon-item-status">
             {v.backupStatus === 'ok'
-              ? 'OK'
+              ? $t('monitoring.status.ok')
               : v.backupStatus === 'missing'
-                ? 'Kein Backup'
-                : `Veraltet (${v.ageHours}h)`}
+                ? $t('monitoring.proxmox.missing')
+                : $t('monitoring.proxmox.outdated', { hours: v.ageHours })}
           </span>
         </div>
       {/each}
@@ -302,6 +303,6 @@
 {#if agentPingDisplay}
   <div class="mon-last-seen">
     <span class="mon-last-seen-value">{agentPingDisplay}</span>
-    <span class="mon-last-seen-unit">zuletzt gesehen</span>
+    <span class="mon-last-seen-unit">{$t('monitoring.agentPing.lastSeen')}</span>
   </div>
 {/if}
