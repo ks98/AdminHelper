@@ -103,6 +103,8 @@
   function isOpen(tag: string): boolean {
     return openTags[tag] ?? true;
   }
+
+  const PENCIL_PATH = 'M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.996.996 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z';
 </script>
 
 <div class="section-toolbar">
@@ -160,7 +162,14 @@
           </div>
           <div class="card-actions">
             <button class="btn small accent" onclick={(e) => onConnect(conn, e)}>{$t('action.connect')}</button>
-            <button class="btn small ghost" onclick={(e) => { e.stopPropagation(); openEditor(conn); }}>{$t('action.edit')}</button>
+            <button
+              class="btn icon"
+              title={$t('action.edit')}
+              aria-label={$t('action.edit')}
+              onclick={(e) => { e.stopPropagation(); openEditor(conn); }}
+            >
+              <svg viewBox="0 0 24 24"><path d={PENCIL_PATH} /></svg>
+            </button>
           </div>
         </div>
       {/each}
@@ -269,7 +278,14 @@
                     </div>
                     <div class="card-actions">
                       <button class="btn small accent" onclick={(e) => onConnect(conn, e)}>{$t('action.connect')}</button>
-                      <button class="btn small ghost" onclick={(e) => { e.stopPropagation(); openEditor(conn); }}>{$t('action.edit')}</button>
+                      <button
+                        class="btn icon"
+                        title={$t('action.edit')}
+                        aria-label={$t('action.edit')}
+                        onclick={(e) => { e.stopPropagation(); openEditor(conn); }}
+                      >
+                        <svg viewBox="0 0 24 24"><path d={PENCIL_PATH} /></svg>
+                      </button>
                     </div>
                   </div>
                 </div>

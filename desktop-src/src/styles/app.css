@@ -506,6 +506,28 @@ html, body {
   border-color: var(--border-hover);
 }
 
+.btn.icon {
+  padding: 6px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+}
+
+.btn.icon:hover {
+  color: var(--text);
+  background: var(--bg-elevated);
+}
+
+.btn.icon svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
 /* ── Cards (Connections) ───────────────────────────────────────────── */
 .list {
   display: flex;
@@ -579,8 +601,13 @@ html, body {
 
 .card-actions {
   display: flex;
-  gap: 6px;
+  gap: var(--sp-2);
   align-items: center;
+}
+
+.card-actions .btn.accent {
+  min-width: 88px;
+  justify-content: center;
 }
 
 .card-tags {
