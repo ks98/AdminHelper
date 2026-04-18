@@ -109,6 +109,14 @@ export async function upsert(conn: Connection): Promise<void> {
   await saveAll(next);
 }
 
+/** Patcht ein Item nur im Memory-Store (keine Persistenz). Fuer Sync- und Server-Modus. */
+export function patchInMemory(conn: Connection): void {
+  _state.update((s) => ({
+    ...s,
+    items: s.items.map((c) => (c.id === conn.id ? conn : c)),
+  }));
+}
+
 export async function remove(id: string): Promise<void> {
   const next = get(_state).items.filter((c) => c.id !== id);
   await saveAll(next);

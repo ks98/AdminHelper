@@ -1,5 +1,6 @@
 import json
 import uuid
+from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -49,6 +50,18 @@ def update_connection(conn_id: str, connection: ConnectionUpdate, db: Session = 
     result = conn.to_dict()
     fire_event("connection.updated", result)
     return result
+
+
+@router.post("/{conn_id}/touch", response_model=dict[str, Any])
+def touch_connection(conn_id: str, db: Session = Depends(get_db), _auth=Depends(read_dep)):
+    """Setzt last_used auf jetzt. Auth: jeder Lesezugriff genuegt (Nutzung == Lesen)."""
+    conn = db.query(Connection).filter(Connection.id == conn_id).first()
+    if not conn:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Verbindung nicht gefunden")
+    conn.last_used = datetime.now(timezone.utc).isoformat()
+    db.commit()
+    db.refresh(conn)
+    return conn.to_dict()
 
 
 @router.delete("/{conn_id}", status_code=status.HTTP_204_NO_CONTENT)

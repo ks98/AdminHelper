@@ -9,7 +9,7 @@ import * as bridge from '$lib/bridge';
 import type { Connection } from '$lib/bridge/types';
 import { validateConnection } from '$lib/models/connection';
 import { sessionStore } from './session';
-import { connections as connectionsStore, upsert } from './connections';
+import { connections as connectionsStore, upsert, patchInMemory } from './connections';
 import { reportError, showStatus } from './statusBar';
 import { getMappings } from './tunnel';
 import { requestPassword } from './passwordPrompt';
@@ -61,6 +61,47 @@ export function markRdpError(message: string): void {
 function passwordStoreEnabled(): boolean {
   const { settings } = get(sessionStore);
   return Boolean(settings?.storePasswords);
+}
+
+/**
+ * Aktualisiert lastUsed mode-spezifisch:
+ *  - local:  upsert in lokale SQLite (persistent).
+ *  - server: POST /api/connections/{id}/touch -> Memory-Patch mit Server-Antwort.
+ *  - sync:   nur Memory-Patch (Sync-URL ist read-only, ueberlebt nicht den naechsten Sync).
+ */
+async function markConnectionUsed(connection: Connection): Promise<void> {
+  const { settings, session } = get(sessionStore);
+  const mode = settings?.mode ?? 'local';
+
+  if (mode === 'server' && session) {
+    try {
+      const updated = await bridge.apiProxy<Connection>(
+        session.serverUrl,
+        session.token,
+        'POST',
+        `/api/connections/${encodeURIComponent(connection.id)}/touch`,
+        undefined,
+        settings?.allowSelfSignedCerts,
+      );
+      patchInMemory(updated);
+    } catch {
+      patchInMemory({ ...connection, lastUsed: new Date().toISOString() });
+    }
+    return;
+  }
+
+  if (mode === 'sync') {
+    patchInMemory({ ...connection, lastUsed: new Date().toISOString() });
+    return;
+  }
+
+  const items = get(connectionsStore);
+  const existing = items.find((c) => c.id === connection.id);
+  const updated: Connection = {
+    ...(existing ?? connection),
+    lastUsed: new Date().toISOString(),
+  };
+  await upsert(updated);
 }
 
 async function handleRdpAuth(connection: Connection, keepEditorOpen: boolean): Promise<boolean> {
@@ -162,13 +203,7 @@ export async function performConnect(
       await bridge.openConnection(resolved, password);
     }
 
-    const items = get(connectionsStore);
-    const existing = items.find((c) => c.id === connection.id);
-    const updated: Connection = {
-      ...(existing ?? connection),
-      lastUsed: new Date().toISOString(),
-    };
-    await upsert(updated);
+    await markConnectionUsed(connection);
 
     if (connection.kind === 'rdp') {
       if (rdpId !== null) scheduleRdpStatus(rdpId);
