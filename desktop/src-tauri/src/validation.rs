@@ -70,6 +70,19 @@ pub fn validate_connection_input(connection: &Connection) -> Result<(), AppError
     Ok(())
 }
 
+/// Bereinigt einen Verbindungsnamen fuer die sichere Verwendung als RDP-Fenstertitel
+/// (xfreerdp `/title:`). Defense-in-Depth: Argv-Uebergabe verhindert bereits
+/// Argument-Splitting, aber Sanitization schuetzt vor Steuerzeichen, X11-Escapes
+/// und kuenftigen Codepfaden, die den Wert evtl. shell-formatieren.
+pub fn sanitize_window_title(name: &str) -> String {
+    let filtered: String = name
+        .chars()
+        .filter(|c| c.is_alphanumeric() || matches!(c, ' ' | '-' | '_' | '.' | ':' | '(' | ')'))
+        .take(64)
+        .collect();
+    filtered.trim().to_string()
+}
+
 pub fn sanitize_synced_connections(connections: Vec<Connection>) -> Vec<Connection> {
     connections
         .into_iter()

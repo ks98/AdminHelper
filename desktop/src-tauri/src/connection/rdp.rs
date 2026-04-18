@@ -252,7 +252,7 @@ fn build_rdp_args(
     args.push(linux_keyboard_layout_arg_from_ui_language(ui_language));
 
     args.push("+clipboard".to_string());
-    let title = connection.name.trim();
+    let title = crate::validation::sanitize_window_title(&connection.name);
     if !title.is_empty() {
         args.push(format!("/title:{title}"));
     }
