@@ -172,16 +172,10 @@
         {$frpConfig ? $t('page.frp.editConfig') : $t('page.frp.createConfig')}
       </Button>
       {#if $frpConfig}
-        <Button
-          variant="ghost"
-          onclick={() => showPreview('frps.toml', api.getFrpsToml)}
-        >
+        <Button variant="ghost" onclick={() => showPreview('frps.toml', api.getFrpsToml)}>
           frps.toml
         </Button>
-        <Button
-          variant="ghost"
-          onclick={() => showPreview('visitor.toml', api.getVisitorToml)}
-        >
+        <Button variant="ghost" onclick={() => showPreview('visitor.toml', api.getVisitorToml)}>
           visitor.toml
         </Button>
         <Button variant="ghost" onclick={downloadBulkZip}>
@@ -200,7 +194,9 @@
 
   <div class="panel" style="margin-bottom:12px">
     {#if $frpConfig}
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px 24px">
+      <div
+        style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px 24px"
+      >
         <div><strong>{$t('label.name')}:</strong> {$frpConfig.name}</div>
         <div><strong>{$t('modal.frpConfig.serverAddr')}:</strong> {$frpConfig.serverAddr}</div>
         <div><strong>{$t('modal.frpConfig.bindPort')}:</strong> {$frpConfig.bindPort}</div>
@@ -213,7 +209,9 @@
         {#if $frpConfig.dashboardPort}
           <div><strong>Dashboard:</strong> :{$frpConfig.dashboardPort}</div>
         {/if}
-        <div><strong>mTLS:</strong> <span style="color:#22c55e">{$t('page.frp.mtlsActive')}</span></div>
+        <div>
+          <strong>mTLS:</strong> <span style="color:#22c55e">{$t('page.frp.mtlsActive')}</span>
+        </div>
       </div>
     {:else}
       <p style="margin:0;color:var(--text-muted)">{$t('page.frp.noConfig')}</p>
@@ -298,9 +296,7 @@
                     <td
                       style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
                     >
-                      {tn.visitorPort
-                        ? `Visitor :${tn.visitorPort}`
-                        : (tn.customDomains ?? '–')}
+                      {tn.visitorPort ? `Visitor :${tn.visitorPort}` : (tn.customDomains ?? '–')}
                     </td>
                     <td style="text-align:right;white-space:nowrap">
                       <button class="btn small" onclick={() => openTunnelEdit(tn)}>

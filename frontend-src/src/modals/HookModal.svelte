@@ -144,11 +144,7 @@
         >
           {#each HOOK_EVENTS as evt (evt)}
             <label class="checkbox-label">
-              <input
-                type="checkbox"
-                checked={events.has(evt)}
-                onchange={() => toggleEvent(evt)}
-              />
+              <input type="checkbox" checked={events.has(evt)} onchange={() => toggleEvent(evt)} />
               {$t(`hook.event.${evt}`)}
               <br />
               <span style="font-size:10px;color:var(--text-muted)">{evt}</span>

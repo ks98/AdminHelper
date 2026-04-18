@@ -52,7 +52,7 @@
   });
 
   function hostDisplay(c: Connection): string {
-    return c.kind === 'web' ? c.url ?? '–' : c.host ?? '–';
+    return c.kind === 'web' ? (c.url ?? '–') : (c.host ?? '–');
   }
 
   function openCreate() {
@@ -71,7 +71,9 @@
   }
 
   async function removeConnection(c: Connection) {
-    if (!(await confirmDialog($t('confirm.connection.delete'), { confirmLabel: $t('action.delete') })))
+    if (
+      !(await confirmDialog($t('confirm.connection.delete'), { confirmLabel: $t('action.delete') }))
+    )
       return;
     try {
       await connections.remove(c.id);
@@ -104,9 +106,12 @@
         {#if filtered.length === 0}
           {$t('page.connections.none')}
         {:else}
-          {$t($connections.length !== 1 ? 'page.connections.countPlural' : 'page.connections.count', {
-            count: $connections.length,
-          })}
+          {$t(
+            $connections.length !== 1 ? 'page.connections.countPlural' : 'page.connections.count',
+            {
+              count: $connections.length,
+            },
+          )}
         {/if}
       </div>
     </div>
@@ -152,9 +157,7 @@
             <tr>
               <td><strong>{c.name}</strong></td>
               <td><span class="badge badge-{c.kind}">{c.kind.toUpperCase()}</span></td>
-              <td
-                style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
-              >
+              <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
                 {hostDisplay(c)}
               </td>
               <td>{c.port ?? '–'}</td>

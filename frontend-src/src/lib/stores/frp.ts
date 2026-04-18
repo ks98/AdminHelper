@@ -14,7 +14,9 @@ export const frpConfig = {
   },
 
   async save(data: FrpConfigInput, existing: FrpConfig | null): Promise<FrpConfig> {
-    const saved = existing ? await api.updateConfig(existing.id, data) : await api.createConfig(data);
+    const saved = existing
+      ? await api.updateConfig(existing.id, data)
+      : await api.createConfig(data);
     _config.set(saved);
     return saved;
   },

@@ -106,12 +106,13 @@
     </div>
     {#if command}
       <div style="background:var(--bg-elevated);padding:12px;border-radius:var(--radius-sm)">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div
+          style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"
+        >
           <strong>{$t('frp.provision.oneLiner')}</strong>
           <button class="btn small" onclick={copyCommand}>{$t('action.copy')}</button>
         </div>
-        <pre
-          style="margin:0;font-size:12px;white-space:pre-wrap;overflow-x:auto">{command}</pre>
+        <pre style="margin:0;font-size:12px;white-space:pre-wrap;overflow-x:auto">{command}</pre>
       </div>
     {/if}
     <div>

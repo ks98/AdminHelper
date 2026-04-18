@@ -13,7 +13,10 @@ export const apikeys = {
 
   async create(data: ApiKeyCreate): Promise<ApiKeyCreateResult> {
     const created = await api.create(data);
-    _apikeys.update((list) => [...list, { id: created.id, name: created.name, permission: created.permission }]);
+    _apikeys.update((list) => [
+      ...list,
+      { id: created.id, name: created.name, permission: created.permission },
+    ]);
     return created;
   },
 

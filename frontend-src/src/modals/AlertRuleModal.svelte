@@ -119,12 +119,22 @@
     {#if channel === 'webhook'}
       <div class="field full">
         <label for="arWebhook">Webhook URL *</label>
-        <input id="arWebhook" required placeholder="https://hooks.example.com/alert" bind:value={webhookUrl} />
+        <input
+          id="arWebhook"
+          required
+          placeholder="https://hooks.example.com/alert"
+          bind:value={webhookUrl}
+        />
       </div>
     {:else}
       <div class="field full">
         <label for="arRecipients">{$t('modal.alert.recipients')} *</label>
-        <input id="arRecipients" required placeholder="admin@example.com, ops@example.com" bind:value={emailRecipients} />
+        <input
+          id="arRecipients"
+          required
+          placeholder="admin@example.com, ops@example.com"
+          bind:value={emailRecipients}
+        />
       </div>
     {/if}
   </form>

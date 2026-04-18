@@ -40,7 +40,12 @@
   }
 </script>
 
-<Modal open={request !== null} title={$t('label.status')} width="420px" onClose={() => settle(false)}>
+<Modal
+  open={request !== null}
+  title={$t('label.status')}
+  width="420px"
+  onClose={() => settle(false)}
+>
   <p style="margin:0">{request?.message ?? ''}</p>
   {#snippet footer()}
     <Button variant="ghost" onclick={() => settle(false)}>{request?.cancelLabel}</Button>

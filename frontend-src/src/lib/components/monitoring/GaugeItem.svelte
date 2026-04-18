@@ -12,10 +12,21 @@
     onClick?: () => void;
   }
 
-  let { label, value, cls, detail = null, metric = null, unit = '%', active = false, onClick }: Props = $props();
+  let {
+    label,
+    value,
+    cls,
+    detail = null,
+    metric = null,
+    unit = '%',
+    active = false,
+    onClick,
+  }: Props = $props();
 
   const isTemp = $derived(unit === '\u00b0C');
-  const barWidth = $derived(isTemp ? Math.min((value / TEMP_GAUGE_MAX) * 100, 100) : Math.min(value, 100));
+  const barWidth = $derived(
+    isTemp ? Math.min((value / TEMP_GAUGE_MAX) * 100, 100) : Math.min(value, 100),
+  );
   const display = $derived(isTemp ? `${value.toFixed(1)}\u00b0C` : `${value.toFixed(1)}%`);
   const clickable = $derived(!!metric && !!onClick);
 </script>

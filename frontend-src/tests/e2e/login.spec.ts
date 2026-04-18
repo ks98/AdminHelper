@@ -2,7 +2,9 @@ import { test, expect } from '@playwright/test';
 import { mockApi } from './mocks';
 
 test.describe('Login', () => {
-  test('happy path: Formular ausfuellen und abschicken -> weiter zu /connections', async ({ page }) => {
+  test('happy path: Formular ausfuellen und abschicken -> weiter zu /connections', async ({
+    page,
+  }) => {
     await mockApi(page);
     await page.goto('/');
     await expect(page.getByRole('heading')).toBeHidden();

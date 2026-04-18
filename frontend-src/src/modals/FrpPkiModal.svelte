@@ -50,7 +50,10 @@
   }
 
   async function generateCA() {
-    if (!(await confirmDialog($t('confirm.pki.regenerateCA'), { confirmLabel: $t('action.confirm') }))) return;
+    if (
+      !(await confirmDialog($t('confirm.pki.regenerateCA'), { confirmLabel: $t('action.confirm') }))
+    )
+      return;
     try {
       const result = await api.pkiGenerateCA();
       showToast($t('toast.pki.caCreated', { date: formatDate(result.expiry) }));
@@ -183,9 +186,15 @@
                   <td>{c.name}</td>
                   <td>{formatDate(c.expiry)}</td>
                   <td style="text-align:right;white-space:nowrap">
-                    <button class="btn small ghost" onclick={() => downloadBundle(c.name)}>ZIP</button>
-                    <button class="btn small ghost" onclick={() => downloadFile(`${c.name}.crt`)}>crt</button>
-                    <button class="btn small ghost" onclick={() => downloadFile(`${c.name}.key`)}>key</button>
+                    <button class="btn small ghost" onclick={() => downloadBundle(c.name)}
+                      >ZIP</button
+                    >
+                    <button class="btn small ghost" onclick={() => downloadFile(`${c.name}.crt`)}
+                      >crt</button
+                    >
+                    <button class="btn small ghost" onclick={() => downloadFile(`${c.name}.key`)}
+                      >key</button
+                    >
                   </td>
                 </tr>
               {/each}

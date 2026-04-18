@@ -103,7 +103,10 @@
       </label>
     </div>
     <div class="field full">
-      <span class="label-like" style="display:block;font-size:13px;color:var(--text-muted);margin-bottom:6px">
+      <span
+        class="label-like"
+        style="display:block;font-size:13px;color:var(--text-muted);margin-bottom:6px"
+      >
         {$t('modal.user.assignServers')}
       </span>
       <div

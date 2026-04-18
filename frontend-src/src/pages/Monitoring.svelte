@@ -2,12 +2,7 @@
   import { onMount } from 'svelte';
   import 'uplot/dist/uPlot.min.css';
   import { t, language } from '$lib/i18n';
-  import {
-    monitorChecks,
-    alertRules,
-    alertLog,
-    monitoringTemplates,
-  } from '$lib/stores/monitoring';
+  import { monitorChecks, alertRules, alertLog, monitoringTemplates } from '$lib/stores/monitoring';
   import { servers as serversStore } from '$lib/stores/servers';
   import { showToast } from '$lib/stores/notifications';
   import { worstStatusOf, formatTime } from '$lib/utils/monitoring';
@@ -18,12 +13,7 @@
   import MonitorCheckModal from '$modals/MonitorCheckModal.svelte';
   import AlertRuleModal from '$modals/AlertRuleModal.svelte';
   import MonitoringTemplateModal from '$modals/MonitoringTemplateModal.svelte';
-  import type {
-    AlertRule,
-    MonitorCheck,
-    MonStatus,
-    MonitoringTemplateFull,
-  } from '$lib/api/types';
+  import type { AlertRule, MonitorCheck, MonStatus, MonitoringTemplateFull } from '$lib/api/types';
 
   type Tab = 'overview' | 'alerts' | 'log' | 'templates';
 
@@ -113,9 +103,7 @@
   const serverIdsInUse = $derived(
     Array.from(new Set($monitorChecks.map((c) => c.serverId).filter((x): x is string => !!x))),
   );
-  const typesInUse = $derived(
-    Array.from(new Set($monitorChecks.map((c) => c.checkType))).sort(),
-  );
+  const typesInUse = $derived(Array.from(new Set($monitorChecks.map((c) => c.checkType))).sort());
   const tagsInUse = $derived.by(() => {
     const set = new Set<string>();
     for (const id of serverIdsInUse) {
@@ -259,7 +247,9 @@
   }
 
   async function removeTemplate(tpl: MonitoringTemplateFull) {
-    if (!(await confirmDialog($t('confirm.template.delete'), { confirmLabel: $t('action.delete') })))
+    if (
+      !(await confirmDialog($t('confirm.template.delete'), { confirmLabel: $t('action.delete') }))
+    )
       return;
     try {
       await monitoringTemplates.remove(tpl.id);
@@ -328,23 +318,21 @@
     <button
       class="monitor-tab"
       class:active={activeTab === 'overview'}
-      onclick={() => switchTab('overview')}
-    >{$t('page.monitoring.tabOverview')}</button>
+      onclick={() => switchTab('overview')}>{$t('page.monitoring.tabOverview')}</button
+    >
     <button
       class="monitor-tab"
       class:active={activeTab === 'alerts'}
-      onclick={() => switchTab('alerts')}
-    >{$t('page.monitoring.tabAlerts')}</button>
-    <button
-      class="monitor-tab"
-      class:active={activeTab === 'log'}
-      onclick={() => switchTab('log')}
-    >{$t('page.monitoring.tabLog')}</button>
+      onclick={() => switchTab('alerts')}>{$t('page.monitoring.tabAlerts')}</button
+    >
+    <button class="monitor-tab" class:active={activeTab === 'log'} onclick={() => switchTab('log')}
+      >{$t('page.monitoring.tabLog')}</button
+    >
     <button
       class="monitor-tab"
       class:active={activeTab === 'templates'}
-      onclick={() => switchTab('templates')}
-    >{$t('page.monitoring.tabTemplates')}</button>
+      onclick={() => switchTab('templates')}>{$t('page.monitoring.tabTemplates')}</button
+    >
   </div>
 
   <!-- Tab: Uebersicht -->
@@ -467,13 +455,13 @@
                           <td>
                             <strong>{c.name}</strong>
                             {#if c.templateId}
-                              <span
-                                class="badge badge-tpl"
-                                title="Von Template verwaltet"
-                              >TPL</span>
+                              <span class="badge badge-tpl" title="Von Template verwaltet">TPL</span
+                              >
                             {/if}
                           </td>
-                          <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-muted)">
+                          <td
+                            style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-muted)"
+                          >
                             {msg}
                           </td>
                           <td style="color:var(--text-muted);font-size:12px">{last}</td>
@@ -481,8 +469,8 @@
                             <button
                               class="btn small"
                               title={$t('monitor.runNow')}
-                              onclick={() => runCheckNow(c)}
-                            >&#x25B6;</button>
+                              onclick={() => runCheckNow(c)}>&#x25B6;</button
+                            >
                             <button class="btn small" onclick={() => editCheck(c)}>
                               {$t('action.edit')}
                             </button>
@@ -600,10 +588,12 @@
                 </td>
                 <td>{checkName}</td>
                 <td>
-                  <span class="monitor-dot monitor-{l.oldStatus}"></span> {l.oldStatus}
+                  <span class="monitor-dot monitor-{l.oldStatus}"></span>
+                  {l.oldStatus}
                 </td>
                 <td>
-                  <span class="monitor-dot monitor-{l.newStatus}"></span> {l.newStatus}
+                  <span class="monitor-dot monitor-{l.newStatus}"></span>
+                  {l.newStatus}
                 </td>
                 <td>
                   {#if l.success}
@@ -647,19 +637,16 @@
               {@const checkCount = (tpl.checkDefinitions ?? []).length}
               {@const alertCount = (tpl.alertDefinitions ?? []).length}
               {@const serverCount = (tpl.assignments ?? []).length}
-              {@const serverNames = (tpl.assignments ?? [])
-                .map((a) => a.serverName ?? a.serverId)
-                .join(', ') || '\u2013'}
+              {@const serverNames =
+                (tpl.assignments ?? []).map((a) => a.serverName ?? a.serverId).join(', ') ||
+                '\u2013'}
               <tr>
                 <td><strong>{tpl.name}</strong></td>
                 <td style="color:var(--text-muted)">{tpl.description ?? ''}</td>
                 <td>
                   {$t('template.checks', { count: checkCount, alerts: alertCount })}
                 </td>
-                <td
-                  style="color:var(--text-muted);font-size:12px"
-                  title={serverNames}
-                >
+                <td style="color:var(--text-muted);font-size:12px" title={serverNames}>
                   {$t('template.servers', { count: serverCount })}
                 </td>
                 <td style="white-space:nowrap">

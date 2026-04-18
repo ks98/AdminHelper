@@ -175,8 +175,7 @@
       variant="primary"
       type="submit"
       disabled={submitting}
-      onclick={() =>
-        (document.getElementById('conn-form') as HTMLFormElement)?.requestSubmit()}
+      onclick={() => (document.getElementById('conn-form') as HTMLFormElement)?.requestSubmit()}
     >
       {$t('action.save')}
     </Button>

@@ -14,12 +14,7 @@
   let { open, hookName, result, onClose }: Props = $props();
 </script>
 
-<Modal
-  {open}
-  title={$t('hook.result.title', { name: hookName })}
-  width="720px"
-  {onClose}
->
+<Modal {open} title={$t('hook.result.title', { name: hookName })} width="720px" {onClose}>
   <pre
     style="margin:0;padding:14px;font-size:13px;background:var(--bg-elevated);border-radius:6px;overflow:auto;max-height:60vh">{result
       ? JSON.stringify(result, null, 2)

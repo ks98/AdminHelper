@@ -59,7 +59,8 @@
     });
 
     const unit = chartIsTemp ? ' \u00b0C' : checkTypeUnit(checkType);
-    const isPercent = !chartIsTemp && (checkType === 'agent_resources' || checkType === 'zfs_health');
+    const isPercent =
+      !chartIsTemp && (checkType === 'agent_resources' || checkType === 'zfs_health');
 
     const opts: uPlot.Options = {
       width: container.clientWidth || 600,

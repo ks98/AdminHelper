@@ -4,11 +4,7 @@
 
 <div class="toast-stack" aria-live="polite" aria-atomic="false">
   {#each $toasts as t (t.id)}
-    <button
-      class="toast show {t.kind}"
-      type="button"
-      onclick={() => dismissToast(t.id)}
-    >
+    <button class="toast show {t.kind}" type="button" onclick={() => dismissToast(t.id)}>
       {t.message}
     </button>
   {/each}

@@ -105,8 +105,7 @@
       variant="primary"
       type="submit"
       disabled={submitting}
-      onclick={() =>
-        (document.getElementById('playbook-form') as HTMLFormElement)?.requestSubmit()}
+      onclick={() => (document.getElementById('playbook-form') as HTMLFormElement)?.requestSubmit()}
     >
       {$t('action.save')}
     </Button>

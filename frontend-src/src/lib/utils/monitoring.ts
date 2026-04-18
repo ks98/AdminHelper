@@ -1,9 +1,4 @@
-import type {
-  MonCheckSummary,
-  MonitorCheck,
-  MonitorCheckType,
-  MonStatus,
-} from '$lib/api/types';
+import type { MonCheckSummary, MonitorCheck, MonitorCheckType, MonStatus } from '$lib/api/types';
 
 const ORDER: Record<MonStatus, number> = {
   critical: 4,
@@ -55,16 +50,13 @@ export const NO_CHART_TYPES: readonly MonitorCheckType[] = [
 ];
 
 // Farben fuer uPlot-Serien (1:1 aus dem Original)
-export const CHART_COLORS = [
-  '#4a9eff',
-  '#ff6b6b',
-  '#ffa726',
-  '#66bb6a',
-  '#ab47bc',
-  '#26c6da',
-];
+export const CHART_COLORS = ['#4a9eff', '#ff6b6b', '#ffa726', '#66bb6a', '#ab47bc', '#26c6da'];
 
-export function gaugeClass(pct: number, warn: number, crit: number): 'gauge-ok' | 'gauge-warn' | 'gauge-crit' {
+export function gaugeClass(
+  pct: number,
+  warn: number,
+  crit: number,
+): 'gauge-ok' | 'gauge-warn' | 'gauge-crit' {
   if (pct >= crit) return 'gauge-crit';
   if (pct >= warn) return 'gauge-warn';
   return 'gauge-ok';

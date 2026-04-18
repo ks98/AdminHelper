@@ -73,45 +73,23 @@ export async function mockApi(page: Page): Promise<void> {
     return route.fulfill(json({ body: [] }));
   });
 
-  await page.route(api('auth/login'), async (route) =>
-    route.fulfill(json({ body: TOKENS })),
-  );
-  await page.route(api('auth/refresh'), async (route) =>
-    route.fulfill(json({ body: TOKENS })),
-  );
-  await page.route(api('auth/me'), async (route) =>
-    route.fulfill(json({ body: ADMIN_USER })),
-  );
-  await page.route(api('auth/logout'), async (route) =>
-    route.fulfill({ status: 204, body: '' }),
-  );
+  await page.route(api('auth/login'), async (route) => route.fulfill(json({ body: TOKENS })));
+  await page.route(api('auth/refresh'), async (route) => route.fulfill(json({ body: TOKENS })));
+  await page.route(api('auth/me'), async (route) => route.fulfill(json({ body: ADMIN_USER })));
+  await page.route(api('auth/logout'), async (route) => route.fulfill({ status: 204, body: '' }));
 
   await page.route(api('connections'), async (route) =>
     route.fulfill(json({ body: DEMO_CONNECTIONS })),
   );
-  await page.route(api('servers'), async (route) =>
-    route.fulfill(json({ body: DEMO_SERVERS })),
-  );
-  await page.route(api('users'), async (route) =>
-    route.fulfill(json({ body: [ADMIN_USER] })),
-  );
-  await page.route(api('apikeys'), async (route) =>
-    route.fulfill(json({ body: [] })),
-  );
-  await page.route(api('hooks'), async (route) =>
-    route.fulfill(json({ body: [] })),
-  );
-  await page.route(api('playbooks'), async (route) =>
-    route.fulfill(json({ body: [] })),
-  );
+  await page.route(api('servers'), async (route) => route.fulfill(json({ body: DEMO_SERVERS })));
+  await page.route(api('users'), async (route) => route.fulfill(json({ body: [ADMIN_USER] })));
+  await page.route(api('apikeys'), async (route) => route.fulfill(json({ body: [] })));
+  await page.route(api('hooks'), async (route) => route.fulfill(json({ body: [] })));
+  await page.route(api('playbooks'), async (route) => route.fulfill(json({ body: [] })));
 
   // FRP
-  await page.route(api('frp/configs'), async (route) =>
-    route.fulfill(json({ body: [] })),
-  );
-  await page.route(api('frp/tunnels'), async (route) =>
-    route.fulfill(json({ body: [] })),
-  );
+  await page.route(api('frp/configs'), async (route) => route.fulfill(json({ body: [] })));
+  await page.route(api('frp/tunnels'), async (route) => route.fulfill(json({ body: [] })));
   await page.route(api('frp/status*'), async (route) =>
     route.fulfill(json({ body: { proxies: [], total: 0 } })),
   );
@@ -129,18 +107,12 @@ export async function mockApi(page: Page): Promise<void> {
   );
 
   // Monitoring
-  await page.route(api('monitoring/status'), async (route) =>
-    route.fulfill(json({ body: [] })),
-  );
-  await page.route(api('monitoring/alerts'), async (route) =>
-    route.fulfill(json({ body: [] })),
-  );
+  await page.route(api('monitoring/status'), async (route) => route.fulfill(json({ body: [] })));
+  await page.route(api('monitoring/alerts'), async (route) => route.fulfill(json({ body: [] })));
   await page.route(api('monitoring/alerts/log*'), async (route) =>
     route.fulfill(json({ body: [] })),
   );
-  await page.route(api('monitoring/templates'), async (route) =>
-    route.fulfill(json({ body: [] })),
-  );
+  await page.route(api('monitoring/templates'), async (route) => route.fulfill(json({ body: [] })));
   await page.route(api('monitoring/templates/assignments/*'), async (route) =>
     route.fulfill(json({ body: [] })),
   );

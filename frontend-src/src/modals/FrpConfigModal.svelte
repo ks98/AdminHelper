@@ -97,7 +97,11 @@
     </div>
     <div class="field full">
       <label for="fcAuthToken">{$t('modal.frpConfig.authToken')}</label>
-      <input id="fcAuthToken" placeholder={$t('modal.frpConfig.authTokenPlaceholder')} bind:value={authToken} />
+      <input
+        id="fcAuthToken"
+        placeholder={$t('modal.frpConfig.authTokenPlaceholder')}
+        bind:value={authToken}
+      />
     </div>
     <div class="field full">
       <label for="fcSubdomainHost">{$t('modal.frpConfig.subdomainHost')}</label>

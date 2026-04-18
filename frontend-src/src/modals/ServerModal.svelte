@@ -97,7 +97,12 @@
   }
 </script>
 
-<Modal {open} title={editing ? $t('modal.server.title') : $t('modal.server.titleNew')} width="620px" {onClose}>
+<Modal
+  {open}
+  title={editing ? $t('modal.server.title') : $t('modal.server.titleNew')}
+  width="620px"
+  {onClose}
+>
   <form class="modal-form" onsubmit={onSubmit} id="srv-form">
     <div class="field">
       <label for="sfName">{$t('label.name')} *</label>
@@ -123,7 +128,8 @@
     </div>
     <div class="field">
       <label for="sfNotes">{$t('modal.server.notes')}</label>
-      <textarea id="sfNotes" placeholder={$t('modal.server.notesPlaceholder')} bind:value={notes}></textarea>
+      <textarea id="sfNotes" placeholder={$t('modal.server.notesPlaceholder')} bind:value={notes}
+      ></textarea>
     </div>
     <div class="field full">
       <label for="sfTemplates">{$t('modal.server.monitorTemplates')}</label>
@@ -143,7 +149,12 @@
   </form>
   {#snippet footer()}
     <Button variant="ghost" onclick={onClose}>{$t('action.cancel')}</Button>
-    <Button variant="primary" type="submit" disabled={submitting} onclick={() => (document.getElementById('srv-form') as HTMLFormElement)?.requestSubmit()}>
+    <Button
+      variant="primary"
+      type="submit"
+      disabled={submitting}
+      onclick={() => (document.getElementById('srv-form') as HTMLFormElement)?.requestSubmit()}
+    >
       {$t('action.save')}
     </Button>
   {/snippet}

@@ -44,36 +44,64 @@
     name = editing?.name ?? '';
     description = editing?.description ?? '';
     checkDefs = (editing?.checkDefinitions ?? []).map((d) => ({ ...d, config: { ...d.config } }));
-    alertDefs = (editing?.alertDefinitions ?? []).map((d) => ({ ...d, channel_config: { ...d.channel_config } }));
+    alertDefs = (editing?.alertDefinitions ?? []).map((d) => ({
+      ...d,
+      channel_config: { ...d.channel_config },
+    }));
   });
 
   function defaultConfig(type: MonitorCheckType): MonitorCheckConfig {
     const h = '{{hostname}}';
     switch (type) {
-      case 'ping': return { target: h, timeout: 5 };
-      case 'tcp': return { target: h, port: 22, timeout: 5 };
-      case 'http': return { url: 'http://{{hostname}}', method: 'GET', expected_status: 200, timeout: 10, verify_ssl: true };
-      case 'agent_ping': return { server_id: '{{server_id}}', stale_minutes: 5 };
+      case 'ping':
+        return { target: h, timeout: 5 };
+      case 'tcp':
+        return { target: h, port: 22, timeout: 5 };
+      case 'http':
+        return {
+          url: 'http://{{hostname}}',
+          method: 'GET',
+          expected_status: 200,
+          timeout: 10,
+          verify_ssl: true,
+        };
+      case 'agent_ping':
+        return { server_id: '{{server_id}}', stale_minutes: 5 };
       case 'agent_resources':
         return {
-          cpu_warn: DEF_CPU_WARN, cpu_crit: DEF_CPU_CRIT,
-          memory_warn: DEF_MEM_WARN, memory_crit: DEF_MEM_CRIT,
-          disk_warn: DEF_DISK_WARN, disk_crit: DEF_DISK_CRIT,
-          temp_warn: DEF_TEMP_WARN, temp_crit: DEF_TEMP_CRIT,
+          cpu_warn: DEF_CPU_WARN,
+          cpu_crit: DEF_CPU_CRIT,
+          memory_warn: DEF_MEM_WARN,
+          memory_crit: DEF_MEM_CRIT,
+          disk_warn: DEF_DISK_WARN,
+          disk_crit: DEF_DISK_CRIT,
+          temp_warn: DEF_TEMP_WARN,
+          temp_crit: DEF_TEMP_CRIT,
         };
-      case 'service_process': return { mode: 'auto', ignore: [] };
-      case 'proxmox_backup': return { max_backup_age_hours: 26, exclude_vmids: [], exclude_stopped: true };
-      case 'zfs_health': return { capacity_warn: 80, capacity_crit: 90 };
-      case 'docker_health': return { ignore_containers: [] };
+      case 'service_process':
+        return { mode: 'auto', ignore: [] };
+      case 'proxmox_backup':
+        return { max_backup_age_hours: 26, exclude_vmids: [], exclude_stopped: true };
+      case 'zfs_health':
+        return { capacity_warn: 80, capacity_crit: 90 };
+      case 'docker_health':
+        return { ignore_containers: [] };
       case 'smart_health':
         return {
-          reallocated_warn: 1, reallocated_crit: 10,
-          pending_warn: 1, pending_crit: 5,
-          nvme_spare_warn: 20, nvme_spare_crit: 10,
-          nvme_used_warn: 90, nvme_used_crit: 100,
-          temp_hdd_warn: 55, temp_hdd_crit: 60,
-          temp_ssd_warn: 60, temp_ssd_crit: 70,
-          temp_nvme_warn: 65, temp_nvme_crit: 75,
+          reallocated_warn: 1,
+          reallocated_crit: 10,
+          pending_warn: 1,
+          pending_crit: 5,
+          nvme_spare_warn: 20,
+          nvme_spare_crit: 10,
+          nvme_used_warn: 90,
+          nvme_used_crit: 100,
+          temp_hdd_warn: 55,
+          temp_hdd_crit: 60,
+          temp_ssd_warn: 60,
+          temp_ssd_crit: 70,
+          temp_nvme_warn: 65,
+          temp_nvme_crit: 75,
           ignore_devices: [],
         };
     }
@@ -110,7 +138,11 @@
     );
   }
 
-  function updateCheckField<K extends keyof TemplateCheckDef>(i: number, key: K, value: TemplateCheckDef[K]) {
+  function updateCheckField<K extends keyof TemplateCheckDef>(
+    i: number,
+    key: K,
+    value: TemplateCheckDef[K],
+  ) {
     checkDefs = checkDefs.map((d, idx) => (idx === i ? { ...d, [key]: value } : d));
   }
 
@@ -139,7 +171,11 @@
     );
   }
 
-  function updateAlertField<K extends keyof TemplateAlertDef>(i: number, key: K, value: TemplateAlertDef[K]) {
+  function updateAlertField<K extends keyof TemplateAlertDef>(
+    i: number,
+    key: K,
+    value: TemplateAlertDef[K],
+  ) {
     alertDefs = alertDefs.map((d, idx) => (idx === i ? { ...d, [key]: value } : d));
   }
 
@@ -200,7 +236,10 @@
       {:else}
         {#each checkDefs as def, i (def.def_id ?? i)}
           {@const cfg = def.config ?? {}}
-          <div class="tpl-def-row" style="margin-bottom:8px;padding:8px 10px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px">
+          <div
+            class="tpl-def-row"
+            style="margin-bottom:8px;padding:8px 10px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px"
+          >
             <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap">
               <span class="badge badge-{def.check_type}" style="flex-shrink:0;font-size:10px">
                 {def.check_type.toUpperCase()}
@@ -209,102 +248,292 @@
                 value={def.name}
                 style="flex:1;min-width:120px"
                 placeholder={'Name ({{server_name}})'}
-                oninput={(e) => updateCheckField(i, 'name', (e.currentTarget as HTMLInputElement).value)}
+                oninput={(e) =>
+                  updateCheckField(i, 'name', (e.currentTarget as HTMLInputElement).value)}
               />
               <select
                 style="width:140px"
                 value={def.check_type}
-                onchange={(e) => changeCheckType(i, (e.currentTarget as HTMLSelectElement).value as MonitorCheckType)}
+                onchange={(e) =>
+                  changeCheckType(
+                    i,
+                    (e.currentTarget as HTMLSelectElement).value as MonitorCheckType,
+                  )}
               >
-                {#each ['ping','tcp','http','agent_ping','agent_resources','service_process','proxmox_backup','zfs_health','docker_health','smart_health'] as tp (tp)}
+                {#each ['ping', 'tcp', 'http', 'agent_ping', 'agent_resources', 'service_process', 'proxmox_backup', 'zfs_health', 'docker_health', 'smart_health'] as tp (tp)}
                   <option value={tp}>{tp}</option>
                 {/each}
               </select>
               <select
                 style="width:70px"
                 value={def.interval}
-                onchange={(e) => updateCheckField(i, 'interval', (e.currentTarget as HTMLSelectElement).value as TemplateCheckDef['interval'])}
+                onchange={(e) =>
+                  updateCheckField(
+                    i,
+                    'interval',
+                    (e.currentTarget as HTMLSelectElement).value as TemplateCheckDef['interval'],
+                  )}
               >
-                {#each ['1m','5m','15m','30m','1h','6h','12h','24h'] as v (v)}
+                {#each ['1m', '5m', '15m', '30m', '1h', '6h', '12h', '24h'] as v (v)}
                   <option value={v}>{v}</option>
                 {/each}
               </select>
               <select
                 style="width:90px"
                 value={def.severity}
-                onchange={(e) => updateCheckField(i, 'severity', (e.currentTarget as HTMLSelectElement).value as TemplateCheckDef['severity'])}
+                onchange={(e) =>
+                  updateCheckField(
+                    i,
+                    'severity',
+                    (e.currentTarget as HTMLSelectElement).value as TemplateCheckDef['severity'],
+                  )}
               >
                 <option value="critical">critical</option>
                 <option value="warning">warning</option>
                 <option value="info">info</option>
               </select>
-              <button type="button" class="btn small ghost" onclick={() => removeCheckDef(i)}>&#x2715;</button>
+              <button type="button" class="btn small ghost" onclick={() => removeCheckDef(i)}
+                >&#x2715;</button
+              >
             </div>
             <div style="display:flex;gap:6px;flex-wrap:wrap;font-size:13px">
               {#if def.check_type === 'ping'}
-                <input value={cfg.target ?? ''} placeholder="Ziel" style="width:160px;font-size:12px"
-                  oninput={(e) => updateCheckConfig(i, 'target', (e.currentTarget as HTMLInputElement).value)} />
-                <input type="number" value={cfg.timeout ?? 5} placeholder="Timeout (s)" style="width:70px;font-size:12px"
-                  oninput={(e) => updateCheckConfig(i, 'timeout', Number((e.currentTarget as HTMLInputElement).value) || 0)} />
+                <input
+                  value={cfg.target ?? ''}
+                  placeholder="Ziel"
+                  style="width:160px;font-size:12px"
+                  oninput={(e) =>
+                    updateCheckConfig(i, 'target', (e.currentTarget as HTMLInputElement).value)}
+                />
+                <input
+                  type="number"
+                  value={cfg.timeout ?? 5}
+                  placeholder="Timeout (s)"
+                  style="width:70px;font-size:12px"
+                  oninput={(e) =>
+                    updateCheckConfig(
+                      i,
+                      'timeout',
+                      Number((e.currentTarget as HTMLInputElement).value) || 0,
+                    )}
+                />
               {:else if def.check_type === 'tcp'}
-                <input value={cfg.target ?? ''} placeholder="Ziel" style="width:160px;font-size:12px"
-                  oninput={(e) => updateCheckConfig(i, 'target', (e.currentTarget as HTMLInputElement).value)} />
-                <input type="number" value={cfg.port ?? ''} placeholder="Port" style="width:70px;font-size:12px"
-                  oninput={(e) => updateCheckConfig(i, 'port', Number((e.currentTarget as HTMLInputElement).value) || 0)} />
-                <input type="number" value={cfg.timeout ?? 5} placeholder="Timeout (s)" style="width:70px;font-size:12px"
-                  oninput={(e) => updateCheckConfig(i, 'timeout', Number((e.currentTarget as HTMLInputElement).value) || 0)} />
+                <input
+                  value={cfg.target ?? ''}
+                  placeholder="Ziel"
+                  style="width:160px;font-size:12px"
+                  oninput={(e) =>
+                    updateCheckConfig(i, 'target', (e.currentTarget as HTMLInputElement).value)}
+                />
+                <input
+                  type="number"
+                  value={cfg.port ?? ''}
+                  placeholder="Port"
+                  style="width:70px;font-size:12px"
+                  oninput={(e) =>
+                    updateCheckConfig(
+                      i,
+                      'port',
+                      Number((e.currentTarget as HTMLInputElement).value) || 0,
+                    )}
+                />
+                <input
+                  type="number"
+                  value={cfg.timeout ?? 5}
+                  placeholder="Timeout (s)"
+                  style="width:70px;font-size:12px"
+                  oninput={(e) =>
+                    updateCheckConfig(
+                      i,
+                      'timeout',
+                      Number((e.currentTarget as HTMLInputElement).value) || 0,
+                    )}
+                />
               {:else if def.check_type === 'http'}
-                <input value={cfg.url ?? ''} placeholder="URL" style="width:220px;font-size:12px"
-                  oninput={(e) => updateCheckConfig(i, 'url', (e.currentTarget as HTMLInputElement).value)} />
-                <select value={cfg.method ?? 'GET'} style="font-size:12px"
-                  onchange={(e) => updateCheckConfig(i, 'method', (e.currentTarget as HTMLSelectElement).value)}>
-                  {#each ['GET','POST','PUT','HEAD'] as m (m)}<option value={m}>{m}</option>{/each}
+                <input
+                  value={cfg.url ?? ''}
+                  placeholder="URL"
+                  style="width:220px;font-size:12px"
+                  oninput={(e) =>
+                    updateCheckConfig(i, 'url', (e.currentTarget as HTMLInputElement).value)}
+                />
+                <select
+                  value={cfg.method ?? 'GET'}
+                  style="font-size:12px"
+                  onchange={(e) =>
+                    updateCheckConfig(i, 'method', (e.currentTarget as HTMLSelectElement).value)}
+                >
+                  {#each ['GET', 'POST', 'PUT', 'HEAD'] as m (m)}<option value={m}>{m}</option
+                    >{/each}
                 </select>
-                <input type="number" value={cfg.expected_status ?? 200} placeholder="Status" style="width:60px;font-size:12px"
-                  oninput={(e) => updateCheckConfig(i, 'expected_status', Number((e.currentTarget as HTMLInputElement).value) || 200)} />
-                <input type="number" value={cfg.timeout ?? 10} placeholder="Timeout (s)" style="width:70px;font-size:12px"
-                  oninput={(e) => updateCheckConfig(i, 'timeout', Number((e.currentTarget as HTMLInputElement).value) || 0)} />
-                <select style="font-size:12px" value={String(cfg.verify_ssl ?? true)}
-                  onchange={(e) => updateCheckConfig(i, 'verify_ssl', (e.currentTarget as HTMLSelectElement).value === 'true')}>
+                <input
+                  type="number"
+                  value={cfg.expected_status ?? 200}
+                  placeholder="Status"
+                  style="width:60px;font-size:12px"
+                  oninput={(e) =>
+                    updateCheckConfig(
+                      i,
+                      'expected_status',
+                      Number((e.currentTarget as HTMLInputElement).value) || 200,
+                    )}
+                />
+                <input
+                  type="number"
+                  value={cfg.timeout ?? 10}
+                  placeholder="Timeout (s)"
+                  style="width:70px;font-size:12px"
+                  oninput={(e) =>
+                    updateCheckConfig(
+                      i,
+                      'timeout',
+                      Number((e.currentTarget as HTMLInputElement).value) || 0,
+                    )}
+                />
+                <select
+                  style="font-size:12px"
+                  value={String(cfg.verify_ssl ?? true)}
+                  onchange={(e) =>
+                    updateCheckConfig(
+                      i,
+                      'verify_ssl',
+                      (e.currentTarget as HTMLSelectElement).value === 'true',
+                    )}
+                >
                   <option value="true">SSL Ja</option>
                   <option value="false">SSL Nein</option>
                 </select>
-                <input value={cfg.search_string ?? ''} placeholder="Suchtext" style="width:120px;font-size:12px"
-                  oninput={(e) => updateCheckConfig(i, 'search_string', (e.currentTarget as HTMLInputElement).value)} />
+                <input
+                  value={cfg.search_string ?? ''}
+                  placeholder="Suchtext"
+                  style="width:120px;font-size:12px"
+                  oninput={(e) =>
+                    updateCheckConfig(
+                      i,
+                      'search_string',
+                      (e.currentTarget as HTMLInputElement).value,
+                    )}
+                />
               {:else if def.check_type === 'agent_ping'}
-                <input value={cfg.server_id ?? ''} placeholder="Server-ID" style="width:220px;font-size:12px"
-                  oninput={(e) => updateCheckConfig(i, 'server_id', (e.currentTarget as HTMLInputElement).value)} />
-                <input type="number" value={cfg.stale_minutes ?? 5} placeholder="Timeout (min)" style="width:80px;font-size:12px"
-                  oninput={(e) => updateCheckConfig(i, 'stale_minutes', Number((e.currentTarget as HTMLInputElement).value) || 5)} />
+                <input
+                  value={cfg.server_id ?? ''}
+                  placeholder="Server-ID"
+                  style="width:220px;font-size:12px"
+                  oninput={(e) =>
+                    updateCheckConfig(i, 'server_id', (e.currentTarget as HTMLInputElement).value)}
+                />
+                <input
+                  type="number"
+                  value={cfg.stale_minutes ?? 5}
+                  placeholder="Timeout (min)"
+                  style="width:80px;font-size:12px"
+                  oninput={(e) =>
+                    updateCheckConfig(
+                      i,
+                      'stale_minutes',
+                      Number((e.currentTarget as HTMLInputElement).value) || 5,
+                    )}
+                />
               {:else if def.check_type === 'agent_resources'}
-                {#each ['cpu_warn','cpu_crit','memory_warn','memory_crit','disk_warn','disk_crit','temp_warn','temp_crit'] as k (k)}
-                  <input type="number" value={(cfg as Record<string, number>)[k] ?? 0} placeholder={k} style="width:80px;font-size:12px"
-                    oninput={(e) => updateCheckConfig(i, k, Number((e.currentTarget as HTMLInputElement).value) || 0)} />
+                {#each ['cpu_warn', 'cpu_crit', 'memory_warn', 'memory_crit', 'disk_warn', 'disk_crit', 'temp_warn', 'temp_crit'] as k (k)}
+                  <input
+                    type="number"
+                    value={(cfg as Record<string, number>)[k] ?? 0}
+                    placeholder={k}
+                    style="width:80px;font-size:12px"
+                    oninput={(e) =>
+                      updateCheckConfig(
+                        i,
+                        k,
+                        Number((e.currentTarget as HTMLInputElement).value) || 0,
+                      )}
+                  />
                 {/each}
               {:else if def.check_type === 'service_process'}
-                <select value={cfg.mode ?? 'auto'} style="font-size:12px"
-                  onchange={(e) => updateCheckConfig(i, 'mode', (e.currentTarget as HTMLSelectElement).value)}>
+                <select
+                  value={cfg.mode ?? 'auto'}
+                  style="font-size:12px"
+                  onchange={(e) =>
+                    updateCheckConfig(i, 'mode', (e.currentTarget as HTMLSelectElement).value)}
+                >
                   <option value="auto">auto</option>
                   <option value="list">list</option>
                 </select>
                 {#if cfg.mode === 'list'}
-                  <input value={toCsv(cfg.services)} placeholder="Services" style="width:200px;font-size:12px"
-                    oninput={(e) => updateCheckConfig(i, 'services', parseCsv((e.currentTarget as HTMLInputElement).value))} />
+                  <input
+                    value={toCsv(cfg.services)}
+                    placeholder="Services"
+                    style="width:200px;font-size:12px"
+                    oninput={(e) =>
+                      updateCheckConfig(
+                        i,
+                        'services',
+                        parseCsv((e.currentTarget as HTMLInputElement).value),
+                      )}
+                  />
                 {:else}
-                  <input value={toCsv(cfg.ignore)} placeholder="Ignorieren" style="width:200px;font-size:12px"
-                    oninput={(e) => updateCheckConfig(i, 'ignore', parseCsv((e.currentTarget as HTMLInputElement).value))} />
+                  <input
+                    value={toCsv(cfg.ignore)}
+                    placeholder="Ignorieren"
+                    style="width:200px;font-size:12px"
+                    oninput={(e) =>
+                      updateCheckConfig(
+                        i,
+                        'ignore',
+                        parseCsv((e.currentTarget as HTMLInputElement).value),
+                      )}
+                  />
                 {/if}
               {:else if def.check_type === 'proxmox_backup'}
-                <input type="number" value={cfg.max_backup_age_hours ?? 26} placeholder="max Alter (h)" style="width:90px;font-size:12px"
-                  oninput={(e) => updateCheckConfig(i, 'max_backup_age_hours', Number((e.currentTarget as HTMLInputElement).value) || 26)} />
+                <input
+                  type="number"
+                  value={cfg.max_backup_age_hours ?? 26}
+                  placeholder="max Alter (h)"
+                  style="width:90px;font-size:12px"
+                  oninput={(e) =>
+                    updateCheckConfig(
+                      i,
+                      'max_backup_age_hours',
+                      Number((e.currentTarget as HTMLInputElement).value) || 26,
+                    )}
+                />
               {:else if def.check_type === 'zfs_health'}
-                <input type="number" value={cfg.capacity_warn ?? 80} placeholder="Warn %" style="width:80px;font-size:12px"
-                  oninput={(e) => updateCheckConfig(i, 'capacity_warn', Number((e.currentTarget as HTMLInputElement).value) || 80)} />
-                <input type="number" value={cfg.capacity_crit ?? 90} placeholder="Crit %" style="width:80px;font-size:12px"
-                  oninput={(e) => updateCheckConfig(i, 'capacity_crit', Number((e.currentTarget as HTMLInputElement).value) || 90)} />
+                <input
+                  type="number"
+                  value={cfg.capacity_warn ?? 80}
+                  placeholder="Warn %"
+                  style="width:80px;font-size:12px"
+                  oninput={(e) =>
+                    updateCheckConfig(
+                      i,
+                      'capacity_warn',
+                      Number((e.currentTarget as HTMLInputElement).value) || 80,
+                    )}
+                />
+                <input
+                  type="number"
+                  value={cfg.capacity_crit ?? 90}
+                  placeholder="Crit %"
+                  style="width:80px;font-size:12px"
+                  oninput={(e) =>
+                    updateCheckConfig(
+                      i,
+                      'capacity_crit',
+                      Number((e.currentTarget as HTMLInputElement).value) || 90,
+                    )}
+                />
               {:else if def.check_type === 'docker_health'}
-                <input value={toCsv(cfg.ignore_containers)} placeholder="Ignorieren" style="width:200px;font-size:12px"
-                  oninput={(e) => updateCheckConfig(i, 'ignore_containers', parseCsv((e.currentTarget as HTMLInputElement).value))} />
+                <input
+                  value={toCsv(cfg.ignore_containers)}
+                  placeholder="Ignorieren"
+                  style="width:200px;font-size:12px"
+                  oninput={(e) =>
+                    updateCheckConfig(
+                      i,
+                      'ignore_containers',
+                      parseCsv((e.currentTarget as HTMLInputElement).value),
+                    )}
+                />
               {/if}
             </div>
           </div>
@@ -322,42 +551,105 @@
       {:else}
         {#each alertDefs as def, i (def.def_id ?? i)}
           {@const cc = def.channel_config ?? {}}
-          <div class="tpl-def-row" style="margin-bottom:8px;padding:8px 10px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px">
+          <div
+            class="tpl-def-row"
+            style="margin-bottom:8px;padding:8px 10px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px"
+          >
             <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap">
               <span class="badge badge-{def.channel}" style="flex-shrink:0;font-size:10px">
                 {def.channel === 'email' ? 'E-Mail' : 'Webhook'}
               </span>
-              <input value={def.name} style="flex:1;min-width:120px" placeholder="Name"
-                oninput={(e) => updateAlertField(i, 'name', (e.currentTarget as HTMLInputElement).value)} />
-              <select value={def.channel} style="width:90px"
-                onchange={(e) => changeAlertChannel(i, (e.currentTarget as HTMLSelectElement).value as 'webhook' | 'email')}>
+              <input
+                value={def.name}
+                style="flex:1;min-width:120px"
+                placeholder="Name"
+                oninput={(e) =>
+                  updateAlertField(i, 'name', (e.currentTarget as HTMLInputElement).value)}
+              />
+              <select
+                value={def.channel}
+                style="width:90px"
+                onchange={(e) =>
+                  changeAlertChannel(
+                    i,
+                    (e.currentTarget as HTMLSelectElement).value as 'webhook' | 'email',
+                  )}
+              >
                 <option value="webhook">Webhook</option>
                 <option value="email">E-Mail</option>
               </select>
-              <select value={def.match_severity ?? ''} style="width:100px"
+              <select
+                value={def.match_severity ?? ''}
+                style="width:100px"
                 onchange={(e) => {
                   const v = (e.currentTarget as HTMLSelectElement).value;
-                  updateAlertField(i, 'match_severity', (v || null) as TemplateAlertDef['match_severity']);
-                }}>
+                  updateAlertField(
+                    i,
+                    'match_severity',
+                    (v || null) as TemplateAlertDef['match_severity'],
+                  );
+                }}
+              >
                 <option value="">Alle</option>
                 <option value="critical">critical</option>
                 <option value="warning">warning</option>
               </select>
-              <input type="number" value={def.cooldown_minutes ?? 30} placeholder="Cooldown (min)" style="width:80px"
-                oninput={(e) => updateAlertField(i, 'cooldown_minutes', Number((e.currentTarget as HTMLInputElement).value) || 30)} />
-              <button type="button" class="btn small ghost" onclick={() => removeAlertDef(i)}>&#x2715;</button>
+              <input
+                type="number"
+                value={def.cooldown_minutes ?? 30}
+                placeholder="Cooldown (min)"
+                style="width:80px"
+                oninput={(e) =>
+                  updateAlertField(
+                    i,
+                    'cooldown_minutes',
+                    Number((e.currentTarget as HTMLInputElement).value) || 30,
+                  )}
+              />
+              <button type="button" class="btn small ghost" onclick={() => removeAlertDef(i)}
+                >&#x2715;</button
+              >
             </div>
             <div style="display:flex;gap:6px;flex-wrap:wrap;font-size:13px">
               {#if def.channel === 'webhook'}
-                <input value={cc.url ?? ''} placeholder="Webhook URL" style="flex:1;min-width:200px;font-size:12px"
-                  oninput={(e) => updateAlertChannelConfig(i, 'url', (e.currentTarget as HTMLInputElement).value)} />
+                <input
+                  value={cc.url ?? ''}
+                  placeholder="Webhook URL"
+                  style="flex:1;min-width:200px;font-size:12px"
+                  oninput={(e) =>
+                    updateAlertChannelConfig(i, 'url', (e.currentTarget as HTMLInputElement).value)}
+                />
               {:else}
-                <input value={cc.to ?? ''} placeholder="Empfaenger" style="flex:1;min-width:160px;font-size:12px"
-                  oninput={(e) => updateAlertChannelConfig(i, 'to', (e.currentTarget as HTMLInputElement).value)} />
-                <input value={cc.smtp_host ?? ''} placeholder="SMTP Host" style="width:160px;font-size:12px"
-                  oninput={(e) => updateAlertChannelConfig(i, 'smtp_host', (e.currentTarget as HTMLInputElement).value)} />
-                <input type="number" value={cc.smtp_port ?? 587} placeholder="Port" style="width:70px;font-size:12px"
-                  oninput={(e) => updateAlertChannelConfig(i, 'smtp_port', Number((e.currentTarget as HTMLInputElement).value) || 587)} />
+                <input
+                  value={cc.to ?? ''}
+                  placeholder="Empfaenger"
+                  style="flex:1;min-width:160px;font-size:12px"
+                  oninput={(e) =>
+                    updateAlertChannelConfig(i, 'to', (e.currentTarget as HTMLInputElement).value)}
+                />
+                <input
+                  value={cc.smtp_host ?? ''}
+                  placeholder="SMTP Host"
+                  style="width:160px;font-size:12px"
+                  oninput={(e) =>
+                    updateAlertChannelConfig(
+                      i,
+                      'smtp_host',
+                      (e.currentTarget as HTMLInputElement).value,
+                    )}
+                />
+                <input
+                  type="number"
+                  value={cc.smtp_port ?? 587}
+                  placeholder="Port"
+                  style="width:70px;font-size:12px"
+                  oninput={(e) =>
+                    updateAlertChannelConfig(
+                      i,
+                      'smtp_port',
+                      Number((e.currentTarget as HTMLInputElement).value) || 587,
+                    )}
+                />
               {/if}
             </div>
           </div>
@@ -372,8 +664,7 @@
       variant="primary"
       type="submit"
       disabled={submitting}
-      onclick={() =>
-        (document.getElementById('template-form') as HTMLFormElement)?.requestSubmit()}
+      onclick={() => (document.getElementById('template-form') as HTMLFormElement)?.requestSubmit()}
     >
       {$t('action.save')}
     </Button>

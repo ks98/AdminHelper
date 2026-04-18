@@ -248,7 +248,10 @@
           temp_ssd_crit: smartTempSsdCrit || 70,
           temp_nvme_warn: smartTempNvmeWarn || 65,
           temp_nvme_crit: smartTempNvmeCrit || 75,
-          ignore_devices: smartIgnore.split('\n').map((s) => s.trim()).filter(Boolean),
+          ignore_devices: smartIgnore
+            .split('\n')
+            .map((s) => s.trim())
+            .filter(Boolean),
         };
     }
   }
@@ -443,8 +446,13 @@
             {#each sensorList as s (s.sensor)}
               {@const ov = tempOverrides[s.sensor] ?? { warn: '', crit: '' }}
               <div style="display:flex;gap:8px;align-items:center">
-                <span style="min-width:180px;font-size:12px;color:var(--text-muted)" title={s.sensor}>{s.sensor}</span>
-                <span style="font-size:11px;color:var(--text-muted);min-width:45px">{s.temp_c}&deg;C</span>
+                <span
+                  style="min-width:180px;font-size:12px;color:var(--text-muted)"
+                  title={s.sensor}>{s.sensor}</span
+                >
+                <span style="font-size:11px;color:var(--text-muted);min-width:45px"
+                  >{s.temp_c}&deg;C</span
+                >
                 <input
                   type="number"
                   min="0"
@@ -532,20 +540,48 @@
         <input id="mcDockerIgnore" placeholder="container1, container2" bind:value={dockerIgnore} />
       </div>
     {:else if checkType === 'smart_health'}
-      <div class="field"><label>Realloc Warn</label><input type="number" bind:value={smartReallocWarn} /></div>
-      <div class="field"><label>Realloc Crit</label><input type="number" bind:value={smartReallocCrit} /></div>
-      <div class="field"><label>Pending Warn</label><input type="number" bind:value={smartPendingWarn} /></div>
-      <div class="field"><label>Pending Crit</label><input type="number" bind:value={smartPendingCrit} /></div>
-      <div class="field"><label>NVMe Spare Warn %</label><input type="number" bind:value={smartNvmeSpareWarn} /></div>
-      <div class="field"><label>NVMe Spare Crit %</label><input type="number" bind:value={smartNvmeSpareCrit} /></div>
-      <div class="field"><label>NVMe Wear Warn %</label><input type="number" bind:value={smartNvmeUsedWarn} /></div>
-      <div class="field"><label>NVMe Wear Crit %</label><input type="number" bind:value={smartNvmeUsedCrit} /></div>
-      <div class="field"><label>HDD Temp Warn</label><input type="number" bind:value={smartTempHddWarn} /></div>
-      <div class="field"><label>HDD Temp Crit</label><input type="number" bind:value={smartTempHddCrit} /></div>
-      <div class="field"><label>SSD Temp Warn</label><input type="number" bind:value={smartTempSsdWarn} /></div>
-      <div class="field"><label>SSD Temp Crit</label><input type="number" bind:value={smartTempSsdCrit} /></div>
-      <div class="field"><label>NVMe Temp Warn</label><input type="number" bind:value={smartTempNvmeWarn} /></div>
-      <div class="field"><label>NVMe Temp Crit</label><input type="number" bind:value={smartTempNvmeCrit} /></div>
+      <div class="field">
+        <label>Realloc Warn</label><input type="number" bind:value={smartReallocWarn} />
+      </div>
+      <div class="field">
+        <label>Realloc Crit</label><input type="number" bind:value={smartReallocCrit} />
+      </div>
+      <div class="field">
+        <label>Pending Warn</label><input type="number" bind:value={smartPendingWarn} />
+      </div>
+      <div class="field">
+        <label>Pending Crit</label><input type="number" bind:value={smartPendingCrit} />
+      </div>
+      <div class="field">
+        <label>NVMe Spare Warn %</label><input type="number" bind:value={smartNvmeSpareWarn} />
+      </div>
+      <div class="field">
+        <label>NVMe Spare Crit %</label><input type="number" bind:value={smartNvmeSpareCrit} />
+      </div>
+      <div class="field">
+        <label>NVMe Wear Warn %</label><input type="number" bind:value={smartNvmeUsedWarn} />
+      </div>
+      <div class="field">
+        <label>NVMe Wear Crit %</label><input type="number" bind:value={smartNvmeUsedCrit} />
+      </div>
+      <div class="field">
+        <label>HDD Temp Warn</label><input type="number" bind:value={smartTempHddWarn} />
+      </div>
+      <div class="field">
+        <label>HDD Temp Crit</label><input type="number" bind:value={smartTempHddCrit} />
+      </div>
+      <div class="field">
+        <label>SSD Temp Warn</label><input type="number" bind:value={smartTempSsdWarn} />
+      </div>
+      <div class="field">
+        <label>SSD Temp Crit</label><input type="number" bind:value={smartTempSsdCrit} />
+      </div>
+      <div class="field">
+        <label>NVMe Temp Warn</label><input type="number" bind:value={smartTempNvmeWarn} />
+      </div>
+      <div class="field">
+        <label>NVMe Temp Crit</label><input type="number" bind:value={smartTempNvmeCrit} />
+      </div>
       <div class="field full">
         <label for="mcSmartIgnore">{$t('monitor.cfg.ignored')}</label>
         <textarea id="mcSmartIgnore" rows="3" bind:value={smartIgnore}></textarea>

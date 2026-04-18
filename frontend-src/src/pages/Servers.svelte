@@ -49,8 +49,7 @@
       if ((s.tags ?? []).some((tag) => tag.toLowerCase().includes(q))) return true;
       if (
         (s.connections ?? []).some(
-          (c) =>
-            c.name.toLowerCase().includes(q) || (c.host ?? '').toLowerCase().includes(q),
+          (c) => c.name.toLowerCase().includes(q) || (c.host ?? '').toLowerCase().includes(q),
         )
       )
         return true;
@@ -65,7 +64,9 @@
   });
 
   function toggleCard(id: string) {
-    expanded = new Set(expanded.has(id) ? [...expanded].filter((x) => x !== id) : [...expanded, id]);
+    expanded = new Set(
+      expanded.has(id) ? [...expanded].filter((x) => x !== id) : [...expanded, id],
+    );
   }
 
   function openCreate() {
@@ -96,7 +97,7 @@
   }
 
   function hostDisplay(c: Connection): string {
-    return c.kind === 'web' ? c.url ?? '–' : c.host ?? '–';
+    return c.kind === 'web' ? (c.url ?? '–') : (c.host ?? '–');
   }
 </script>
 

@@ -42,7 +42,10 @@
     const tp = check.checkType;
     const kv: [string, string | number][] = [];
     if (tp === 'ping') {
-      kv.push([$t('monitor.cfg.target'), c.target ?? ''], [$t('monitor.cfg.timeout'), `${c.timeout ?? 5}s`]);
+      kv.push(
+        [$t('monitor.cfg.target'), c.target ?? ''],
+        [$t('monitor.cfg.timeout'), `${c.timeout ?? 5}s`],
+      );
     } else if (tp === 'tcp') {
       kv.push(
         [$t('monitor.cfg.target'), `${c.target ?? ''}:${c.port ?? ''}`],
@@ -57,12 +60,24 @@
       if (c.verify_ssl === false) kv.push([$t('monitor.cfg.ssl'), $t('monitor.cfg.sslDisabled')]);
       if (c.search_string) kv.push([$t('monitor.cfg.searchText'), c.search_string]);
     } else if (tp === 'agent_ping') {
-      kv.push([$t('monitor.cfg.staleThreshold'), $t('monitor.cfg.staleMinutes', { min: c.stale_minutes ?? 5 })]);
+      kv.push([
+        $t('monitor.cfg.staleThreshold'),
+        $t('monitor.cfg.staleMinutes', { min: c.stale_minutes ?? 5 }),
+      ]);
     } else if (tp === 'agent_resources') {
       kv.push(
-        [$t('monitor.cfg.cpu'), `Warn ${c.cpu_warn ?? DEF_CPU_WARN}% / Crit ${c.cpu_crit ?? DEF_CPU_CRIT}%`],
-        [$t('monitor.cfg.ram'), `Warn ${c.memory_warn ?? DEF_MEM_WARN}% / Crit ${c.memory_crit ?? DEF_MEM_CRIT}%`],
-        [$t('monitor.cfg.disk'), `Warn ${c.disk_warn ?? DEF_DISK_WARN}% / Crit ${c.disk_crit ?? DEF_DISK_CRIT}%`],
+        [
+          $t('monitor.cfg.cpu'),
+          `Warn ${c.cpu_warn ?? DEF_CPU_WARN}% / Crit ${c.cpu_crit ?? DEF_CPU_CRIT}%`,
+        ],
+        [
+          $t('monitor.cfg.ram'),
+          `Warn ${c.memory_warn ?? DEF_MEM_WARN}% / Crit ${c.memory_crit ?? DEF_MEM_CRIT}%`,
+        ],
+        [
+          $t('monitor.cfg.disk'),
+          `Warn ${c.disk_warn ?? DEF_DISK_WARN}% / Crit ${c.disk_crit ?? DEF_DISK_CRIT}%`,
+        ],
         [
           $t('monitor.cfg.temp'),
           `Warn ${c.temp_warn ?? DEF_TEMP_WARN}\u00b0C / Crit ${c.temp_crit ?? DEF_TEMP_CRIT}\u00b0C`,
@@ -81,12 +96,20 @@
       if (c.services?.length) kv.push([$t('monitor.cfg.services'), toCsv(c.services)]);
       if (c.ignore?.length) kv.push([$t('monitor.cfg.ignored'), toCsv(c.ignore)]);
     } else if (tp === 'proxmox_backup') {
-      kv.push([$t('monitor.cfg.maxAge'), $t('monitor.cfg.maxAgeHours', { hours: c.max_backup_age_hours ?? 26 })]);
-      if (c.exclude_vmids?.length) kv.push([$t('monitor.cfg.excludeVmids'), toCsv(c.exclude_vmids)]);
+      kv.push([
+        $t('monitor.cfg.maxAge'),
+        $t('monitor.cfg.maxAgeHours', { hours: c.max_backup_age_hours ?? 26 }),
+      ]);
+      if (c.exclude_vmids?.length)
+        kv.push([$t('monitor.cfg.excludeVmids'), toCsv(c.exclude_vmids)]);
     } else if (tp === 'zfs_health') {
-      kv.push([$t('monitor.cfg.capacity'), `Warn ${c.capacity_warn ?? 80}% / Crit ${c.capacity_crit ?? 90}%`]);
+      kv.push([
+        $t('monitor.cfg.capacity'),
+        `Warn ${c.capacity_warn ?? 80}% / Crit ${c.capacity_crit ?? 90}%`,
+      ]);
     } else if (tp === 'docker_health') {
-      if (c.ignore_containers?.length) kv.push([$t('monitor.cfg.ignored'), toCsv(c.ignore_containers)]);
+      if (c.ignore_containers?.length)
+        kv.push([$t('monitor.cfg.ignored'), toCsv(c.ignore_containers)]);
       kv.push([
         $t('monitor.cfg.restartCheck'),
         c.check_restarts !== false ? $t('monitor.cfg.restartActive') : $t('monitor.cfg.restartOff'),
@@ -99,7 +122,10 @@
         ['NVMe Wear', `Warn ${c.nvme_used_warn ?? 90}% / Crit ${c.nvme_used_crit ?? 100}%`],
         ['Temp HDD', `Warn ${c.temp_hdd_warn ?? 55}\u00b0C / Crit ${c.temp_hdd_crit ?? 60}\u00b0C`],
         ['Temp SSD', `Warn ${c.temp_ssd_warn ?? 60}\u00b0C / Crit ${c.temp_ssd_crit ?? 70}\u00b0C`],
-        ['Temp NVMe', `Warn ${c.temp_nvme_warn ?? 65}\u00b0C / Crit ${c.temp_nvme_crit ?? 75}\u00b0C`],
+        [
+          'Temp NVMe',
+          `Warn ${c.temp_nvme_warn ?? 65}\u00b0C / Crit ${c.temp_nvme_crit ?? 75}\u00b0C`,
+        ],
       );
       if (c.ignore_devices?.length) kv.push([$t('monitor.cfg.ignored'), toCsv(c.ignore_devices)]);
     }
@@ -108,22 +134,32 @@
 
   // ── Type-Content-Daten (typisiert je nach checkType) ───────────────────
   const resourceDetails = $derived.by<MonitorResourceDetails | null>(() =>
-    check.checkType === 'agent_resources' ? (check.state?.details as MonitorResourceDetails) ?? null : null,
+    check.checkType === 'agent_resources'
+      ? ((check.state?.details as MonitorResourceDetails) ?? null)
+      : null,
   );
   const serviceDetails = $derived.by<MonitorServiceDetails | null>(() =>
-    check.checkType === 'service_process' ? (check.state?.details as MonitorServiceDetails) ?? null : null,
+    check.checkType === 'service_process'
+      ? ((check.state?.details as MonitorServiceDetails) ?? null)
+      : null,
   );
   const containerDetails = $derived.by<MonitorContainerDetails | null>(() =>
-    check.checkType === 'docker_health' ? (check.state?.details as MonitorContainerDetails) ?? null : null,
+    check.checkType === 'docker_health'
+      ? ((check.state?.details as MonitorContainerDetails) ?? null)
+      : null,
   );
   const backupDetails = $derived.by<MonitorBackupDetails | null>(() =>
-    check.checkType === 'proxmox_backup' ? (check.state?.details as MonitorBackupDetails) ?? null : null,
+    check.checkType === 'proxmox_backup'
+      ? ((check.state?.details as MonitorBackupDetails) ?? null)
+      : null,
   );
   const zfsDetails = $derived.by<MonitorZfsDetails | null>(() =>
-    check.checkType === 'zfs_health' ? (check.state?.details as MonitorZfsDetails) ?? null : null,
+    check.checkType === 'zfs_health' ? ((check.state?.details as MonitorZfsDetails) ?? null) : null,
   );
   const smartDetails = $derived.by<MonitorSmartDetails | null>(() =>
-    check.checkType === 'smart_health' ? (check.state?.details as MonitorSmartDetails) ?? null : null,
+    check.checkType === 'smart_health'
+      ? ((check.state?.details as MonitorSmartDetails) ?? null)
+      : null,
   );
 
   // ── Gauge-Click-On-Demand-Chart ────────────────────────────────────────
@@ -153,7 +189,11 @@
     await loadGauge(metric, mount ?? null, '1h');
   }
 
-  async function loadGauge(metric: string, mount: string | null, period: '1h' | '6h' | '24h' | '7d'): Promise<void> {
+  async function loadGauge(
+    metric: string,
+    mount: string | null,
+    period: '1h' | '6h' | '24h' | '7d',
+  ): Promise<void> {
     gaugeLoading = true;
     gaugeError = null;
     try {
@@ -231,7 +271,10 @@
       if (isNaN(last)) continue;
       const isTemp = name.includes('agent_temp');
       const unit = isTemp ? ' \u00b0C' : checkTypeUnit(check.checkType);
-      const label = name.replace(/^monitor_/, '').replace(/_value$/, '').replace(/_/g, ' ');
+      const label = name
+        .replace(/^monitor_/, '')
+        .replace(/_value$/, '')
+        .replace(/_/g, ' ');
       out.push({ label, text: `${last.toFixed(1)}${unit}` });
     }
     return out;
@@ -338,9 +381,10 @@
         />
       {/if}
       {#each resourceDetails.disks ?? [] as disk (disk.mount)}
-        {@const dDetail = disk.total_gb != null
-          ? `${(disk.used_gb ?? 0).toFixed(1)} / ${disk.total_gb.toFixed(1)} GB`
-          : null}
+        {@const dDetail =
+          disk.total_gb != null
+            ? `${(disk.used_gb ?? 0).toFixed(1)} / ${disk.total_gb.toFixed(1)} GB`
+            : null}
         <GaugeItem
           label={disk.mount}
           value={disk.percent}
@@ -355,10 +399,13 @@
         {@const ov = tempOv[sensor.sensor] ?? {}}
         {@const sW = ov.warn ?? tempW}
         {@const sC = ov.crit ?? tempC}
-        {@const hwInfo = [
-          sensor.high > 0 ? `High: ${sensor.high}\u00b0C` : null,
-          sensor.critical > 0 ? `Crit: ${sensor.critical}\u00b0C` : null,
-        ].filter(Boolean).join(', ') || null}
+        {@const hwInfo =
+          [
+            sensor.high > 0 ? `High: ${sensor.high}\u00b0C` : null,
+            sensor.critical > 0 ? `Crit: ${sensor.critical}\u00b0C` : null,
+          ]
+            .filter(Boolean)
+            .join(', ') || null}
         <GaugeItem
           label={sensor.sensor}
           value={sensor.temp_c}
@@ -378,22 +425,29 @@
             <button
               class="btn small"
               class:active={gaugePeriod === p}
-              onclick={() => setGaugePeriod(p as '1h' | '6h' | '24h' | '7d')}
-            >{p}</button>
+              onclick={() => setGaugePeriod(p as '1h' | '6h' | '24h' | '7d')}>{p}</button
+            >
           {/each}
         </div>
         <div class="check-detail-chart">
-          <MetricsChart data={gaugeData} checkType={check.checkType} loading={gaugeLoading} error={gaugeError} />
+          <MetricsChart
+            data={gaugeData}
+            checkType={check.checkType}
+            loading={gaugeLoading}
+            error={gaugeError}
+          />
         </div>
       </div>
     {/if}
-
   {:else if check.checkType === 'service_process' && serviceDetails}
     {#if serviceDetails.mode === 'auto'}
       {@const failed = serviceDetails.failed ?? []}
       {@const inactive = serviceDetails.enabled_inactive ?? []}
       {#if failed.length === 0 && inactive.length === 0}
-        <div class="mon-all-ok"><span class="mon-item-dot item-ok"></span> {$t('monitor.allUnitsOk')}</div>
+        <div class="mon-all-ok">
+          <span class="mon-item-dot item-ok"></span>
+          {$t('monitor.allUnitsOk')}
+        </div>
       {:else}
         <div class="mon-item-list">
           {#if failed.length > 0}
@@ -429,7 +483,6 @@
         {/each}
       </div>
     {/if}
-
   {:else if check.checkType === 'docker_health' && containerDetails?.containers?.length}
     {@const allOk = containerDetails.containers.every((c) => c.category === 'ok')}
     {#if allOk}
@@ -444,7 +497,12 @@
       )}
       <div class="mon-item-list">
         {#each sorted as c (c.name)}
-          {@const dotCls = c.category === 'critical' ? 'item-crit' : c.category === 'warning' ? 'item-warn' : 'item-ok'}
+          {@const dotCls =
+            c.category === 'critical'
+              ? 'item-crit'
+              : c.category === 'warning'
+                ? 'item-warn'
+                : 'item-ok'}
           {@const imgBadge = c.image ? c.image.split(':')[0].split('/').pop() : null}
           <div class="mon-item-row">
             <span class="mon-item-dot {dotCls}"></span>
@@ -457,7 +515,6 @@
         {/each}
       </div>
     {/if}
-
   {:else if check.checkType === 'proxmox_backup' && backupDetails?.vms?.length}
     {@const allOk = backupDetails.vms.every((v) => v.backupStatus === 'ok')}
     {#if allOk}
@@ -472,12 +529,18 @@
       )}
       <div class="mon-item-list">
         {#each sorted as vm (vm.vmid)}
-          {@const dotCls = vm.backupStatus === 'missing' ? 'item-crit' : vm.backupStatus === 'outdated' ? 'item-warn' : 'item-ok'}
-          {@const statusText = vm.backupStatus === 'ok'
-            ? 'OK'
-            : vm.backupStatus === 'missing'
-              ? $t('monitor.noBackup')
-              : $t('monitor.outdated', { hours: vm.ageHours ?? 0 })}
+          {@const dotCls =
+            vm.backupStatus === 'missing'
+              ? 'item-crit'
+              : vm.backupStatus === 'outdated'
+                ? 'item-warn'
+                : 'item-ok'}
+          {@const statusText =
+            vm.backupStatus === 'ok'
+              ? 'OK'
+              : vm.backupStatus === 'missing'
+                ? $t('monitor.noBackup')
+                : $t('monitor.outdated', { hours: vm.ageHours ?? 0 })}
           <div class="mon-item-row">
             <span class="mon-item-dot {dotCls}"></span>
             <span class="mon-item-badge">{(vm.type ?? 'vm').toUpperCase()}</span>
@@ -487,15 +550,15 @@
         {/each}
       </div>
     {/if}
-
   {:else if check.checkType === 'zfs_health' && zfsDetails?.pools?.length}
     <div class="mon-gauge-grid">
       {#each zfsDetails.pools as pool (pool.name)}
-        {@const healthCls = pool.health === 'ONLINE'
-          ? 'health-online'
-          : pool.health === 'DEGRADED'
-            ? 'health-degraded'
-            : 'health-faulted'}
+        {@const healthCls =
+          pool.health === 'ONLINE'
+            ? 'health-online'
+            : pool.health === 'DEGRADED'
+              ? 'health-degraded'
+              : 'health-faulted'}
         <div class="mon-gauge-item">
           <span class="mon-gauge-label">{pool.name}</span>
           <div class="mon-gauge-bar">
@@ -509,16 +572,16 @@
         </div>
       {/each}
     </div>
-
   {:else if check.checkType === 'smart_health' && smartDetails?.disks?.length}
     <div class="mon-gauge-grid">
       {#each smartDetails.disks as disk (disk.device)}
         {@const cat = disk.category ?? 'ok'}
-        {@const badgeCls = cat === 'critical'
-          ? 'health-faulted'
-          : cat === 'warning'
-            ? 'health-degraded'
-            : 'health-online'}
+        {@const badgeCls =
+          cat === 'critical'
+            ? 'health-faulted'
+            : cat === 'warning'
+              ? 'health-degraded'
+              : 'health-online'}
         {@const badgeText = cat === 'critical' ? 'CRIT' : cat === 'warning' ? 'WARN' : 'OK'}
         {@const temp = Number(disk.temp_c) || 0}
         {@const tempWarn = Number(disk.temp_warn) || 60}
@@ -542,7 +605,8 @@
           return parts.join(' | ');
         })()}
         <div class="mon-gauge-item">
-          <span class="mon-gauge-label">{disk.device} [{disk.kind ?? disk.protocol ?? 'Disk'}]</span>
+          <span class="mon-gauge-label">{disk.device} [{disk.kind ?? disk.protocol ?? 'Disk'}]</span
+          >
           <div class="mon-gauge-bar">
             <div class="mon-gauge-fill {tempCls}" style="width:{tempPct}%"></div>
             <span class="mon-gauge-text">{temp}&deg;C</span>
@@ -560,7 +624,6 @@
         </div>
       {/each}
     </div>
-
   {:else if check.checkType === 'agent_ping' && pingSeconds != null}
     <div class="mon-last-seen">
       <span class="mon-last-seen-value">{pingDisplay(pingSeconds)}</span>
@@ -581,12 +644,17 @@
         <button
           class="btn small"
           class:active={mainPeriod === p}
-          onclick={() => setMainPeriod(p as '1h' | '6h' | '24h' | '7d')}
-        >{p}</button>
+          onclick={() => setMainPeriod(p as '1h' | '6h' | '24h' | '7d')}>{p}</button
+        >
       {/each}
     </div>
     <div class="check-detail-chart">
-      <MetricsChart data={mainData} checkType={check.checkType} loading={mainLoading} error={mainError} />
+      <MetricsChart
+        data={mainData}
+        checkType={check.checkType}
+        loading={mainLoading}
+        error={mainError}
+      />
     </div>
     {#if timelineSegments.length > 0}
       <div class="check-detail-timeline-label">{$t('monitor.statusHistory')}</div>

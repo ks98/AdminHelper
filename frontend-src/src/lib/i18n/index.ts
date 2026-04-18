@@ -46,8 +46,9 @@ function translate(lang: Language, key: string, vars?: TVars): string {
   return text;
 }
 
-export const t = derived(_language, ($lang) => (key: string, vars?: TVars) =>
-  translate($lang, key, vars),
+export const t = derived(
+  _language,
+  ($lang) => (key: string, vars?: TVars) => translate($lang, key, vars),
 );
 
 export function tNow(key: string, vars?: TVars): string {

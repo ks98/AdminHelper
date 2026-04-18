@@ -157,7 +157,11 @@
     {#if isStcp}
       <div class="field full">
         <label for="ftSecret">{$t('modal.tunnel.secretKey')}</label>
-        <input id="ftSecret" placeholder={$t('modal.tunnel.secretPlaceholder')} bind:value={secretKey} />
+        <input
+          id="ftSecret"
+          placeholder={$t('modal.tunnel.secretPlaceholder')}
+          bind:value={secretKey}
+        />
       </div>
       <div class="field">
         <label for="ftVisitorPort">{$t('modal.tunnel.visitorPort')}</label>
@@ -192,8 +196,7 @@
       variant="primary"
       type="submit"
       disabled={submitting}
-      onclick={() =>
-        (document.getElementById('tunnel-form') as HTMLFormElement)?.requestSubmit()}
+      onclick={() => (document.getElementById('tunnel-form') as HTMLFormElement)?.requestSubmit()}
     >
       {$t('action.save')}
     </Button>

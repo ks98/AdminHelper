@@ -58,7 +58,9 @@
 
   async function toggleCard(id: string) {
     const willOpen = !expanded.has(id);
-    expanded = new Set(expanded.has(id) ? [...expanded].filter((x) => x !== id) : [...expanded, id]);
+    expanded = new Set(
+      expanded.has(id) ? [...expanded].filter((x) => x !== id) : [...expanded, id],
+    );
     if (willOpen && previews[id] === undefined) {
       previews = { ...previews, [id]: null };
       try {
@@ -88,7 +90,9 @@
   }
 
   async function removePlaybook(p: Playbook) {
-    if (!(await confirmDialog($t('confirm.playbook.delete'), { confirmLabel: $t('action.delete') })))
+    if (
+      !(await confirmDialog($t('confirm.playbook.delete'), { confirmLabel: $t('action.delete') }))
+    )
       return;
     try {
       await playbooks.remove(p.id);
