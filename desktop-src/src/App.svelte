@@ -15,44 +15,30 @@
   });
 </script>
 
-<main>
-  <img src="/logo.svg" alt="AdminHelper" width="64" height="64" />
-  <h1>AdminHelper Desktop</h1>
-  <p class="sub">Svelte 5 + TypeScript + Vite — Migrations-Skelett (Phase 1)</p>
-  <div class="status">
-    <div><strong>Tauri-Bridge:</strong> {tauriStatus}</div>
-    <div><strong>App-Version:</strong> {tauriVersion || '—'}</div>
-    <div><strong>Svelte-Runes:</strong> aktiv</div>
-    <div><strong>HMR:</strong> via Vite auf Port 1420</div>
+<div class="app-shell" style="display: flex; align-items: center; justify-content: center;">
+  <div class="editor-panel compact" style="position: static; max-width: 520px; padding: var(--sp-5);">
+    <div class="panel-header">
+      <div>
+        <div class="eyebrow">Phase 2</div>
+        <h2>AdminHelper Desktop</h2>
+      </div>
+    </div>
+    <p style="color: var(--text-muted); margin: 0 0 var(--sp-4) 0;">
+      Svelte 5 + TypeScript + Vite — Design-System aus <code>app.css</code> aktiv
+    </p>
+    <div class="form-grid single">
+      <div class="field meta">
+        <span>Tauri-Bridge</span>
+        <div class="meta-value">{tauriStatus}</div>
+      </div>
+      <div class="field meta">
+        <span>App-Version</span>
+        <div class="meta-value">{tauriVersion || '—'}</div>
+      </div>
+      <div class="field meta">
+        <span>Styles geladen</span>
+        <div class="meta-value">app.css (1778 Zeilen) + uPlot</div>
+      </div>
+    </div>
   </div>
-</main>
-
-<style>
-  main {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    gap: 16px;
-    font-family: system-ui, -apple-system, sans-serif;
-  }
-  h1 {
-    margin: 0;
-    font-size: 2rem;
-  }
-  .sub {
-    color: #666;
-    margin: 0;
-  }
-  .status {
-    margin-top: 24px;
-    padding: 16px 24px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    font-family: monospace;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-</style>
+</div>
