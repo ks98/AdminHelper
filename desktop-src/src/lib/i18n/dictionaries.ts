@@ -765,6 +765,10 @@ export const translations: Translations = {
     "monitoring.view.toCards": "Kachel-Ansicht",
     "monitoring.view.toCompact": "Kompakt-Ansicht",
     "monitoring.hero.service.running": "laufen",
+    "monitoring.serverList.search": "Server suchen…",
+    "monitoring.serverList.empty": "Keine Server",
+    "monitoring.panel.selectServer": "Server in der Liste auswählen",
+    "monitoring.panel.noChecks": "Keine Checks im Filter",
 
     // ── Desktop: timeAgo ──────────────────────────────────────────────
     "timeAgo.never": "-",
@@ -1563,6 +1567,10 @@ export const translations: Translations = {
     "monitoring.view.toCards": "Card view",
     "monitoring.view.toCompact": "Compact view",
     "monitoring.hero.service.running": "running",
+    "monitoring.serverList.search": "Search server…",
+    "monitoring.serverList.empty": "No servers",
+    "monitoring.panel.selectServer": "Select a server from the list",
+    "monitoring.panel.noChecks": "No checks matching the filter",
 
     // ── Desktop: timeAgo ──────────────────────────────────────────────
     "timeAgo.never": "-",

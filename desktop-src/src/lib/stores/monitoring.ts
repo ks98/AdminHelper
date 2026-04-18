@@ -21,6 +21,31 @@ function loadViewMode(): MonitoringViewMode {
   return v === 'compact' ? 'compact' : 'cards';
 }
 
+const STATUS_PRIO: Record<string, number> = {
+  critical: 4,
+  warning: 3,
+  unknown: 2,
+  pending: 1,
+  ok: 0,
+};
+
+function pickWorstServerId(checks: MonitorCheck[]): string | null {
+  const bySrv = new Map<string, number>();
+  for (const c of checks) {
+    const key = c.serverId || '__none';
+    const st = (c.state?.status ?? 'pending') as string;
+    const p = STATUS_PRIO[st] ?? 0;
+    const cur = bySrv.get(key) ?? -1;
+    if (p > cur) bySrv.set(key, p);
+  }
+  let bestKey: string | null = null;
+  let bestP = -1;
+  for (const [k, p] of bySrv) {
+    if (p > bestP) { bestP = p; bestKey = k; }
+  }
+  return bestKey;
+}
+
 interface MonitoringState {
   tab: MonitoringTab;
   servers: Server[];
@@ -31,6 +56,8 @@ interface MonitoringState {
   loading: boolean;
   expandedCheckId: string | null;
   viewMode: MonitoringViewMode;
+  selectedServerId: string | null;
+  serverSearch: string;
 }
 
 const initial: MonitoringState = {
@@ -43,6 +70,8 @@ const initial: MonitoringState = {
   loading: false,
   expandedCheckId: null,
   viewMode: loadViewMode(),
+  selectedServerId: null,
+  serverSearch: '',
 };
 
 const _state = writable<MonitoringState>(initial);
@@ -54,6 +83,16 @@ export const monitoringServers = derived(_state, ($s) => $s.servers);
 export const monitoringAlerts = derived(_state, ($s) => $s.alerts);
 export const monitoringLog = derived(_state, ($s) => $s.log);
 export const monitoringViewMode = derived(_state, ($s) => $s.viewMode);
+export const selectedServerId = derived(_state, ($s) => $s.selectedServerId);
+export const monitoringServerSearch = derived(_state, ($s) => $s.serverSearch);
+
+export function setSelectedServer(id: string | null): void {
+  _state.update((s) => ({ ...s, selectedServerId: id, expandedCheckId: null }));
+}
+
+export function setServerSearch(v: string): void {
+  _state.update((s) => ({ ...s, serverSearch: v }));
+}
 
 export function setViewMode(mode: MonitoringViewMode): void {
   if (typeof localStorage !== 'undefined') {
@@ -112,7 +151,16 @@ export async function loadMonitoring(): Promise<void> {
   try {
     _state.update((s) => ({ ...s, loading: true }));
     const checks = await monitoringApi.fetchStatus(session);
-    _state.update((s) => ({ ...s, checks, loading: false }));
+    _state.update((s) => {
+      // Auto-Select: wenn noch nichts gewaehlt, nimm Server mit schlechtestem Status.
+      let selected = s.selectedServerId;
+      const ids = new Set(checks.map((c) => c.serverId || '__none'));
+      if (selected && !ids.has(selected)) selected = null;
+      if (!selected && checks.length > 0) {
+        selected = pickWorstServerId(checks);
+      }
+      return { ...s, checks, loading: false, selectedServerId: selected };
+    });
   } catch (err) {
     _state.update((s) => ({ ...s, checks: [], loading: false }));
     const msg = err instanceof Error ? err.message : String(err);

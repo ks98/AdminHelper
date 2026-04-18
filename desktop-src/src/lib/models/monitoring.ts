@@ -35,6 +35,37 @@ export interface ServerGroup {
   checks: MonitorCheck[];
 }
 
+export interface ServerGroupSummary extends ServerGroup {
+  key: string;
+  summary: MonitoringSummary;
+  worst: MonStatus;
+}
+
+export function groupChecksByServerWithSummary(
+  checks: MonitorCheck[],
+  servers: Server[] = [],
+  search = '',
+): ServerGroupSummary[] {
+  const base = groupChecksByServer(checks, servers);
+  const q = search.trim().toLowerCase();
+  const withSummary: ServerGroupSummary[] = base.map((g) => ({
+    ...g,
+    key: g.serverId ?? '__none',
+    summary: computeSummary(g.checks),
+    worst: worstStatus(g.checks),
+  }));
+  const filtered = q
+    ? withSummary.filter((g) => g.serverName.toLowerCase().includes(q))
+    : withSummary;
+  filtered.sort((a, b) => {
+    const pa = STATUS_PRIORITY[a.worst] ?? 0;
+    const pb = STATUS_PRIORITY[b.worst] ?? 0;
+    if (pa !== pb) return pb - pa;
+    return a.serverName.localeCompare(b.serverName);
+  });
+  return filtered;
+}
+
 export function groupChecksByServer(
   checks: MonitorCheck[],
   servers: Server[] = [],
