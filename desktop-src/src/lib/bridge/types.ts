@@ -70,11 +70,16 @@ export interface PasswordState {
 }
 
 export interface TunnelMapping {
-  visitorName: string;
-  proxyName: string;
+  id: string;
+  serverId: string;
+  tunnelType: string;
+  protocol: string;
   localPort: number;
-  remoteHost: string;
-  remotePort: number;
+  visitorPort: number | null;
+  customDomains: string | null;
+  connectionId: string | null;
+  enabled: boolean;
+  name: string;
 }
 
 export interface ResolvedConnection {

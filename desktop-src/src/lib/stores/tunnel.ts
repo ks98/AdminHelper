@@ -2,7 +2,7 @@
 // Wird vom AppShell beim Login/Mode-Wechsel angestossen und reagiert auf
 // Tauri-Events frpc-terminated / frpc-error.
 
-import { writable, get } from 'svelte/store';
+import { writable, derived, get } from 'svelte/store';
 import * as bridge from '$lib/bridge';
 import type { TunnelMapping, TunnelStatus } from '$lib/bridge/types';
 import { sessionStore } from './session';
@@ -19,6 +19,9 @@ interface TunnelStoreState {
 const initial: TunnelStoreState = { ui: 'idle', status: null, mappings: [] };
 const _state = writable<TunnelStoreState>(initial);
 export const tunnel = { subscribe: _state.subscribe };
+export const tunnelMappings = derived(_state, ($s) => $s.mappings);
+export const tunnelStatus = derived(_state, ($s) => $s.status);
+export const tunnelUi = derived(_state, ($s) => $s.ui);
 
 export function getMappings(): TunnelMapping[] {
   return get(_state).mappings;

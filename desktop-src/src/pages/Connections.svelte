@@ -2,116 +2,281 @@
   import { onMount } from 'svelte';
   import {
     filteredConnections,
+    groupedConnections,
     kindFilter,
     groupFilter,
+    viewMode,
     load as loadConnections,
     connections,
   } from '$lib/stores/connections';
-  import { timeAgo } from '$lib/utils/timeAgo';
+  import { tunnelMappings } from '$lib/stores/tunnel';
+  import { toCardMeta, groupedTagKeys, type ConnectionGroup } from '$lib/models/connection';
   import type { Connection, ConnectionKind } from '$lib/bridge/types';
   import { openEditor } from '$lib/stores/editor';
   import { initiateConnect } from '$lib/stores/connectFlow';
+  import { t } from '$lib/i18n';
 
   onMount(async () => {
     await loadConnections();
   });
 
-  function setKind(k: 'all' | ConnectionKind): void {
-    kindFilter.set(k);
+  type Chip = 'single' | 'grouped' | 'ssh' | 'rdp' | 'web';
+
+  let activeChip = $derived<Chip>(
+    $kindFilter !== 'all' ? ($kindFilter as Chip) : $groupFilter,
+  );
+
+  function setChip(chip: Chip): void {
+    if (chip === 'single' || chip === 'grouped') {
+      groupFilter.set(chip);
+      kindFilter.set('all');
+    } else {
+      groupFilter.set('single');
+      kindFilter.set(chip);
+    }
+  }
+
+  function onCardClick(conn: Connection, ev: MouseEvent | KeyboardEvent): void {
+    const target = ev.target as HTMLElement;
+    if (target.closest('button')) return;
+    openEditor(conn);
+  }
+
+  function onGroupClick(group: ConnectionGroup, ev: MouseEvent | KeyboardEvent): void {
+    const target = ev.target as HTMLElement;
+    if (target.closest('button')) return;
+    const preferred = group.byKind.ssh ?? group.byKind.rdp ?? group.byKind.web ?? group.connections[0];
+    if (preferred) openEditor(preferred);
   }
 
   function onConnect(conn: Connection, event: MouseEvent | KeyboardEvent): void {
     event.stopPropagation();
+    event.preventDefault();
     void initiateConnect(conn);
   }
 
-  function kindBadgeColor(kind: ConnectionKind): string {
-    if (kind === 'ssh') return 'var(--accent)';
-    if (kind === 'rdp') return 'var(--warning)';
-    return 'var(--success)';
+  function tunnelFor(conn: Connection): string | null {
+    const match = $tunnelMappings.find((m) => m.enabled && m.connectionId === conn.id);
+    return match ? match.name : null;
+  }
+
+  let counter = $derived(
+    $groupFilter === 'grouped' ? $groupedConnections.length : $filteredConnections.length,
+  );
+
+  interface TreeNode {
+    tag: string;
+    items: Connection[];
+    groups: ConnectionGroup[];
+  }
+
+  let treeNodes = $derived.by<TreeNode[]>(() => {
+    const untagged = $t('tree.untagged');
+    const m = new Map<string, TreeNode>();
+    if ($groupFilter === 'grouped') {
+      for (const grp of $groupedConnections) {
+        const tags = groupedTagKeys(grp, untagged);
+        for (const tag of tags) {
+          const key = tag.trim() || untagged;
+          if (!m.has(key)) m.set(key, { tag: key, items: [], groups: [] });
+          m.get(key)!.groups.push(grp);
+        }
+      }
+    } else {
+      for (const conn of $filteredConnections) {
+        const tags = conn.tags && conn.tags.length > 0 ? conn.tags : [untagged];
+        for (const tag of tags) {
+          const key = tag.trim() || untagged;
+          if (!m.has(key)) m.set(key, { tag: key, items: [], groups: [] });
+          m.get(key)!.items.push(conn);
+        }
+      }
+    }
+    return Array.from(m.values()).sort((a, b) => a.tag.localeCompare(b.tag));
+  });
+
+  let openTags = $state<Record<string, boolean>>({});
+  function toggleTag(tag: string): void {
+    openTags = { ...openTags, [tag]: !(openTags[tag] ?? true) };
+  }
+  function isOpen(tag: string): boolean {
+    return openTags[tag] ?? true;
   }
 </script>
 
 <div class="section-toolbar">
   <div class="toolbar-left">
     <div class="filters">
-      <button
-        class="chip"
-        class:active={$kindFilter === 'all'}
-        onclick={() => setKind('all')}>Alle</button>
-      <button
-        class="chip"
-        class:active={$kindFilter === 'ssh'}
-        onclick={() => setKind('ssh')}>SSH</button>
-      <button
-        class="chip"
-        class:active={$kindFilter === 'rdp'}
-        onclick={() => setKind('rdp')}>RDP</button>
-      <button
-        class="chip"
-        class:active={$kindFilter === 'web'}
-        onclick={() => setKind('web')}>Web</button>
+      <button class="chip" class:active={activeChip === 'single'} onclick={() => setChip('single')}>{$t('filters.single')}</button>
+      <button class="chip" class:active={activeChip === 'grouped'} onclick={() => setChip('grouped')}>{$t('filters.grouped')}</button>
+      <button class="chip" class:active={activeChip === 'ssh'} onclick={() => setChip('ssh')}>{$t('filters.ssh')}</button>
+      <button class="chip" class:active={activeChip === 'rdp'} onclick={() => setChip('rdp')}>{$t('filters.rdp')}</button>
+      <button class="chip" class:active={activeChip === 'web'} onclick={() => setChip('web')}>{$t('filters.web')}</button>
     </div>
     <div class="view-toggle">
-      <button
-        class="chip"
-        class:active={$groupFilter === 'single'}
-        onclick={() => groupFilter.set('single')}>Einzeln</button>
-      <button
-        class="chip"
-        class:active={$groupFilter === 'grouped'}
-        onclick={() => groupFilter.set('grouped')}>Zusammengefasst</button>
+      <button class="chip" class:active={$viewMode === 'list'} onclick={() => viewMode.set('list')}>{$t('view.list')}</button>
+      <button class="chip" class:active={$viewMode === 'tree'} onclick={() => viewMode.set('tree')}>{$t('view.tree')}</button>
     </div>
   </div>
   <div class="toolbar-right">
-    <div class="counter">{$filteredConnections.length}</div>
-    <button class="btn primary" onclick={() => openEditor(null)}>Neue Verbindung</button>
+    <div class="counter">{counter}</div>
+    <button class="btn primary" onclick={() => openEditor(null)}>{$t('connections.new')}</button>
   </div>
 </div>
 
-<div class="list">
-  {#if $connections.length === 0}
-    <div class="dash-empty" style="padding: var(--sp-6);">
-      Noch keine Verbindungen angelegt
-    </div>
-  {:else if $filteredConnections.length === 0}
-    <div class="dash-empty" style="padding: var(--sp-6);">
-      Keine Treffer fuer deine Filter
-    </div>
-  {:else}
-    {#each $filteredConnections as conn (conn.id)}
-      <div
-        class="list-item"
-        role="button"
-        tabindex="0"
-        onclick={() => openEditor(conn)}
-        onkeydown={(e) => e.key === 'Enter' && openEditor(conn)}
-      >
-        <div class="list-item-dot" style="background: {kindBadgeColor(conn.kind)}"></div>
-        <div class="list-item-body">
-          <div class="list-item-name">{conn.name || conn.host || '-'}</div>
-          <div class="list-item-meta">
-            {conn.kind.toUpperCase()}
-            {#if conn.host}· {conn.host}{/if}
-            {#if conn.username}· {conn.username}{/if}
-            {#if conn.lastUsed}· {timeAgo(conn.lastUsed)}{/if}
-          </div>
-          {#if conn.tags && conn.tags.length > 0}
-            <div class="list-item-tags">
-              {#each conn.tags as tag}
-                <span class="tag">{tag}</span>
-              {/each}
-            </div>
-          {/if}
-        </div>
-        <button
-          class="btn primary small"
-          onclick={(e) => onConnect(conn, e)}
-          onkeydown={(e) => e.key === 'Enter' && onConnect(conn, e)}
+{#if $connections.length === 0}
+  <div class="list">
+    <div class="dash-empty" style="padding: var(--sp-6);">Noch keine Verbindungen angelegt</div>
+  </div>
+{:else if $viewMode === 'list' && $groupFilter === 'single'}
+  <div class="list">
+    {#if $filteredConnections.length === 0}
+      <div class="dash-empty" style="padding: var(--sp-6);">Keine Treffer fuer deine Filter</div>
+    {:else}
+      {#each $filteredConnections as conn (conn.id)}
+        {@const tunnelName = tunnelFor(conn)}
+        <div
+          class="card"
+          role="button"
+          tabindex="0"
+          onclick={(e) => onCardClick(conn, e)}
+          onkeydown={(e) => e.key === 'Enter' && onCardClick(conn, e)}
         >
-          Verbinden
-        </button>
-      </div>
-    {/each}
-  {/if}
-</div>
+          <div class="card-main">
+            <div class="card-title">{conn.name || $t('list.noName')}</div>
+            <div class="card-meta">{toCardMeta(conn)}</div>
+            <div class="card-tag">{conn.kind.toUpperCase()}</div>
+            {#if tunnelName}
+              <div class="card-tag tunnel-badge" title={tunnelName}>{$t('tunnel.badge')}</div>
+            {/if}
+            {#if conn.tags && conn.tags.length > 0}
+              <div class="card-tags">
+                {#each conn.tags as tag}
+                  <span class="tag">{tag}</span>
+                {/each}
+              </div>
+            {/if}
+          </div>
+          <div class="card-actions">
+            <button class="btn small accent" onclick={(e) => onConnect(conn, e)}>{$t('action.connect')}</button>
+            <button class="btn small ghost" onclick={(e) => { e.stopPropagation(); openEditor(conn); }}>{$t('action.edit')}</button>
+          </div>
+        </div>
+      {/each}
+    {/if}
+  </div>
+{:else if $viewMode === 'list' && $groupFilter === 'grouped'}
+  <div class="list">
+    {#if $groupedConnections.length === 0}
+      <div class="dash-empty" style="padding: var(--sp-6);">Keine Treffer fuer deine Filter</div>
+    {:else}
+      {#each $groupedConnections as group (group.key)}
+        <div
+          class="card"
+          role="button"
+          tabindex="0"
+          onclick={(e) => onGroupClick(group, e)}
+          onkeydown={(e) => e.key === 'Enter' && onGroupClick(group, e)}
+        >
+          <div class="card-main">
+            <div class="card-title">{group.displayName || $t('list.noName')}</div>
+            <div class="card-meta">{group.host} · {$t('grouped.connections', { count: group.connections.length })}</div>
+            <div class="card-tag">
+              {['ssh', 'rdp', 'web'].filter((k) => group.byKind[k as ConnectionKind]).map((k) => k.toUpperCase()).join(' · ')}
+            </div>
+          </div>
+          <div class="card-actions">
+            {#each ['ssh', 'rdp', 'web'] as kind}
+              {#if group.byKind[kind as ConnectionKind]}
+                <button
+                  class="btn small accent"
+                  onclick={(e) => onConnect(group.byKind[kind as ConnectionKind]!, e)}
+                >{kind.toUpperCase()}</button>
+              {/if}
+            {/each}
+          </div>
+        </div>
+      {/each}
+    {/if}
+  </div>
+{:else}
+  <div class="tree">
+    {#if treeNodes.length === 0}
+      <div class="dash-empty" style="padding: var(--sp-6);">Keine Treffer fuer deine Filter</div>
+    {:else}
+      {#each treeNodes as node (node.tag)}
+        <div class="tree-group" class:open={isOpen(node.tag)}>
+          <div class="tree-header" role="button" tabindex="0"
+               onclick={() => toggleTag(node.tag)}
+               onkeydown={(e) => e.key === 'Enter' && toggleTag(node.tag)}>
+            <div class="tree-tag">{node.tag}</div>
+            <div class="tree-toggle">
+              <span class="tree-count">
+                {$t('tree.connections', { count: $groupFilter === 'grouped' ? node.groups.length : node.items.length })}
+              </span>
+            </div>
+          </div>
+          <div class="tree-list">
+            {#if $groupFilter === 'grouped'}
+              {#each node.groups as group (group.key)}
+                <div class="tree-node">
+                  <div
+                    class="card"
+                    role="button"
+                    tabindex="0"
+                    onclick={(e) => onGroupClick(group, e)}
+                    onkeydown={(e) => e.key === 'Enter' && onGroupClick(group, e)}
+                  >
+                    <div class="card-main">
+                      <div class="card-title">{group.displayName || $t('list.noName')}</div>
+                      <div class="card-meta">{group.host} · {$t('grouped.connections', { count: group.connections.length })}</div>
+                      <div class="card-tag">
+                        {['ssh', 'rdp', 'web'].filter((k) => group.byKind[k as ConnectionKind]).map((k) => k.toUpperCase()).join(' · ')}
+                      </div>
+                    </div>
+                    <div class="card-actions">
+                      {#each ['ssh', 'rdp', 'web'] as kind}
+                        {#if group.byKind[kind as ConnectionKind]}
+                          <button
+                            class="btn small accent"
+                            onclick={(e) => onConnect(group.byKind[kind as ConnectionKind]!, e)}
+                          >{kind.toUpperCase()}</button>
+                        {/if}
+                      {/each}
+                    </div>
+                  </div>
+                </div>
+              {/each}
+            {:else}
+              {#each node.items as conn (conn.id)}
+                {@const tunnelName = tunnelFor(conn)}
+                <div class="tree-node">
+                  <div
+                    class="card"
+                    role="button"
+                    tabindex="0"
+                    onclick={(e) => onCardClick(conn, e)}
+                    onkeydown={(e) => e.key === 'Enter' && onCardClick(conn, e)}
+                  >
+                    <div class="card-main">
+                      <div class="card-title">{conn.name || $t('list.noName')}</div>
+                      <div class="card-meta">{toCardMeta(conn)}</div>
+                      <div class="card-tag">{conn.kind.toUpperCase()}</div>
+                      {#if tunnelName}
+                        <div class="card-tag tunnel-badge" title={tunnelName}>{$t('tunnel.badge')}</div>
+                      {/if}
+                    </div>
+                    <div class="card-actions">
+                      <button class="btn small accent" onclick={(e) => onConnect(conn, e)}>{$t('action.connect')}</button>
+                      <button class="btn small ghost" onclick={(e) => { e.stopPropagation(); openEditor(conn); }}>{$t('action.edit')}</button>
+                    </div>
+                  </div>
+                </div>
+              {/each}
+            {/if}
+          </div>
+        </div>
+      {/each}
+    {/if}
+  </div>
+{/if}

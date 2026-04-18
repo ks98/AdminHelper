@@ -4,9 +4,11 @@
 import { writable, derived, get } from 'svelte/store';
 import * as bridge from '$lib/bridge';
 import type { AuthSession, Connection, ConnectionKind, Settings } from '$lib/bridge/types';
+import { groupConnectionsByHost, type ConnectionGroup } from '$lib/models/connection';
 
 export type KindFilter = 'all' | 'ssh' | 'rdp' | 'web';
 export type GroupFilter = 'single' | 'grouped';
+export type ViewMode = 'list' | 'tree';
 
 interface ConnectionsState {
   items: Connection[];
@@ -24,26 +26,35 @@ export const loading = derived(_state, ($s) => $s.loading);
 export const searchTerm = writable<string>('');
 export const kindFilter = writable<KindFilter>('all');
 export const groupFilter = writable<GroupFilter>('single');
+export const viewMode = writable<ViewMode>('list');
 
 export const filteredConnections = derived(
   [_state, searchTerm, kindFilter],
   ([$s, $term, $kind]) => {
     const q = $term.trim().toLowerCase();
-    return $s.items.filter((c) => {
-      if ($kind !== 'all' && c.kind !== $kind) return false;
-      if (!q) return true;
-      const haystack = [
-        c.name,
-        c.host ?? '',
-        c.url ?? '',
-        c.username ?? '',
-        ...(c.tags ?? []),
-      ]
-        .join(' ')
-        .toLowerCase();
-      return haystack.includes(q);
-    });
+    return $s.items
+      .filter((c) => {
+        if ($kind !== 'all' && c.kind !== $kind) return false;
+        if (!q) return true;
+        const haystack = [
+          c.name,
+          c.host ?? '',
+          c.url ?? '',
+          c.username ?? '',
+          c.domain ?? '',
+          ...(c.tags ?? []),
+        ]
+          .join(' ')
+          .toLowerCase();
+        return haystack.includes(q);
+      })
+      .sort((a, b) => String(a.name ?? '').localeCompare(String(b.name ?? '')));
   },
+);
+
+export const groupedConnections = derived(
+  [_state, searchTerm],
+  ([$s, $term]): ConnectionGroup[] => groupConnectionsByHost($s.items, $term),
 );
 
 export async function load(): Promise<void> {
