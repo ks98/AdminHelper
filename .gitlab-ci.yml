@@ -1,4 +1,5 @@
 stages:
+  - check
   - docker
   - download
   - build
@@ -114,6 +115,44 @@ build_binary_trixie:
     - if: $CI_COMMIT_TAG
     - if: $CI_COMMIT_BRANCH
 
+frontend_check:
+  stage: check
+  image: node:22-alpine
+  needs: []
+  before_script:
+    - cd frontend-src
+    - npm ci --no-audit --no-fund
+  script:
+    - npm run check
+    - npm run lint
+  rules:
+    - if: $CI_COMMIT_TAG
+    - if: $CI_COMMIT_BRANCH
+      changes:
+        - frontend-src/**/*
+
+frontend_e2e:
+  stage: check
+  image: mcr.microsoft.com/playwright:v1.59.1-jammy
+  needs: []
+  before_script:
+    - cd frontend-src
+    - npm ci --no-audit --no-fund
+  script:
+    - npx playwright test
+  artifacts:
+    name: "playwright-report-$CI_COMMIT_SHORT_SHA"
+    when: always
+    expire_in: 7 days
+    paths:
+      - frontend-src/playwright-report/
+      - frontend-src/test-results/
+  rules:
+    - if: $CI_COMMIT_TAG
+    - if: $CI_COMMIT_BRANCH
+      changes:
+        - frontend-src/**/*
+
 docker_server:
   stage: docker
   image: docker:27
@@ -127,9 +166,10 @@ docker_server:
     - |
       docker build \
         --build-arg VERSION="${CI_COMMIT_TAG:-$CI_COMMIT_SHORT_SHA}" \
+        -f Dockerfile \
         -t "$DOCKER_IMAGE:$CI_COMMIT_SHORT_SHA" \
         -t "$DOCKER_IMAGE:latest" \
-        ./server
+        .
     - docker push "$DOCKER_IMAGE:$CI_COMMIT_SHORT_SHA"
     - docker push "$DOCKER_IMAGE:latest"
     - |
