@@ -209,13 +209,18 @@ app.include_router(frp_router)
 app.include_router(monitoring_proxy_router)
 app.include_router(ansible_router)
 
-# Statische Dateien aus frontend/ ausliefern
+# Statische Dateien aus frontend/ ausliefern (Vite-Build-Output)
 static_dir = Path(__file__).parent.parent / "frontend"
-app.mount("/static", StaticFiles(directory=static_dir), name="static")
+app.mount("/assets", StaticFiles(directory=static_dir / "assets"), name="assets")
+if (static_dir / "fonts").is_dir():
+    app.mount("/fonts", StaticFiles(directory=static_dir / "fonts"), name="fonts")
 
 
 @app.get("/{full_path:path}", include_in_schema=False)
 def spa_fallback(full_path: str):
     if full_path.startswith("api/"):
         raise HTTPException(status_code=404, detail="Not found")
+    candidate = static_dir / full_path
+    if full_path and candidate.is_file() and candidate.resolve().is_relative_to(static_dir.resolve()):
+        return FileResponse(candidate)
     return FileResponse(static_dir / "index.html")
