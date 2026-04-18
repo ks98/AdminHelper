@@ -3,7 +3,10 @@
   "version": "0.17.0",
   "identifier": "com.adminhelper.app",
   "build": {
-    "frontendDist": "../src"
+    "beforeDevCommand": "npm --prefix ../desktop-src run dev",
+    "beforeBuildCommand": "npm --prefix ../desktop-src run build",
+    "devUrl": "http://localhost:1420",
+    "frontendDist": "../../desktop-src/dist"
   },
   "app": {
     "withGlobalTauri": true,
