@@ -155,6 +155,11 @@
               <span class="field-label">Domain</span>
               <input type="text" bind:value={form.domain} />
             </label>
+
+            <label class="field checkbox">
+              <input type="checkbox" bind:checked={form.trustCert} />
+              <span>Zertifikat vertrauen (Self-Signed)</span>
+            </label>
           {/if}
 
           {#if form.kind === 'ssh'}
@@ -167,11 +172,6 @@
           <label class="field" style="grid-column: span 2;">
             <span class="field-label">URL</span>
             <input type="url" bind:value={form.url} placeholder="https://..." required />
-          </label>
-
-          <label class="field checkbox">
-            <input type="checkbox" bind:checked={form.trustCert} />
-            <span>Zertifikat vertrauen (Self-Signed)</span>
           </label>
         {/if}
 
