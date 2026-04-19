@@ -5,6 +5,16 @@ Alle nennenswerten Aenderungen an diesem Projekt werden hier dokumentiert.
 Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
+## [0.20.0] - 2026-04-19
+
+### Changed
+
+- Koordinierter Versions-Bump ueber alle Komponenten
+  (Desktop-Client, Web-Admin-Panel, Go-Agent, Browser-Extension,
+  Docker-Image, CI-Pipeline) auf `v0.20.0` — Sammel-Release ohne
+  funktionale Aenderungen, um alle Artefakte wieder auf einen
+  gemeinsamen Versions-Stand zu heben
+
 ## [0.19.1] - 2026-04-18
 
 ### Changed
@@ -164,6 +174,7 @@ ueber einen Multi-Stage-Build ausgeliefert.
 
 Aeltere Releases siehe Git-Tags `v0.7.0` bis `v0.16.0`.
 
+[0.20.0]: https://git.ks98.de/kevin/simpleremotemanager/-/releases/v0.20.0
 [0.19.1]: https://git.ks98.de/kevin/simpleremotemanager/-/releases/v0.19.1
 [0.19.0]: https://git.ks98.de/kevin/simpleremotemanager/-/releases/v0.19.0
 [0.17.0]: https://git.ks98.de/kevin/simpleremotemanager/-/releases/v0.17.0
