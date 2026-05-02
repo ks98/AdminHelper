@@ -19,7 +19,7 @@
           <div class="nav-group"><div class="nav-title">Admin-Handbuch</div><a href="../admin/index.html">Übersicht</a><a href="../admin/installation.html">Installation</a><a href="../admin/betrieb.html">Betrieb &amp; Konfiguration</a><a href="../admin/benutzer.html">Benutzer &amp; Zugriff</a><a href="../admin/agent-deployment.html">Agent-Deployment</a><a href="../admin/monitoring.html">Monitoring</a><a href="../admin/frp-tunnel.html">FRP-Tunnel</a><a href="../admin/extension.html">Browser-Extension</a><a href="../admin/troubleshooting.html">Troubleshooting</a></div>
           <div class="nav-group"><div class="nav-title">Entwickler-Handbuch</div><a href="./index.html">Übersicht</a><a href="./server.html">Server (Backend)</a><a href="./webui.html">Web-Panel</a><a href="./desktop.html">Desktop-Client</a><a href="./agent.html">Go-Agent</a><a href="./monitoring.html">Monitoring-Stack</a><a href="./extension.html">Browser-Extension</a><a href="./api-reference.html">API-Referenz</a><a href="./hooks.html">Hooks &amp; Events</a><a href="./cicd.html">CI/CD &amp; Release</a></div>
         </nav>
-        <div class="sidebar-footer"><span>v0.18.0</span><span id="year"></span></div>
+        <div class="sidebar-footer"><span>v0.20.0</span><span id="year"></span></div>
       </aside>
 
       <header class="topbar">
@@ -37,64 +37,102 @@
           <table>
             <thead><tr><th>Datei</th><th>Zweck</th></tr></thead>
             <tbody>
-              <tr><td><code>server/app/main.py</code></td><td>FastAPI-App, Middleware-Stack, Static-Mounts für Vite-Output.</td></tr>
-              <tr><td><code>server/app/core/config.py</code></td><td>Env-Var-Resolution, JWT-Settings, Secret-Key-Persistence.</td></tr>
-              <tr><td><code>server/app/core/auth.py</code></td><td>JWT-Encode/Decode, Refresh-Rotation, Blacklist.</td></tr>
-              <tr><td><code>server/app/core/db.py</code></td><td>SQLAlchemy-Engine + Session-Factory.</td></tr>
+              <tr><td><code>server/app/main.py</code></td><td>FastAPI-App, Lifespan, Middleware-Stack, Static-Mounts für Vite-Output, Auto-Migrationen, SPA-Fallback.</td></tr>
+              <tr><td><code>server/app/core/config.py</code></td><td>Env-Var-Resolution, JWT-Settings, Secret-Key-Persistenz (<code>.secret_key</code>-Datei).</td></tr>
+              <tr><td><code>server/app/core/auth.py</code></td><td>JWT-Encode/Decode, Bcrypt-Hashing mit SHA-256-Prehash, Refresh-Rotation, Token-Blacklist, API-Key-Auth.</td></tr>
+              <tr><td><code>server/app/core/database.py</code></td><td>SQLAlchemy-Engine + <code>SessionLocal</code>; SQLite mit <code>check_same_thread=False</code>.</td></tr>
+              <tr><td><code>server/app/core/rate_limit.py</code></td><td>Redis-basierter Fixed-Window-Limiter mit In-Memory-Fallback.</td></tr>
+              <tr><td><code>server/app/core/middleware.py</code></td><td>IP-Filter (<code>ALLOWED_IPS</code>) und Proxy-Trust (<code>TRUSTED_PROXIES</code>).</td></tr>
+              <tr><td><code>server/app/core/events.py</code></td><td>Async Event-Bus für Hooks (ThreadPoolExecutor mit 4 Workern, Fire-and-Forget).</td></tr>
             </tbody>
           </table>
 
           <h2>Router-Übersicht</h2>
+          <p>9 Top-Level-Router unter <code>server/app/modules/</code>; jedes Modul kapselt Models, Schemas und Routen.</p>
           <table>
             <thead><tr><th>Prefix</th><th>Modul</th><th>Funktion</th></tr></thead>
             <tbody>
-              <tr><td><code>/api/auth</code></td><td><code>api/auth.py</code></td><td>Login, Refresh, Logout, Me.</td></tr>
-              <tr><td><code>/api/users</code></td><td><code>api/users.py</code></td><td>Benutzer-CRUD, Passwort-Reset.</td></tr>
-              <tr><td><code>/api/connections</code></td><td><code>api/connections.py</code></td><td>Verbindungsliste (RDP, SSH, VNC, HTTP).</td></tr>
-              <tr><td><code>/api/servers</code></td><td><code>api/servers.py</code></td><td>Server-Inventory, Provision-Token-Erzeugung.</td></tr>
-              <tr><td><code>/api/apikeys</code></td><td><code>api/apikeys.py</code></td><td>API-Key-CRUD, Scope-Verwaltung.</td></tr>
-              <tr><td><code>/api/hooks</code></td><td><code>api/hooks.py</code></td><td>Hook-CRUD + Event-Ausführung.</td></tr>
-              <tr><td><code>/api/ansible</code></td><td><code>api/ansible.py</code></td><td>Playbook-Trigger + Live-Output.</td></tr>
-              <tr><td><code>/api/frp</code></td><td><code>api/frp.py</code></td><td>Tunnel-Config + Provision-Flow.</td></tr>
-              <tr><td><code>/api/monitoring</code></td><td><code>api/monitoring.py</code></td><td>Check-CRUD, Ingest, Charts.</td></tr>
-              <tr><td><code>/api/alerts</code></td><td><code>api/alerts.py</code></td><td>Alerts &amp; Acknowledgements.</td></tr>
-              <tr><td><code>/api/audit</code></td><td><code>api/audit.py</code></td><td>Audit-Log-Abfrage.</td></tr>
-              <tr><td><code>/api/settings</code></td><td><code>api/settings.py</code></td><td>Globale Einstellungen.</td></tr>
-              <tr><td><code>/api/health</code></td><td><code>api/health.py</code></td><td>Healthcheck + Version.</td></tr>
+              <tr><td><code>/api/auth</code></td><td><code>modules/users/auth_router.py</code></td><td>Login, Refresh (Body, kein Cookie), Logout, <code>/me</code>.</td></tr>
+              <tr><td><code>/api/users</code></td><td><code>modules/users/</code></td><td>Benutzer-CRUD (admin), <code>/me/servers</code> für eigenen Zugriff.</td></tr>
+              <tr><td><code>/api/connections</code></td><td><code>modules/connections/</code></td><td>Verbindungs-CRUD, <code>/touch</code>, <code>/export</code>, <code>/import</code> (replace/merge).</td></tr>
+              <tr><td><code>/api/servers</code></td><td><code>modules/servers/</code></td><td>Server-Inventory mit User-Zuordnung; Cleanup-Hook ans Monitoring beim Delete.</td></tr>
+              <tr><td><code>/api/api-keys</code></td><td><code>modules/api_keys/</code></td><td>API-Keys mit <code>read</code>- oder <code>read_write</code>-Permission, SHA-256-gehasht.</td></tr>
+              <tr><td><code>/api/hooks</code></td><td><code>modules/hooks/</code></td><td>Hook-CRUD, öffentlicher <code>/trigger/{token}</code>, <code>/run</code> für manuellen Test, <code>/rotate</code> für Webhook-Token.</td></tr>
+              <tr><td><code>/api/ansible/playbooks</code></td><td><code>modules/ansible/</code></td><td>Playbook-CRUD mit YAML-Validierung, Disk-Speicherung unter <code>/data/ansible/playbooks/{id}/</code>.</td></tr>
+              <tr><td><code>/api/frp</code></td><td><code>modules/frp/</code></td><td>6 Sub-Router: <code>config</code>, <code>tunnel</code>, <code>generate</code>, <code>status</code>, <code>pki</code>, <code>provision</code>.</td></tr>
+              <tr><td><code>/api/monitoring</code></td><td><code>modules/monitoring_proxy.py</code></td><td>Reverse-Proxy zum Monitoring-Microservice; öffentlicher Agent-Push-Endpoint <code>/agent/{id}/report</code>.</td></tr>
             </tbody>
           </table>
 
+          <div class="callout callout-note" data-reveal>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+            <div><div class="callout-title">Kein eigener <code>alerts</code>/<code>audit</code>/<code>settings</code>-Router</div><p>Alerts und Check-Status leben im Monitoring-Service und werden &uuml;ber den <code>monitoring_proxy</code> reingereicht. Ein dedizierter Audit-Log-Router existiert (Stand v0.20.0) nicht; Logging erfolgt &uuml;ber Python-Logging und Hook-Events.</p></div>
+          </div>
+
           <h2>Auth-Architektur</h2>
-          <p>JWT-Access-Token (HS256, 8h) im <code>Authorization</code>-Header; Refresh-Token (7d) als httpOnly-Cookie. Bei jedem Refresh:</p>
+          <p>JWT-Access-Token (HS256, 8h) und Refresh-Token (7d) werden beide als JSON-Body ausgeliefert. Token-Claims: <code>sub</code> (Username), <code>type</code> (access/refresh), <code>exp</code>, <code>jti</code> (UUID).</p>
           <ol>
-            <li>Server prüft Signature + Ablauf</li>
-            <li>Alter <code>jti</code> wird in die Blacklist-Tabelle geschrieben</li>
-            <li>Neuer Access + neuer Refresh werden ausgestellt</li>
-            <li>Wird ein geblacklisteter <code>jti</code> erneut verwendet → <strong>Reuse-Detection</strong>: alle Sessions des Users werden invalidiert.</li>
+            <li>Login signiert beide Tokens und gibt sie im <code>TokenResponse</code> zur&uuml;ck.</li>
+            <li>Bei <code>POST /api/auth/refresh</code> pr&uuml;ft der Server Signatur, Ablauf und Blacklist.</li>
+            <li>Alter <code>jti</code> wird sofort in <code>token_blacklist</code> eingetragen, dann werden neue Tokens ausgestellt (<strong>Rotation</strong>).</li>
+            <li>Wird ein bereits widerrufener Refresh erneut eingereicht &rarr; <strong>Reuse-Detection</strong>: alle Sessions der betroffenen User-Kette werden invalidiert (<code>WARNING</code>-Log mit IP).</li>
           </ol>
+          <p>Passwort-Hashing nutzt <strong>SHA-256-Prehash &rarr; Bcrypt</strong>, weil Bcrypt nur 72 Bytes verarbeitet.</p>
+          <p>API-Keys werden &uuml;ber den Header <code>X-API-Key</code> akzeptiert; die Dependency <code>ApiKeyOrUser</code> erlaubt JWT <em>oder</em> API-Key am selben Endpoint.</p>
 
           <div class="callout callout-tip" data-reveal>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-7 7c0 3 2 5 3 7h8c1-2 3-4 3-7a7 7 0 0 0-7-7z"/></svg>
-            <div><div class="callout-title">Rate-Limit</div><p>Login-Rate-Limit ist Redis-basiert: Key <code>ratelimit:login:&lt;ip&gt;</code>. Fallback auf In-Memory-Dict (nur bei Single-Worker sicher). Implementierung in <code>server/app/core/rate_limit.py</code>.</p></div>
+            <div><div class="callout-title">Rate-Limit &amp; IP-Filter</div><p>Login-Limit (5 pro 60s/IP) und Webhook-Limit (20 pro 60s/IP) sind Redis-basiert mit In-Memory-Fallback. IP-Filter via <code>ALLOWED_IPS</code> (CIDR-Liste); Proxy-Trust &uuml;ber <code>TRUSTED_PROXIES</code> (sicher) statt <code>TRUST_PROXY_HEADERS</code> (legacy).</p></div>
           </div>
 
+          <h2>FRP-Provisioning</h2>
+          <p>Neue Server werden &uuml;ber Einmal-Tokens mit 24-Stunden-TTL onboarded:</p>
+          <ol>
+            <li>Admin ruft <code>POST /api/frp/provision/{server_id}/token</code> auf &rarr; erh&auml;lt <code>{token, expiresAt}</code>.</li>
+            <li>Der Agent l&ouml;st den Token mit <code>POST /api/frp/provision/{server_id}/activate</code> ein (Header <code>X-Provision-Token</code>) und bekommt frischen API-Key, <code>frpc.toml</code>, PKI-Bundle (CA + Client-Cert + Key) sowie den Servernamen zur&uuml;ck.</li>
+            <li>Tokens sind one-time: <code>used_at</code> wird gesetzt, weitere Aktivierungen scheitern.</li>
+            <li>Im laufenden Betrieb synchronisiert der Agent &uuml;ber <code>GET /provision/{server_id}/config</code> + <code>config-hash</code> seinen <code>frpc.toml</code>-Stand.</li>
+          </ol>
+
           <h2>SQLAlchemy-Models</h2>
-          <p>Die wichtigsten Tabellen leben in <code>server/app/db/models/</code>:</p>
+          <p>Die Tabellen liegen jeweils im Modul (z.&nbsp;B. <code>modules/users/models.py</code>) und werden in <code>main.py</code> per <code>Base.metadata.create_all()</code> beim Startup angelegt. Idempotente Spalten-Migrationen erfolgen &uuml;ber <code>_migrate_add_columns()</code> mit <code>PRAGMA table_info</code>.</p>
           <ul>
-            <li><code>User</code>, <code>Session</code>, <code>RefreshBlacklist</code></li>
-            <li><code>Connection</code>, <code>ConnectionGroup</code></li>
-            <li><code>Server</code>, <code>ProvisionToken</code>, <code>FrpClientCert</code></li>
-            <li><code>ApiKey</code> (inkl. <code>scope</code> JSON-Array)</li>
-            <li><code>MonitoringCheck</code>, <code>MonitoringResult</code>, <code>Alert</code></li>
-            <li><code>Hook</code>, <code>HookExecution</code></li>
-            <li><code>AuditEntry</code></li>
+            <li><code>User</code> &harr; <code>Server</code> (n:m &uuml;ber <code>user_servers</code>), <code>TokenBlacklist</code></li>
+            <li><code>Server</code> (UUID-PK, JSON-Tags, <code>os_type</code>) &harr; <code>Connection</code> (n:1, <code>server_id</code> nullable f&uuml;r Standalone)</li>
+            <li><code>ApiKey</code> mit <code>permission &isin; {read, read_write}</code></li>
+            <li><code>Hook</code> (<code>hook_type &isin; {webhook, event, schedule}</code>, JSON-<code>event_triggers</code>, Python-<code>script</code>)</li>
+            <li><code>FrpServerConfig</code> &harr; <code>FrpTunnel</code> (n:1) &harr; <code>ProvisionToken</code> (n:1, 24h-TTL, one-time)</li>
+            <li><code>Playbook</code> (Ansible) mit Disk-Backed YAML-Content</li>
           </ul>
 
-          <h2>Scheduler</h2>
-          <p>APScheduler läuft im selben Event-Loop wie FastAPI. Job-Store in der DB (SQLAlchemy-JobStore), Trigger-Typen: Interval (Monitoring-Checks), Date (einmalige Hook-Retries), Cron (optional für Reports).</p>
+          <h2>Event-Bus &amp; Scheduler</h2>
+          <p>APScheduler l&auml;uft im selben Event-Loop wie FastAPI. Beim Startup l&auml;dt der <code>load_all_scheduled_hooks()</code>-Call alle aktiven Schedule-Hooks; Trigger-Typen: vordefinierte Intervalle (5m, 10m, 15m, 30m, 1h, 6h, 12h, 24h) oder Cron (5 Felder).</p>
+          <p>Der Event-Bus in <code>core/events.py</code> verteilt Events &uuml;ber einen ThreadPoolExecutor (4 Worker, fire-and-forget). Aktive Event-Typen:</p>
+          <ul>
+            <li><code>server.created</code>, <code>server.updated</code>, <code>server.deleted</code></li>
+            <li><code>connection.created</code>, <code>connection.updated</code>, <code>connection.deleted</code>, <code>connections.imported</code></li>
+            <li><code>user.created</code>, <code>user.deleted</code></li>
+            <li><code>api_key.created</code>, <code>api_key.deleted</code></li>
+            <li><code>frp.config.created</code>, <code>frp.config.updated</code>, <code>frp.config.deleted</code></li>
+            <li><code>frp.tunnel.created</code>, <code>frp.tunnel.updated</code>, <code>frp.tunnel.deleted</code></li>
+            <li><code>playbook.created</code>, <code>playbook.updated</code>, <code>playbook.deleted</code></li>
+          </ul>
+          <p>Details siehe <a href="./hooks.html">Hooks &amp; Events</a>.</p>
 
-          <h2>Hook-System</h2>
-          <p>Hooks reagieren auf Events wie <code>server.provisioned</code> oder <code>alert.triggered</code>. Ausführung erfolgt in einem Subprozess mit begrenzter Laufzeit und sanitisierter Umgebung – Details siehe <a href="./hooks.html">Hooks &amp; Events</a>.</p>
+          <h2>Persistenz</h2>
+          <p>Alle Stateful-Daten leben unter <code>DATA_DIR</code> (Default <code>/app/data</code>):</p>
+          <div class="code-header"><span>tree</span></div>
+<pre><code>/app/data/
+&#9500;&#9472;&#9472; db.sqlite3                  # Haupt-DB (SQLAlchemy)
+&#9500;&#9472;&#9472; .secret_key                 # Auto-Gen JWT-Secret
+&#9500;&#9472;&#9472; connections.json.migrated   # Legacy-Migration-Marker
+&#9500;&#9472;&#9472; frp-config/
+&#9474;   &#9500;&#9472;&#9472; frps.toml
+&#9474;   &#9492;&#9472;&#9472; pki/
+&#9474;       &#9500;&#9472;&#9472; ca.crt, ca.key
+&#9474;       &#9500;&#9472;&#9472; frps.crt, frps.key
+&#9474;       &#9492;&#9472;&#9472; {client}.crt, {client}.key
+&#9492;&#9472;&#9472; ansible/playbooks/{id}/{file}.yaml</code></pre>
 
           <h2>Tests</h2>
           <p>Pytest-Suite unter <code>server/tests/</code>. Test-DB wird per <code>DATA_DIR=/tmp/...</code> in <code>conftest.py</code> isoliert. FastAPI-TestClient nutzt einen shared-memory SQLite, damit Migrationen deterministisch sind.</p>

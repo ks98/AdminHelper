@@ -19,7 +19,7 @@
           <div class="nav-group"><div class="nav-title">Admin Guide</div><a href="../admin/index.html">Overview</a><a href="../admin/installation.html">Installation</a><a href="../admin/operations.html">Operations &amp; Config</a><a href="../admin/users.html">Users &amp; Access</a><a href="../admin/agent-deployment.html">Agent Deployment</a><a href="../admin/monitoring.html">Monitoring</a><a href="../admin/frp-tunnel.html">FRP Tunnel</a><a href="../admin/extension.html">Browser Extension</a><a href="../admin/troubleshooting.html">Troubleshooting</a></div>
           <div class="nav-group"><div class="nav-title">Developer Guide</div><a href="./index.html">Overview</a><a href="./server.html">Server (Backend)</a><a href="./webui.html">Web Panel</a><a href="./desktop.html">Desktop Client</a><a href="./agent.html">Go Agent</a><a href="./monitoring.html">Monitoring Stack</a><a href="./extension.html">Browser Extension</a><a href="./api-reference.html">API Reference</a><a href="./hooks.html">Hooks &amp; Events</a><a href="./cicd.html">CI/CD &amp; Release</a></div>
         </nav>
-        <div class="sidebar-footer"><span>v0.18.0</span><span id="year"></span></div>
+        <div class="sidebar-footer"><span>v0.20.0</span><span id="year"></span></div>
       </aside>
 
       <header class="topbar">
@@ -36,52 +36,57 @@
           <h2>Project Structure</h2>
           <div class="code-header"><span>tree</span></div>
 <pre><code>frontend-src/
-├── src/
-│   ├── lib/
-│   │   ├── api/           fetch wrapper for /api/*
-│   │   ├── components/    Button, Modal, TagChip, Tabs, ...
-│   │   ├── stores/        13 runes-based stores (auth, connections, ...)
-│   │   ├── i18n/          DE/EN dictionaries
-│   │   └── utils/
-│   ├── routes/            Pages (hash-routed)
-│   ├── App.svelte
-│   └── main.ts
-├── tests/e2e/             Playwright
-├── svelte.config.ts
-└── vite.config.ts</code></pre>
+&#9500;&#9472;&#9472; src/
+&#9474;   &#9500;&#9472;&#9472; lib/
+&#9474;   &#9474;   &#9500;&#9472;&#9472; api/           11 modules: client.ts + 9 domain wrappers + types.ts
+&#9474;   &#9474;   &#9500;&#9472;&#9472; components/    Button, Modal, TagChip, Tabs, EmptyState, Toast, ...
+&#9474;   &#9474;   &#9500;&#9472;&#9472; stores/        10 runes-based stores (auth, connections, &hellip;)
+&#9474;   &#9474;   &#9500;&#9472;&#9472; i18n/          DE/EN dictionaries (localStorage <code>srm_language</code>)
+&#9474;   &#9474;   &#9500;&#9472;&#9472; router.ts      hash router
+&#9474;   &#9474;   &#9492;&#9472;&#9472; utils/
+&#9474;   &#9500;&#9472;&#9472; pages/           10 pages (8 production + Login + Placeholder)
+&#9474;   &#9500;&#9472;&#9472; modals/          19 modal components + <code>configs/</code> subfolder
+&#9474;   &#9500;&#9472;&#9472; styles/
+&#9474;   &#9500;&#9472;&#9472; App.svelte
+&#9474;   &#9492;&#9472;&#9472; main.ts
+&#9500;&#9472;&#9472; tests/e2e/         Playwright (login.spec.ts, smoke.spec.ts)
+&#9500;&#9472;&#9472; svelte.config.ts
+&#9492;&#9472;&#9472; vite.config.ts</code></pre>
 
           <h2>Routing</h2>
-          <p>Hash router (no SSR, no SvelteKit client router): paths are <code>#/connections</code>, <code>#/servers</code>, etc. This works reliably behind any reverse proxy without SPA fallback support on the server side. Implementation in <code>src/lib/router.ts</code>.</p>
+          <p>Hash router (no SSR, no SvelteKit client router): paths are <code>#/connections</code>, <code>#/servers</code>, etc. This works reliably behind any reverse proxy without SPA fallback support on the server side. Implementation in <code>src/lib/router.ts</code> &ndash; a <code>writable</code> <code>_path</code> with a <code>hashchange</code> listener; exports <code>navigate()</code>, <code>replace()</code>, <code>currentPath()</code> and a <code>segments</code> derived store.</p>
+          <p>Eight production routes: <code>#/connections</code>, <code>#/servers</code>, <code>#/users</code>, <code>#/apikeys</code>, <code>#/hooks</code>, <code>#/frp</code>, <code>#/ansible</code>, <code>#/monitoring</code>.</p>
 
           <h2>Stores</h2>
-          <p>Svelte 5 runes replace classic writables. Each store is a TypeScript class with <code>$state</code> fields and methods:</p>
+          <p>Ten stores in <code>src/lib/stores/</code>. Each is a TypeScript class with <code>$state</code> fields and methods that talk to the matching API wrapper.</p>
           <table>
             <thead><tr><th>Store</th><th>Purpose</th></tr></thead>
             <tbody>
-              <tr><td><code>authStore</code></td><td>Login, logout, refresh, current user.</td></tr>
-              <tr><td><code>connectionsStore</code></td><td>Live list + search + group filter.</td></tr>
-              <tr><td><code>serversStore</code></td><td>Server inventory + provision token.</td></tr>
-              <tr><td><code>apiKeysStore</code></td><td>Key CRUD.</td></tr>
-              <tr><td><code>hooksStore</code></td><td>Hook CRUD + execution log.</td></tr>
-              <tr><td><code>monitoringStore</code></td><td>Checks, alerts, VictoriaMetrics queries.</td></tr>
-              <tr><td><code>ansibleStore</code></td><td>Playbook runs, streaming output.</td></tr>
-              <tr><td><code>tunnelStore</code></td><td>FRP tunnel state and CRUD.</td></tr>
-              <tr><td><code>toastStore</code></td><td>Global toast notifications.</td></tr>
-              <tr><td><code>confirmStore</code></td><td>Confirmation dialogs.</td></tr>
-              <tr><td><code>languageStore</code></td><td>DE/EN switch (i18n).</td></tr>
-              <tr><td><code>themeStore</code></td><td>No theme switch – always dark (from CSS tokens).</td></tr>
-              <tr><td><code>settingsStore</code></td><td>Server-side settings.</td></tr>
+              <tr><td><code>auth</code></td><td>Login, logout, refresh, current user; tokens in <code>localStorage</code> (<code>srm_token</code>, <code>srm_refresh_token</code>).</td></tr>
+              <tr><td><code>connections</code></td><td>Live list, search, group filter, tag hierarchy.</td></tr>
+              <tr><td><code>servers</code></td><td>Server inventory, provision token, user assignment.</td></tr>
+              <tr><td><code>users</code></td><td>User CRUD incl. server mapping.</td></tr>
+              <tr><td><code>apikeys</code></td><td>Key CRUD, one-time clear-text reveal.</td></tr>
+              <tr><td><code>hooks</code></td><td>Hook CRUD, trigger test, token rotation.</td></tr>
+              <tr><td><code>frp</code></td><td>Tunnel CRUD, provisioning, PKI status.</td></tr>
+              <tr><td><code>ansible</code></td><td>Playbook management and editor state.</td></tr>
+              <tr><td><code>monitoring</code></td><td>Checks, alerts, templates, VictoriaMetrics queries via proxy.</td></tr>
+              <tr><td><code>notifications</code></td><td>Global toasts and confirmation dialogs.</td></tr>
             </tbody>
           </table>
 
           <h2>API Wrapper</h2>
-          <p>All HTTP calls go through <code>src/lib/api/client.ts</code>. The client manages the access token and auto-triggers refresh on 401. A second 401 redirects to the login page.</p>
+          <p>All HTTP calls go through <code>src/lib/api/client.ts</code>. The client owns the access token, holds an in-flight-deduplicated <code>tryRefresh()</code> promise and automatically refreshes on 401. If that fails, <code>registerAuthFailureHandler()</code> calls into the <code>auth</code> store, which navigates to login.</p>
+          <p>Domain wrappers sit alongside: <code>auth.ts</code>, <code>connections.ts</code>, <code>servers.ts</code>, <code>users.ts</code>, <code>apikeys.ts</code>, <code>hooks.ts</code>, <code>frp.ts</code>, <code>ansible.ts</code>, <code>monitoring.ts</code> &ndash; all typed via <code>types.ts</code>.</p>
+
+          <h2>i18n</h2>
+          <p>Languages: DE and EN. Active language is persisted in <code>localStorage.srm_language</code>; browser detection only supplies the initial fallback. The <code>t()</code> function is a store &ndash; this avoids i18n leaks in reactive components.</p>
 
           <h2>uPlot Charts</h2>
-          <p>Monitoring charts use <code>uplot</code> directly – no heavyweight chart framework. Wrapper in <code>src/lib/components/charts/</code>. uPlot is 30 KB gzipped and renders 100 k points without stutter.</p>
+          <p>Monitoring charts use <code>uplot</code> directly &ndash; no heavyweight chart framework. Wrappers in <code>src/lib/components/</code>. uPlot is 30 KB gzipped and renders 100 k points without stutter.</p>
 
           <h2>Tests</h2>
-          <p>Playwright smoke tests cover all 8 production pages: Login, Connections, Servers, Users, API-Keys, Hooks, Ansible, FRP Tunnels, Monitoring. Visual-diff screenshots are uploaded as CI artifacts.</p>
+          <p>Playwright smoke tests cover all 8 production pages. Two specs: <code>login.spec.ts</code> and <code>smoke.spec.ts</code>; visual diffs live in <code>tests/e2e/*.spec.ts-snapshots/</code>. Tolerance is <code>maxDiffPixelRatio: 0.02</code> (2&nbsp;%). Locale <code>de-DE</code>, viewport 1280&times;800. Reports are uploaded as a CI artifact (<code>frontend_e2e</code> job).</p>
 
           <div class="code-header"><span>bash</span></div>
 <pre><code>cd frontend-src
@@ -90,7 +95,8 @@ npm run lint            # eslint + svelte-eslint
 npx playwright test     # E2E</code></pre>
 
           <h2>Build &amp; Deployment</h2>
-          <p>The Vite build outputs to <code>frontend-src/dist/</code>. The Dockerfile copies this into <code>/app/frontend/</code>, and the FastAPI app mounts it as a static route. SPA fallback checks file existence before returning <code>index.html</code> – this prevents MIME errors on <code>/assets/*.js</code>.</p>
+          <p>The Vite build outputs to <code>frontend-src/dist/</code> (sourcemaps on, target ES2022). The repo-root <code>Dockerfile</code> uses a multi-stage build to copy the output into <code>/app/frontend/</code>, and the FastAPI app mounts it as a static route. SPA fallback checks file existence before returning <code>index.html</code> &ndash; this prevents MIME errors on <code>/assets/*.js</code>.</p>
+          <p>In dev mode Vite runs on port 5173 and proxies <code>/auth</code>, <code>/api</code>, <code>/health</code> to <code>localhost:8000</code>.</p>
 
           <div class="page-nav">
             <a class="prev" href="./server.html"><span class="label">← Previous chapter</span><span class="title">Server</span></a>

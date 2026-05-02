@@ -126,7 +126,7 @@
         </nav>
 
         <div class="sidebar-footer">
-          <span>v0.18.0</span>
+          <span>v0.20.0</span>
           <span id="year"></span>
         </div>
       </aside>
@@ -159,7 +159,7 @@
       <main class="content">
         <div class="content-inner">
           <section class="hero" data-reveal>
-            <span class="eyebrow">Version 0.18.0 · 2026-04-18</span>
+            <span class="eyebrow">Version 0.20.0 · 2026-04-19</span>
             <h1>SimpleRemoteManager – Documentation</h1>
             <p class="lead">
               A modular monolith for centrally managing remote access,
@@ -267,7 +267,22 @@
             </div>
           </div>
 
-          <h2>What's new in 0.18.0?</h2>
+          <h2>What's new in 0.20.0?</h2>
+          <div class="callout callout-note" data-reveal>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+            <div>
+              <div class="callout-title">v0.20.0 &ndash; Bundle release (2026-04-19)</div>
+              <p>
+                Coordinated version bump across all components
+                (server, web panel, desktop client, Go agent, browser
+                extension, Docker image, CI pipeline) onto a shared
+                version. No functional changes &ndash; just realigns
+                every artifact after the big migrations from 0.17 and 0.19.
+              </p>
+            </div>
+          </div>
+
+          <h2>Highlights from 0.19.0</h2>
           <div class="callout callout-tip" data-reveal>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
             <div>
@@ -275,8 +290,35 @@
               <p>
                 Big-bang migration in 11 phases: stores instead of DOM
                 managers, strict TypeScript, typed Tauri bridge to all
-                24 Rust commands, 41 Vitest unit tests. Details in the
+                23 Rust commands, 41 Vitest unit tests. The old
+                <code>desktop/src/</code> was replaced by <code>desktop-src/</code>.
+                Details in the
                 <a href="./developer/desktop.html">Developer Guide &rsaquo; Desktop Client</a>.
+              </p>
+            </div>
+          </div>
+          <div class="callout callout-warn" data-reveal>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+            <div>
+              <div class="callout-title">Security hardening</div>
+              <p>
+                Refresh-token rotation with blacklist and reuse detection,
+                login rate limit on Redis (with in-memory fallback),
+                Tauri capability scoping (minimal permissions),
+                PKI bundle protected against zip-slip and zip-bomb.
+                See <a href="./developer/server.html">Developer Guide &rsaquo; Server</a>.
+              </p>
+            </div>
+          </div>
+          <div class="callout callout-note" data-reveal>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-6 4 4 5-8"/></svg>
+            <div>
+              <div class="callout-title">Monitoring dashboard v2</div>
+              <p>
+                Section-based per-server dashboard instead of a card grid;
+                heartbeat, live, network, services, Docker, backups, ZFS
+                and SMART are grouped. Each check row expands into period
+                tabs (1h&middot;6h&middot;24h&middot;7d) with chart and status timeline.
               </p>
             </div>
           </div>

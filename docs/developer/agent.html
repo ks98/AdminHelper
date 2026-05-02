@@ -19,7 +19,7 @@
           <div class="nav-group"><div class="nav-title">Admin-Handbuch</div><a href="../admin/index.html">Übersicht</a><a href="../admin/installation.html">Installation</a><a href="../admin/betrieb.html">Betrieb &amp; Konfiguration</a><a href="../admin/benutzer.html">Benutzer &amp; Zugriff</a><a href="../admin/agent-deployment.html">Agent-Deployment</a><a href="../admin/monitoring.html">Monitoring</a><a href="../admin/frp-tunnel.html">FRP-Tunnel</a><a href="../admin/extension.html">Browser-Extension</a><a href="../admin/troubleshooting.html">Troubleshooting</a></div>
           <div class="nav-group"><div class="nav-title">Entwickler-Handbuch</div><a href="./index.html">Übersicht</a><a href="./server.html">Server (Backend)</a><a href="./webui.html">Web-Panel</a><a href="./desktop.html">Desktop-Client</a><a href="./agent.html">Go-Agent</a><a href="./monitoring.html">Monitoring-Stack</a><a href="./extension.html">Browser-Extension</a><a href="./api-reference.html">API-Referenz</a><a href="./hooks.html">Hooks &amp; Events</a><a href="./cicd.html">CI/CD &amp; Release</a></div>
         </nav>
-        <div class="sidebar-footer"><span>v0.18.0</span><span id="year"></span></div>
+        <div class="sidebar-footer"><span>v0.20.0</span><span id="year"></span></div>
       </aside>
 
       <header class="topbar">
@@ -36,72 +36,75 @@
           <h2>Projekt-Layout</h2>
           <div class="code-header"><span>tree</span></div>
 <pre><code>agent-go/
-├── cmd/adminhelper-agent/   main.go – Cobra-Root
-├── internal/
-│   ├── cli/                 Subcommands (run, provision, monitor, ...)
-│   ├── config/              agent.toml + Env-Var-Overrides
-│   ├── http/                API-Client mit Auto-Retry
-│   ├── collectors/          cpu, ram, disk, smart, docker, zfs, proxmox
-│   ├── frp/                 frpc-Verwaltung, Cert-Rotation
-│   └── service/             systemd / windowssvc-Integration
-├── systemd/                 .service + .timer Units
-├── rpm/                     Spec-File
-├── build-deb.sh
-├── build-rpm.sh
-└── go.mod</code></pre>
+&#9500;&#9472;&#9472; cmd/adminhelper-agent/
+&#9474;   &#9500;&#9472;&#9472; main.go             Cobra-Root mit f&uuml;nf Subkommando-Gruppen
+&#9474;   &#9500;&#9472;&#9472; handlers.go         Implementierung der Subcommands
+&#9474;   &#9492;&#9472;&#9472; run.go              Standalone-Modus ohne Systemd
+&#9500;&#9472;&#9472; internal/
+&#9474;   &#9500;&#9472;&#9472; config/             paths_linux.go / paths_windows.go, Key=Value-Parser
+&#9474;   &#9500;&#9472;&#9472; frpc/               Init &uuml;ber <code>/api/frp/provision/{id}/activate</code>, ZIP-Slip-sicher
+&#9474;   &#9500;&#9472;&#9472; monitor/            Collector + Plugins (10 Dateien, OS-spezifische Splits)
+&#9474;   &#9492;&#9472;&#9472; service/            service_linux.go (systemd) / service_windows.go (SCM)
+&#9500;&#9472;&#9472; systemd/                .service + .timer Units
+&#9500;&#9472;&#9472; deb/                    Debian-Control-Dateien
+&#9500;&#9472;&#9472; rpm/                    Spec-File
+&#9500;&#9472;&#9472; Makefile                build-linux, build-windows, deb, rpm
+&#9500;&#9472;&#9472; build-deb.sh
+&#9500;&#9472;&#9472; build-rpm.sh
+&#9492;&#9472;&#9472; go.mod                  Go 1.24</code></pre>
 
           <h2>Cobra-Subcommands</h2>
+          <p>Sechs Top-Level-Befehle, davon drei mit Sub-Subcommands:</p>
           <table>
             <thead><tr><th>Command</th><th>Zweck</th></tr></thead>
             <tbody>
-              <tr><td><code>version</code></td><td>Version + Git-Commit ausgeben (gesetzt über <code>-ldflags</code>).</td></tr>
-              <tr><td><code>provision</code></td><td>Erst-Setup: Server-URL, Token einlösen, Zertifikat holen, Services aktivieren.</td></tr>
-              <tr><td><code>run</code></td><td>Vollständigen Agent-Zyklus einmal durchspielen (Monitoring + FRP).</td></tr>
-              <tr><td><code>monitor run</code></td><td>Nur Monitoring-Collector-Lauf.</td></tr>
-              <tr><td><code>frpc rotate</code></td><td>Client-Zertifikat manuell erneuern.</td></tr>
-              <tr><td><code>service install</code> / <code>uninstall</code></td><td>systemd-Unit- bzw. Windows-Service-Installation.</td></tr>
+              <tr><td><code>version</code></td><td>Version + Git-Commit ausgeben (gesetzt &uuml;ber <code>-ldflags</code>).</td></tr>
+              <tr><td><code>run</code></td><td>Standalone-Modus: gesamten Zyklus einmal durchspielen (Monitoring-Push + FRP-Sync).</td></tr>
+              <tr><td><code>frpc init</code></td><td>Erst-Setup: Provisioning-Token einl&ouml;sen, PKI-Bundle entpacken, <code>frpc.toml</code> schreiben.</td></tr>
+              <tr><td><code>frpc sync</code></td><td>Periodischer Config-Sync per Hash-Vergleich; schreibt nur, wenn sich der Server-seitige Hash ge&auml;ndert hat.</td></tr>
+              <tr><td><code>monitor init</code></td><td>Monitor-Config-Datei anlegen (URL, API-Key, Service-Liste).</td></tr>
+              <tr><td><code>monitor push</code></td><td>Einmaligen Metriken-Sammel- und -Push-Lauf ausf&uuml;hren.</td></tr>
+              <tr><td><code>service install</code> / <code>uninstall</code></td><td>systemd-Unit (Linux) oder Windows-Dienst (SCM) installieren bzw. entfernen.</td></tr>
             </tbody>
           </table>
 
-          <h2>Collector-Framework</h2>
-          <p>Jeder Collector implementiert ein simples Interface:</p>
-
-          <div class="code-header"><span>go</span></div>
-<pre><code>type Collector interface {
-    Name() string
-    Enabled(cfg *config.Config) bool
-    Collect(ctx context.Context) ([]Sample, error)
-}
-
-type Sample struct {
-    Metric string
-    Value  float64
-    Labels map[string]string
-    Time   time.Time
-}</code></pre>
-
-          <p>Vorhandene Collectors:</p>
+          <h2>Konfiguration</h2>
+          <p>Zwei Konfigurationsdateien im Key=Value-Format (Anf&uuml;hrungszeichen erlaubt). Pfade pro OS:</p>
           <ul>
-            <li><code>cpu</code> – Load + Per-Core-Utilization (aus <code>/proc/stat</code> bzw. GetSystemInfo auf Windows)</li>
-            <li><code>ram</code> – Total/Used/Free/Swap</li>
-            <li><code>disk</code> – pro Mountpoint</li>
-            <li><code>smart</code> – via <code>smartctl --scan-open</code> + <code>--all --json=cv</code></li>
-            <li><code>docker</code> – via Docker-API-Socket</li>
-            <li><code>zfs</code> – via <code>zpool status -p</code></li>
-            <li><code>proxmox</code> – via <code>pveversion</code> + API (nur auf PVE-Hosts)</li>
+            <li>Linux: <code>/etc/frp/frp.conf</code> und <code>/etc/adminhelper/monitor.conf</code></li>
+            <li>Windows: unter <code>%ProgramData%\adminhelper\</code></li>
           </ul>
+          <p><code>FrpcConfig</code>-Felder: <code>ADMINHELPER_URL</code>, <code>API_KEY</code>, <code>SERVER_ID</code>, <code>CACERT</code>, <code>INSECURE</code>. <code>MonitorConfig</code> erg&auml;nzt zus&auml;tzlich <code>MONITOR_URL</code> und <code>SERVICES</code> (kommagetrennt).</p>
+
+          <h2>Monitor-Collector</h2>
+          <p>Zentrale Sammlung in <code>internal/monitor/collector.go</code>. Alle Collector-Funktionen liefern <code>map[string]any</code>, das beim Push direkt JSON-serialisiert wird:</p>
+          <ul>
+            <li><code>collectCPU()</code> &ndash; Last und Per-Core-Utilization</li>
+            <li><code>collectMemory()</code> &ndash; Total / Used / Free / Swap</li>
+            <li><code>collectLoad()</code> &ndash; <code>load_1m</code>, <code>load_5m</code>, <code>load_15m</code></li>
+            <li><code>collectDisks()</code> &ndash; pro Mountpoint mit FS-Type, Belegung, Inodes</li>
+            <li><code>collectUptime()</code></li>
+            <li><code>collectTemperatures()</code> &ndash; lm-sensors / Windows-WMI</li>
+            <li><code>collectServiceHealth()</code> + <code>collectWatchedServices(names)</code></li>
+            <li><code>collectDocker()</code> &ndash; Container-Liste &uuml;ber Docker-Socket</li>
+            <li><code>collectZFS()</code> &ndash; <code>zpool status -p</code></li>
+            <li><code>collectProxmox()</code> &ndash; <code>pveversion</code> + API (nur auf PVE-Hosts)</li>
+            <li><code>collectSmart()</code> &ndash; <code>smartctl --scan-open</code> + <code>--all --json=cv</code>; ATA- und NVMe-Pfade getrennt geparst</li>
+          </ul>
+          <p>Alle Daten landen unter dem JSON-Key <code>resources</code> in <code>POST /agent/{server_id}/report</code> am Monitoring-Service.</p>
 
           <h2>systemd-Timer mit Jitter</h2>
-          <p>Statt <code>cron</code> nutzt der Agent systemd mit <code>OnCalendar=*:0/5</code> + <code>RandomizedDelaySec=30s</code>. Der Jitter verteilt die Last aller Agents gleichmäßig auf das 5-Minuten-Fenster und verhindert Thundering-Herd-Requests am Server.</p>
+          <p>Statt <code>cron</code> nutzt der Agent systemd mit <code>OnBootSec=60</code>, <code>OnUnitActiveSec=300</code> (5&nbsp;min Intervall) und <code>RandomizedDelaySec=30</code>. Der Jitter verteilt die Last aller Agents auf das 5-Minuten-Fenster und verhindert Thundering-Herd-Requests am Server.</p>
 
           <h2>Build</h2>
           <div class="code-header"><span>bash</span></div>
 <pre><code>cd agent-go
-GOOS=linux   GOARCH=amd64 go build -o bin/adminhelper-agent     ./cmd/adminhelper-agent
-GOOS=windows GOARCH=amd64 go build -o bin/adminhelper-agent.exe ./cmd/adminhelper-agent
+make build-linux       # bin/adminhelper-agent       (ELF amd64)
+make build-windows     # bin/adminhelper-agent.exe   (PE amd64)
 
-VERSION=0.18.0 bash build-deb.sh
-VERSION=0.18.0 bash build-rpm.sh</code></pre>
+VERSION=0.20.0 bash build-deb.sh
+VERSION=0.20.0 bash build-rpm.sh</code></pre>
+          <p>Das DEB-Paket installiert <code>/usr/local/bin/adminhelper-agent</code> sowie <code>/usr/bin/frpc</code> (in der CI heruntergeladen) und legt die Systemd-Unit + Timer an.</p>
 
           <div class="callout callout-tip" data-reveal>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-7 7c0 3 2 5 3 7h8c1-2 3-4 3-7a7 7 0 0 0-7-7z"/></svg>

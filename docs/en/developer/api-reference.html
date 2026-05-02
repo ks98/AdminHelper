@@ -19,7 +19,7 @@
           <div class="nav-group"><div class="nav-title">Admin Guide</div><a href="../admin/index.html">Overview</a><a href="../admin/installation.html">Installation</a><a href="../admin/operations.html">Operations &amp; Config</a><a href="../admin/users.html">Users &amp; Access</a><a href="../admin/agent-deployment.html">Agent Deployment</a><a href="../admin/monitoring.html">Monitoring</a><a href="../admin/frp-tunnel.html">FRP Tunnel</a><a href="../admin/extension.html">Browser Extension</a><a href="../admin/troubleshooting.html">Troubleshooting</a></div>
           <div class="nav-group"><div class="nav-title">Developer Guide</div><a href="./index.html">Overview</a><a href="./server.html">Server (Backend)</a><a href="./webui.html">Web Panel</a><a href="./desktop.html">Desktop Client</a><a href="./agent.html">Go Agent</a><a href="./monitoring.html">Monitoring Stack</a><a href="./extension.html">Browser Extension</a><a href="./api-reference.html">API Reference</a><a href="./hooks.html">Hooks &amp; Events</a><a href="./cicd.html">CI/CD &amp; Release</a></div>
         </nav>
-        <div class="sidebar-footer"><span>v0.18.0</span><span id="year"></span></div>
+        <div class="sidebar-footer"><span>v0.20.0</span><span id="year"></span></div>
       </aside>
 
       <header class="topbar">
@@ -31,82 +31,128 @@
         <div class="content-inner">
           <span class="eyebrow">Developer Guide</span>
           <h1>API Reference</h1>
-          <p class="lead">All HTTP endpoints of the SRM server. Base URL: <code>https://&lt;host&gt;/api</code>. The complete OpenAPI schema lives at <code>/api/docs</code> (Swagger UI) and <code>/api/openapi.json</code>.</p>
+          <p class="lead">All HTTP endpoints of the SRM server. Base URL: <code>https://&lt;host&gt;</code>. The complete OpenAPI schema lives at <code>/docs</code> (Swagger UI) and <code>/openapi.json</code>.</p>
 
           <h2>Authentication</h2>
-          <p>Two mechanisms depending on the caller:</p>
+          <p>Two mechanisms, depending on the caller:</p>
           <ul>
-            <li><strong>JWT bearer</strong> (web panel, desktop): <code>Authorization: Bearer &lt;access_token&gt;</code>. Refresh via httpOnly cookie.</li>
-            <li><strong>API key</strong> (agents, extension, third parties): <code>?api_key=srm_…</code> as query parameter or <code>X-API-Key</code> header.</li>
+            <li><strong>JWT bearer</strong> (web panel, desktop): <code>Authorization: Bearer &lt;access_token&gt;</code>. Both access and refresh tokens are returned in the JSON body &ndash; <em>no</em> httpOnly cookie.</li>
+            <li><strong>API key</strong> (agents, extension, third parties): header <code>X-API-Key</code>. Permission is <code>read</code> or <code>read_write</code>.</li>
           </ul>
 
           <h2>Auth</h2>
           <div class="endpoint">
             <span class="method-post">POST</span><code>/api/auth/login</code>
-            <p>Body: <code>{ "username": "admin", "password": "…" }</code>. Response: <code>{ "access_token": "…", "user": {…} }</code>. Sets the <code>refresh_token</code> cookie.</p>
+            <p>Body: <code>{ "username", "password" }</code>. Response: <code>{ "access_token", "refresh_token", "user" }</code>. Login rate limit: 5 failed attempts / 60&nbsp;s / IP.</p>
           </div>
           <div class="endpoint">
             <span class="method-post">POST</span><code>/api/auth/refresh</code>
-            <p>Reads the refresh cookie. Rotates the refresh token, blacklists the old <code>jti</code>. Reuse of a blacklisted token invalidates all user sessions.</p>
+            <p>Body: <code>{ "refresh_token" }</code>. Rotates both tokens, blacklists the old <code>jti</code>. Reusing an already-revoked refresh token invalidates all sessions of the affected user chain.</p>
           </div>
           <div class="endpoint">
             <span class="method-post">POST</span><code>/api/auth/logout</code>
-            <p>Blacklists the current refresh token, deletes the cookie.</p>
+            <p>Blacklists the current access token (and any refresh token in the body).</p>
           </div>
           <div class="endpoint">
             <span class="method-get">GET</span><code>/api/auth/me</code>
-            <p>Current user incl. <code>roles</code>, <code>mfa_enabled</code>.</p>
+            <p>Current user; requires a valid access token.</p>
           </div>
 
           <h2>Users</h2>
-          <div class="endpoint"><span class="method-get">GET</span><code>/api/users</code><p>List of all users (admin only).</p></div>
-          <div class="endpoint"><span class="method-post">POST</span><code>/api/users</code><p>Create a user. Password is hashed via Argon2id.</p></div>
-          <div class="endpoint"><span class="method-patch">PATCH</span><code>/api/users/{id}</code><p>Change roles, email or <code>is_active</code>.</p></div>
-          <div class="endpoint"><span class="method-delete">DELETE</span><code>/api/users/{id}</code><p>Soft delete: <code>is_active = false</code>, sessions invalidated.</p></div>
+          <div class="endpoint"><span class="method-get">GET</span><code>/api/users</code><p>List all users (admin).</p></div>
+          <div class="endpoint"><span class="method-post">POST</span><code>/api/users</code><p>Create user (admin). Password: SHA-256 prehash &rarr; bcrypt. Fires <code>user.created</code>.</p></div>
+          <div class="endpoint"><span class="method-put">PUT</span><code>/api/users/{id}</code><p>Update user (admin).</p></div>
+          <div class="endpoint"><span class="method-delete">DELETE</span><code>/api/users/{id}</code><p>Delete user (admin). Fires <code>user.deleted</code>.</p></div>
+          <div class="endpoint"><span class="method-get">GET</span><code>/api/users/me/servers</code><p>Servers assigned to the current user.</p></div>
 
           <h2>Connections</h2>
-          <div class="endpoint"><span class="method-get">GET</span><code>/api/connections</code><p>Query: <code>?kind=rdp|ssh|vnc|web</code>, <code>?group=…</code>, <code>?search=…</code>.</p></div>
-          <div class="endpoint"><span class="method-post">POST</span><code>/api/connections</code><p>Body: <code>{ kind, name, host, port, tags, tunnel_id? }</code>.</p></div>
-          <div class="endpoint"><span class="method-put">PUT</span><code>/api/connections/{id}</code><p>Full replace.</p></div>
-          <div class="endpoint"><span class="method-delete">DELETE</span><code>/api/connections/{id}</code></div>
+          <div class="endpoint"><span class="method-get">GET</span><code>/api/connections</code><p>List (read).</p></div>
+          <div class="endpoint"><span class="method-post">POST</span><code>/api/connections</code><p>Create (write). Fires <code>connection.created</code>.</p></div>
+          <div class="endpoint"><span class="method-put">PUT</span><code>/api/connections/{id}</code><p>Update (write). Fires <code>connection.updated</code>.</p></div>
+          <div class="endpoint"><span class="method-post">POST</span><code>/api/connections/{id}/touch</code><p>Sets <code>last_used = now</code> (read).</p></div>
+          <div class="endpoint"><span class="method-delete">DELETE</span><code>/api/connections/{id}</code><p>Delete (admin). Fires <code>connection.deleted</code>.</p></div>
+          <div class="endpoint"><span class="method-get">GET</span><code>/api/connections/export</code><p>JSON export (admin).</p></div>
+          <div class="endpoint"><span class="method-post">POST</span><code>/api/connections/import</code><p><code>?mode=replace|merge</code> (admin). Fires <code>connections.imported</code>.</p></div>
 
           <h2>Servers</h2>
-          <div class="endpoint"><span class="method-get">GET</span><code>/api/servers</code><p>Inventory, grouped by <code>status</code>.</p></div>
-          <div class="endpoint"><span class="method-post">POST</span><code>/api/servers/{id}/token</code><p>24 h provision token for the agent. Redeemable once.</p></div>
-          <div class="endpoint"><span class="method-post">POST</span><code>/api/servers/provision</code><p>Agent redeems the token → certificate + config.</p></div>
+          <div class="endpoint"><span class="method-get">GET</span><code>/api/servers</code><p>Server inventory (admin).</p></div>
+          <div class="endpoint"><span class="method-post">POST</span><code>/api/servers</code><p>Create (admin). Fires <code>server.created</code>.</p></div>
+          <div class="endpoint"><span class="method-get">GET</span><code>/api/servers/{id}</code></div>
+          <div class="endpoint"><span class="method-put">PUT</span><code>/api/servers/{id}</code><p>Update (admin). Fires <code>server.updated</code>.</p></div>
+          <div class="endpoint"><span class="method-delete">DELETE</span><code>/api/servers/{id}</code><p>Delete (admin). Also triggers cleanup at the monitoring service.</p></div>
 
           <h2>API Keys</h2>
-          <div class="endpoint"><span class="method-get">GET</span><code>/api/apikeys</code></div>
-          <div class="endpoint"><span class="method-post">POST</span><code>/api/apikeys</code><p>Body: <code>{ name, scope: [...], expires_at? }</code>. Clear-text key returned <strong>once</strong> in the response; only SHA-256 is persisted.</p></div>
-          <div class="endpoint"><span class="method-delete">DELETE</span><code>/api/apikeys/{id}</code></div>
+          <div class="endpoint"><span class="method-get">GET</span><code>/api/api-keys</code></div>
+          <div class="endpoint"><span class="method-post">POST</span><code>/api/api-keys</code><p>Body: <code>{ name, permission: "read"|"read_write" }</code>. Clear-text key is returned <strong>once</strong>; only the SHA-256 hash is persisted.</p></div>
+          <div class="endpoint"><span class="method-delete">DELETE</span><code>/api/api-keys/{id}</code></div>
 
           <h2>Hooks</h2>
           <div class="endpoint"><span class="method-get">GET</span><code>/api/hooks</code></div>
-          <div class="endpoint"><span class="method-post">POST</span><code>/api/hooks</code><p>Body: <code>{ event, script, timeout_sec, enabled }</code>.</p></div>
-          <div class="endpoint"><span class="method-get">GET</span><code>/api/hooks/{id}/executions</code><p>Last 50 runs with <code>exit_code</code>, <code>stdout</code>, <code>stderr</code>.</p></div>
-          <div class="endpoint"><span class="method-post">POST</span><code>/api/hooks/{id}/test</code><p>Run with a test event payload.</p></div>
+          <div class="endpoint"><span class="method-post">POST</span><code>/api/hooks</code><p>Body: <code>{ name, hook_type: "webhook"|"event"|"schedule", event_triggers?: [...], schedule_interval?, script, enabled }</code>. For <code>webhook</code> the token is generated server-side (returned once).</p></div>
+          <div class="endpoint"><span class="method-get">GET</span><code>/api/hooks/{id}</code></div>
+          <div class="endpoint"><span class="method-put">PUT</span><code>/api/hooks/{id}</code></div>
+          <div class="endpoint"><span class="method-delete">DELETE</span><code>/api/hooks/{id}</code><p>Auto-removes from the scheduler if it was a schedule hook.</p></div>
+          <div class="endpoint"><span class="method-post">POST</span><code>/api/hooks/{id}/toggle</code><p>Enable/disable; updates scheduler registration.</p></div>
+          <div class="endpoint"><span class="method-post">POST</span><code>/api/hooks/{id}/rotate</code><p>Rotate webhook token.</p></div>
+          <div class="endpoint"><span class="method-post">POST</span><code>/api/hooks/{id}/run</code><p>Manual test run with empty context.</p></div>
+          <div class="endpoint"><span class="method-post">POST</span><code>/api/hooks/trigger/{token}</code><p><strong>Public</strong> (no JWT). Rate limit: 20 req / 60&nbsp;s / IP. Context: <code>{ payload, headers, params }</code>.</p></div>
 
-          <h2>Monitoring</h2>
-          <div class="endpoint"><span class="method-get">GET</span><code>/api/monitoring/checks</code></div>
-          <div class="endpoint"><span class="method-post">POST</span><code>/api/monitoring/checks</code><p>Body: <code>{ kind, server_id, config: {…}, threshold: {…}, interval_sec }</code>.</p></div>
-          <div class="endpoint"><span class="method-post">POST</span><code>/api/monitoring/ingest</code><p>Agent push. Body: Prometheus remote-write payload. Auth: <code>X-API-Key</code> with scope <code>monitor_ingest</code>.</p></div>
-          <div class="endpoint"><span class="method-get">GET</span><code>/api/monitoring/query</code><p>SSRF-safe proxy to VictoriaMetrics. Only <code>/api/v1/query</code> and <code>/api/v1/query_range</code> are allowed.</p></div>
+          <h2>Ansible Playbooks</h2>
+          <div class="endpoint"><span class="method-get">GET</span><code>/api/ansible/playbooks</code></div>
+          <div class="endpoint"><span class="method-post">POST</span><code>/api/ansible/playbooks</code><p>YAML validation server-side; stored on disk under <code>/data/ansible/playbooks/{id}/</code>.</p></div>
+          <div class="endpoint"><span class="method-get">GET</span><code>/api/ansible/playbooks/{id}</code></div>
+          <div class="endpoint"><span class="method-get">GET</span><code>/api/ansible/playbooks/{id}/content</code><p>Returns <code>{ content }</code> (YAML as string).</p></div>
+          <div class="endpoint"><span class="method-put">PUT</span><code>/api/ansible/playbooks/{id}</code></div>
+          <div class="endpoint"><span class="method-delete">DELETE</span><code>/api/ansible/playbooks/{id}</code></div>
 
-          <h2>Alerts</h2>
-          <div class="endpoint"><span class="method-get">GET</span><code>/api/alerts</code><p>Query: <code>?state=firing|acknowledged|resolved</code>.</p></div>
-          <div class="endpoint"><span class="method-post">POST</span><code>/api/alerts/{id}/ack</code><p>Acknowledge alert, triggers the <code>alert.acknowledged</code> hook.</p></div>
+          <h2>FRP &ndash; Server Config</h2>
+          <div class="endpoint"><span class="method-get">GET</span><code>/api/frp/server-config</code></div>
+          <div class="endpoint"><span class="method-post">POST</span><code>/api/frp/server-config</code><p>Also writes <code>frps.toml</code> into the shared volume.</p></div>
+          <div class="endpoint"><span class="method-get">GET</span><code>/api/frp/server-config/{id}</code><p>Optional <code>?include_tunnels=true</code>.</p></div>
+          <div class="endpoint"><span class="method-put">PUT</span><code>/api/frp/server-config/{id}</code></div>
+          <div class="endpoint"><span class="method-delete">DELETE</span><code>/api/frp/server-config/{id}</code></div>
 
-          <h2>FRP</h2>
-          <div class="endpoint"><span class="method-get">GET</span><code>/api/frp/tunnels</code></div>
-          <div class="endpoint"><span class="method-post">POST</span><code>/api/frp/tunnels</code><p>Body: <code>{ name, type: "tcp"|"http"|"stcp", local_port, sk? }</code>. <code>stcp</code> requires <code>sk</code> (shared key).</p></div>
-          <div class="endpoint"><span class="method-post">POST</span><code>/api/frp/client-cert/rotate</code><p>Agent-initiated shortcut to <code>/api/servers/{id}/cert</code>.</p></div>
+          <h2>FRP &ndash; Tunnels</h2>
+          <div class="endpoint"><span class="method-get">GET</span><code>/api/frp/tunnels</code><p>Query: <code>?server_id</code>, <code>?frp_config_id</code>.</p></div>
+          <div class="endpoint"><span class="method-post">POST</span><code>/api/frp/tunnels</code><p>STCP (with <code>secret_key</code>, <code>visitor_port</code>) or HTTPS (<code>custom_domains</code>). <code>auto_create_connection=true</code> also creates a matching connection.</p></div>
+          <div class="endpoint"><span class="method-get">GET</span><code>/api/frp/tunnels/{id}</code></div>
+          <div class="endpoint"><span class="method-put">PUT</span><code>/api/frp/tunnels/{id}</code></div>
+          <div class="endpoint"><span class="method-delete">DELETE</span><code>/api/frp/tunnels/{id}</code></div>
 
-          <h2>Audit</h2>
-          <div class="endpoint"><span class="method-get">GET</span><code>/api/audit</code><p>Query: <code>?since=ISO</code>, <code>?user_id=</code>, <code>?action=</code>. Paginate via <code>?limit</code> + <code>?cursor</code>.</p></div>
+          <h2>FRP &ndash; Generate (TOML/ZIP)</h2>
+          <div class="endpoint"><span class="method-get">GET</span><code>/api/frp/generate/frps-toml?config_id=&hellip;</code></div>
+          <div class="endpoint"><span class="method-get">GET</span><code>/api/frp/generate/frpc-toml/{server_id}</code></div>
+          <div class="endpoint"><span class="method-get">GET</span><code>/api/frp/generate/visitor-toml?config_id=&hellip;&amp;user_id=&hellip;</code></div>
+          <div class="endpoint"><span class="method-get">GET</span><code>/api/frp/generate/visitor-bundle?config_id=&hellip;</code><p>Returns <code>{ toml, pki }</code>.</p></div>
+          <div class="endpoint"><span class="method-get">GET</span><code>/api/frp/generate/bulk-zip?config_id=&hellip;</code><p>ZIP with <code>frps.toml</code> + <code>clients/*.toml</code> + <code>visitors/*.toml</code>.</p></div>
 
-          <h2>Settings &amp; Health</h2>
-          <div class="endpoint"><span class="method-get">GET</span><code>/api/settings</code><p>Global settings (branding, timeouts, feature flags).</p></div>
-          <div class="endpoint"><span class="method-get">GET</span><code>/api/health</code><p>Returns <code>{ status, version, git_commit, db: "ok", redis: "ok" }</code>. No auth.</p></div>
+          <h2>FRP &ndash; Provisioning</h2>
+          <div class="endpoint"><span class="method-post">POST</span><code>/api/frp/provision/{server_id}/token</code><p>Returns <code>{ token, expiresAt }</code> &ndash; one-time, 24&nbsp;h TTL.</p></div>
+          <div class="endpoint"><span class="method-get">GET</span><code>/api/frp/provision/{server_id}/tokens</code></div>
+          <div class="endpoint"><span class="method-post">POST</span><code>/api/frp/provision/{server_id}/activate</code><p>Header <code>X-Provision-Token</code>. Response: <code>{ apiKey, config, pkiBundle, serverName }</code>.</p></div>
+          <div class="endpoint"><span class="method-get">GET</span><code>/api/frp/provision/{server_id}/config</code><p>Current <code>frpc.toml</code> plain text (JWT or API key).</p></div>
+          <div class="endpoint"><span class="method-get">GET</span><code>/api/frp/provision/{server_id}/config-hash</code><p>SHA-256 for drift-free synchronisation.</p></div>
+
+          <h2>FRP &ndash; Status &amp; PKI</h2>
+          <div class="endpoint"><span class="method-get">GET</span><code>/api/frp/status</code><p>Merges the frps dashboard with DB tunnels.</p></div>
+          <div class="endpoint"><span class="method-get">GET</span><code>/api/frp/pki/status</code></div>
+          <div class="endpoint"><span class="method-post">POST</span><code>/api/frp/pki/ca?common_name=&hellip;</code></div>
+          <div class="endpoint"><span class="method-post">POST</span><code>/api/frp/pki/server-cert</code></div>
+          <div class="endpoint"><span class="method-post">POST</span><code>/api/frp/pki/client-cert/{name}</code></div>
+          <div class="endpoint"><span class="method-get">GET</span><code>/api/frp/pki/download/{filename}</code></div>
+          <div class="endpoint"><span class="method-get">GET</span><code>/api/frp/pki/download-client-bundle/{client_name}</code><p>ZIP with <code>ca.crt</code>, <code>client.crt</code>, <code>client.key</code>.</p></div>
+
+          <h2>Monitoring (reverse proxy)</h2>
+          <div class="endpoint"><span class="method-post">POST</span><code>/api/monitoring/agent/{server_id}/report</code><p><strong>Public</strong> (X-API-Key). Forwards the agent push 1:1 to the monitoring microservice.</p></div>
+          <div class="endpoint"><span class="method-get">GET</span><code>/api/monitoring/{path:path}</code><p>Admin-only reverse proxy. Allowed path prefixes: <code>checks</code>, <code>alerts</code>, <code>log</code>, <code>metrics</code>, <code>status</code>, <code>templates</code>, <code>agent</code>. Path traversal is blocked.</p></div>
+          <div class="endpoint"><span class="method-post">POST</span><code>/api/monitoring/{path:path}</code></div>
+          <div class="endpoint"><span class="method-put">PUT</span><code>/api/monitoring/{path:path}</code></div>
+          <div class="endpoint"><span class="method-delete">DELETE</span><code>/api/monitoring/{path:path}</code></div>
+
+          <div class="callout callout-note" data-reveal>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+            <div><div class="callout-title">No dedicated <code>alerts</code>, <code>audit</code> or <code>settings</code> endpoints on SRM</div><p>Alerts and check status come through the monitoring proxy from the separate service. Audit trails run via hook events through the logging system; there is no dedicated <code>/api/audit</code> endpoint as of v0.20.0.</p></div>
+          </div>
 
           <h2>Error Format</h2>
           <div class="code-header"><span>json</span></div>
@@ -119,18 +165,18 @@ Content-Type: application/json
   ]
 }</code></pre>
 
-          <p>Errors follow Pydantic validation conventions; <code>500</code> responses only contain <code>{ "detail": "internal error", "request_id": "…" }</code> – the request ID correlates with the server log.</p>
+          <p>Errors follow Pydantic validation conventions.</p>
 
           <h2>Rate Limits</h2>
           <ul>
-            <li>Login: 5 failed attempts per 15 min / IP (Redis).</li>
-            <li>Refresh: 20 req/min / account.</li>
-            <li>Ingest: unbounded with a valid agent key, but samples are server-side deduplicated (by <code>metric,labels,ts</code>).</li>
+            <li>Login: 5 failed attempts / 60&nbsp;s / IP (Redis with in-memory fallback).</li>
+            <li>Webhook trigger: 20 requests / 60&nbsp;s / IP.</li>
+            <li>Agent push: not throttled, but every request must match its own <code>server_id</code> via <code>X-API-Key</code>.</li>
           </ul>
 
           <div class="callout callout-tip" data-reveal>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-7 7c0 3 2 5 3 7h8c1-2 3-4 3-7a7 7 0 0 0-7-7z"/></svg>
-            <div><div class="callout-title">Use Swagger directly</div><p><code>/api/docs</code> renders OpenAPI 3.1 interactively, including "Try it out". For CI clients, a single <code>openapi-generator generate -g go -i https://srv/api/openapi.json</code> is enough.</p></div>
+            <div><div class="callout-title">Use Swagger directly</div><p><code>/docs</code> renders OpenAPI 3.1 interactively, including "Try it out". For CI clients, a single <code>openapi-generator generate -g go -i https://srv/openapi.json</code> is enough.</p></div>
           </div>
 
           <div class="page-nav">

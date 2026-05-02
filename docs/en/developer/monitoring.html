@@ -19,7 +19,7 @@
           <div class="nav-group"><div class="nav-title">Admin Guide</div><a href="../admin/index.html">Overview</a><a href="../admin/installation.html">Installation</a><a href="../admin/operations.html">Operations &amp; Config</a><a href="../admin/users.html">Users &amp; Access</a><a href="../admin/agent-deployment.html">Agent Deployment</a><a href="../admin/monitoring.html">Monitoring</a><a href="../admin/frp-tunnel.html">FRP Tunnel</a><a href="../admin/extension.html">Browser Extension</a><a href="../admin/troubleshooting.html">Troubleshooting</a></div>
           <div class="nav-group"><div class="nav-title">Developer Guide</div><a href="./index.html">Overview</a><a href="./server.html">Server (Backend)</a><a href="./webui.html">Web Panel</a><a href="./desktop.html">Desktop Client</a><a href="./agent.html">Go Agent</a><a href="./monitoring.html">Monitoring Stack</a><a href="./extension.html">Browser Extension</a><a href="./api-reference.html">API Reference</a><a href="./hooks.html">Hooks &amp; Events</a><a href="./cicd.html">CI/CD &amp; Release</a></div>
         </nav>
-        <div class="sidebar-footer"><span>v0.18.0</span><span id="year"></span></div>
+        <div class="sidebar-footer"><span>v0.20.0</span><span id="year"></span></div>
       </aside>
 
       <header class="topbar">
@@ -31,62 +31,87 @@
         <div class="content-inner">
           <span class="eyebrow">Developer Guide</span>
           <h1>Monitoring Stack</h1>
-          <p class="lead">Monitoring is three layers cooperating: SRM server defines checks and aggregates alerts, the separate <code>monitoring/</code> service executes check logic and writes metrics, VictoriaMetrics stores the time-series data.</p>
+          <p class="lead">Monitoring is three layers cooperating: the SRM server acts as a reverse proxy and forwards UI queries, the separate <code>monitoring/</code> service holds checks/alerts/templates and runs scheduler-based pull checks, VictoriaMetrics stores the time-series data (90-day retention).</p>
 
           <h2>Data Flow</h2>
           <div class="code-header"><span>flow</span></div>
-<pre><code>[Agent]                [Monitoring service]       [VictoriaMetrics]
-    │                         │                            │
-    │ POST /ingest ─ metrics ▶│                            │
-    │                         │ /api/v1/import/prometheus ▶│
-    │                         │                            │
-                              │ ◀ pull config from /api/monitoring
-                              │
-   [SRM server] ─ schedule ─▶ APScheduler triggers checks ─▶ [Monitoring service]
-                              │
-                              │ SRM ◀ query charts ◀ uPlot (web panel)</code></pre>
+<pre><code>[Agent]                                [Monitoring service]            [VictoriaMetrics]
+   |                                          |                                |
+   | POST /agent/{server_id}/report --------->|  agent_resources, service_     |
+   |   (X-API-Key)                            |  process, docker_health,        |
+   |                                          |  proxmox_backup, zfs_health,    |
+   |                                          |  smart_health -> evaluate +     |
+   |                                          |  format_line() ---------------->|
+   |                                          |                                |
+                                              |  APScheduler -> http / ping /  |
+                                              |  tcp / agent_ping ------------>|
+                                              |
+[Web panel] -> /api/monitoring/* (admin) -> SRM server -> /monitor/* (X-Internal-Key) -> Monitoring service</code></pre>
 
-          <h2>SRM Server Components</h2>
+          <h2>SRM side: <code>monitoring_proxy</code></h2>
+          <p>There is no dedicated monitoring module on the SRM server anymore; everything goes through <code>server/app/modules/monitoring_proxy.py</code>:</p>
           <ul>
-            <li><code>server/app/monitoring/checks.py</code> – Pydantic schemas per check type</li>
-            <li><code>server/app/monitoring/scheduler.py</code> – APScheduler integration</li>
-            <li><code>server/app/monitoring/proxy.py</code> – SSRF-safe proxy to VictoriaMetrics</li>
-            <li><code>server/app/monitoring/alerts.py</code> – threshold evaluation + hook trigger</li>
+            <li><code>POST /api/monitoring/agent/{server_id}/report</code> &ndash; <strong>public</strong> (X-API-Key), forwarded 1:1 to the service</li>
+            <li><code>GET/POST/PUT/DELETE /api/monitoring/{path:path}</code> &ndash; admin-only, internally augmented with <code>X-Internal-Key: $MONITOR_API_KEY</code></li>
+            <li>SSRF guard: allowed path prefixes are <code>checks</code>, <code>alerts</code>, <code>log</code>, <code>metrics</code>, <code>status</code>, <code>templates</code>, <code>agent</code>; path traversal (<code>..</code>) is blocked</li>
+            <li>Deleting a server in SRM fires <code>DELETE /servers/{id}/cleanup</code> at the monitoring service &ndash; orphaned checks/alerts are pruned automatically</li>
           </ul>
 
-          <h2>Monitoring Service</h2>
-          <p>Standalone FastAPI app under <code>monitoring/</code>. Listens on port 8080 (container-internal), 8480 is exposed for agent ingest. Authenticates via <code>MONITOR_API_KEY</code>.</p>
+          <h2>Monitoring service structure</h2>
+          <div class="code-header"><span>tree</span></div>
+<pre><code>monitoring/app/
+&#9500;&#9472;&#9472; main.py            FastAPI app, lifespan, route registration, hashed-key migration
+&#9500;&#9472;&#9472; models.py          MonitorCheck, MonitorState, MonitorAlertRule, MonitorTemplate, MonitorAgentKey
+&#9500;&#9472;&#9472; schemas.py         Pydantic input schemas (CheckCreate, AlertRuleCreate, TemplateCreate)
+&#9500;&#9472;&#9472; check_engine.py    execute_check() dispatcher
+&#9500;&#9472;&#9472; alerter.py         process_alert() (webhook / email), cooldown
+&#9500;&#9472;&#9472; scheduler.py       APScheduler integration (pull checks)
+&#9500;&#9472;&#9472; template_sync.py   template sync onto server assignments
+&#9500;&#9472;&#9472; checkers/          agent.py / smart.py / http.py / ping.py / tcp.py / plugins.py
+&#9500;&#9472;&#9472; routers/           admin.py / agent.py / alerts.py / checks.py / templates.py
+&#9492;&#9472;&#9472; core/              auth.py / config.py / database.py / victoria.py</code></pre>
 
-          <h2>Check-Type Schemas</h2>
-          <p>Each check type has a Pydantic schema for config and an executor. Example <code>http</code>:</p>
+          <h2>Push checks vs. pull checks</h2>
+          <p>There are two classes of checks &ndash; what matters is <em>who</em> gathers the data:</p>
+          <table>
+            <thead><tr><th>Mode</th><th>Check types</th><th>Trigger</th></tr></thead>
+            <tbody>
+              <tr><td>Push (agent)</td><td><code>agent_resources</code>, <code>service_process</code>, <code>docker_health</code>, <code>proxmox_backup</code>, <code>zfs_health</code>, <code>smart_health</code></td><td>On the next agent push (5-minute timer); APScheduler is <strong>not</strong> involved.</td></tr>
+              <tr><td>Pull (service)</td><td><code>http</code>, <code>ping</code>, <code>tcp</code>, <code>agent_ping</code></td><td>APScheduler inside the monitoring service, by <code>interval</code> or cron.</td></tr>
+            </tbody>
+          </table>
+          <p>Both paths converge in <code>execute_check()</code> &rarr; status update in <code>MonitorState</code> &rarr; <code>format_line()</code> &rarr; VictoriaMetrics write &rarr; <code>process_alert()</code> when <code>fail_count &ge; consecutive_fails</code>.</p>
 
-          <div class="code-header"><span>python</span></div>
-<pre><code>class HttpCheckConfig(BaseModel):
-    url: HttpUrl
-    method: Literal["GET", "HEAD", "POST"] = "GET"
-    expected_codes: list[int] = [200]
-    timeout_sec: float = 5.0
-    verify_tls: bool = True
-    headers: dict[str, str] | None = None</code></pre>
+          <h2>Auth modes</h2>
+          <ul>
+            <li><code>require_agent</code> (agent push): header <code>X-API-Key</code>; keys are stored as SHA-256 hashes in <code>MonitorAgentKey</code> (clear-text migration is wired into the lifespan hook of <code>main.py</code>).</li>
+            <li><code>require_internal</code> (SRM &harr; service): header <code>X-Internal-Key</code> with value <code>INTERNAL_API_KEY</code>.</li>
+          </ul>
 
-          <p>The executor calls <code>httpx.AsyncClient</code>, measures latency, builds a <code>CheckResult</code> and pushes metrics to VictoriaMetrics.</p>
+          <h2>Templates</h2>
+          <p><code>MonitorTemplate</code> bundles multiple <code>CheckDef</code>+<code>AlertRuleDef</code> entries under a stable <code>template_def_id</code>. <code>POST /templates/{id}/assign/{server_id}</code> rolls out the template; <code>template_sync.py</code> reconciles changes so server assignments stay drift-free.</p>
 
-          <h2>SSRF Protection</h2>
-          <p>The monitoring proxy inside the server forwards VictoriaMetrics queries from the web panel, but the query URL is strictly allow-listed: <code>/api/v1/query</code> and <code>/api/v1/query_range</code>. Raw host access is blocked so internal services cannot be reached.</p>
+          <h2>VictoriaMetrics</h2>
+          <p>External container (see <code>docker-compose.yml</code>), 90-day retention. The service writes in InfluxDB line protocol via <code>core/victoria.py</code>:</p>
+          <div class="code-header"><span>bash</span></div>
+<pre><code>monitor_agent_cpu_percent,server_id=srv123 value=45.2 1683000000</code></pre>
+          <p>Reads use the standard Prometheus endpoints <code>/api/v1/query</code> and <code>/api/v1/query_range</code>. uPlot in the web panel renders the charts.</p>
 
           <div class="callout callout-warn" data-reveal>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
-            <div><div class="callout-title">Ingest validation</div><p>The ingest endpoint enforces that samples from an agent belong to the agent's own server ID. A compromised agent key cannot forge metrics for other servers.</p></div>
+            <div><div class="callout-title">Ingest validation</div><p>The push endpoint enforces that the API key really belongs to the supplied <code>server_id</code>. A compromised agent key cannot forge metrics for other servers.</p></div>
           </div>
 
-          <h2>Local Debugging</h2>
+          <h2>Local debugging</h2>
           <div class="code-header"><span>bash</span></div>
-<pre><code># Run a single check with debug output to stdout
-docker compose exec monitoring python -m app.cli run-check http &lt;id&gt;
+<pre><code># Run a single check on demand
+docker compose exec monitoring \
+    curl -s -H "X-Internal-Key: $MONITOR_API_KEY" \
+    http://localhost:8080/checks/&lt;id&gt;/run
 
 # Query VictoriaMetrics directly
 docker compose exec monitoring curl -s \
-    "http://victoria:8428/api/v1/query?query=cpu_load{server=\"srv1\"}"</code></pre>
+    "http://victoria:8428/api/v1/query?query=monitor_agent_cpu_percent{server_id=\"srv123\"}"</code></pre>
 
           <div class="page-nav">
             <a class="prev" href="./agent.html"><span class="label">← Previous chapter</span><span class="title">Go Agent</span></a>

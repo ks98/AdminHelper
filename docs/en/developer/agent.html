@@ -19,7 +19,7 @@
           <div class="nav-group"><div class="nav-title">Admin Guide</div><a href="../admin/index.html">Overview</a><a href="../admin/installation.html">Installation</a><a href="../admin/operations.html">Operations &amp; Config</a><a href="../admin/users.html">Users &amp; Access</a><a href="../admin/agent-deployment.html">Agent Deployment</a><a href="../admin/monitoring.html">Monitoring</a><a href="../admin/frp-tunnel.html">FRP Tunnel</a><a href="../admin/extension.html">Browser Extension</a><a href="../admin/troubleshooting.html">Troubleshooting</a></div>
           <div class="nav-group"><div class="nav-title">Developer Guide</div><a href="./index.html">Overview</a><a href="./server.html">Server (Backend)</a><a href="./webui.html">Web Panel</a><a href="./desktop.html">Desktop Client</a><a href="./agent.html">Go Agent</a><a href="./monitoring.html">Monitoring Stack</a><a href="./extension.html">Browser Extension</a><a href="./api-reference.html">API Reference</a><a href="./hooks.html">Hooks &amp; Events</a><a href="./cicd.html">CI/CD &amp; Release</a></div>
         </nav>
-        <div class="sidebar-footer"><span>v0.18.0</span><span id="year"></span></div>
+        <div class="sidebar-footer"><span>v0.20.0</span><span id="year"></span></div>
       </aside>
 
       <header class="topbar">
@@ -36,72 +36,75 @@
           <h2>Project Layout</h2>
           <div class="code-header"><span>tree</span></div>
 <pre><code>agent-go/
-├── cmd/adminhelper-agent/   main.go – Cobra root
-├── internal/
-│   ├── cli/                 Subcommands (run, provision, monitor, ...)
-│   ├── config/              agent.toml + env-var overrides
-│   ├── http/                API client with auto-retry
-│   ├── collectors/          cpu, ram, disk, smart, docker, zfs, proxmox
-│   ├── frp/                 frpc management, cert rotation
-│   └── service/             systemd / windowssvc integration
-├── systemd/                 .service + .timer units
-├── rpm/                     Spec file
-├── build-deb.sh
-├── build-rpm.sh
-└── go.mod</code></pre>
+&#9500;&#9472;&#9472; cmd/adminhelper-agent/
+&#9474;   &#9500;&#9472;&#9472; main.go             Cobra root with five subcommand groups
+&#9474;   &#9500;&#9472;&#9472; handlers.go         Subcommand implementations
+&#9474;   &#9492;&#9472;&#9472; run.go              standalone mode without systemd
+&#9500;&#9472;&#9472; internal/
+&#9474;   &#9500;&#9472;&#9472; config/             paths_linux.go / paths_windows.go, key=value parser
+&#9474;   &#9500;&#9472;&#9472; frpc/               init via <code>/api/frp/provision/{id}/activate</code>, zip-slip safe
+&#9474;   &#9500;&#9472;&#9472; monitor/            collector + plugins (10 files, OS-specific splits)
+&#9474;   &#9492;&#9472;&#9472; service/            service_linux.go (systemd) / service_windows.go (SCM)
+&#9500;&#9472;&#9472; systemd/                .service + .timer units
+&#9500;&#9472;&#9472; deb/                    Debian control files
+&#9500;&#9472;&#9472; rpm/                    Spec file
+&#9500;&#9472;&#9472; Makefile                build-linux, build-windows, deb, rpm
+&#9500;&#9472;&#9472; build-deb.sh
+&#9500;&#9472;&#9472; build-rpm.sh
+&#9492;&#9472;&#9472; go.mod                  Go 1.24</code></pre>
 
           <h2>Cobra Subcommands</h2>
+          <p>Six top-level commands, three of them with sub-subcommands:</p>
           <table>
             <thead><tr><th>Command</th><th>Purpose</th></tr></thead>
             <tbody>
               <tr><td><code>version</code></td><td>Emit version + git commit (set via <code>-ldflags</code>).</td></tr>
-              <tr><td><code>provision</code></td><td>Initial setup: server URL, redeem token, fetch cert, enable services.</td></tr>
-              <tr><td><code>run</code></td><td>One full agent cycle (monitoring + FRP).</td></tr>
-              <tr><td><code>monitor run</code></td><td>Only the monitoring collector pass.</td></tr>
-              <tr><td><code>frpc rotate</code></td><td>Manually rotate the client certificate.</td></tr>
-              <tr><td><code>service install</code> / <code>uninstall</code></td><td>systemd-unit / Windows-service installation.</td></tr>
+              <tr><td><code>run</code></td><td>Standalone mode: run one full cycle (monitor push + FRP sync).</td></tr>
+              <tr><td><code>frpc init</code></td><td>Initial setup: redeem provision token, unpack PKI bundle, write <code>frpc.toml</code>.</td></tr>
+              <tr><td><code>frpc sync</code></td><td>Periodic config sync via hash compare; only writes when the server-side hash changed.</td></tr>
+              <tr><td><code>monitor init</code></td><td>Create the monitor config (URL, API key, services list).</td></tr>
+              <tr><td><code>monitor push</code></td><td>One metric collection + push run.</td></tr>
+              <tr><td><code>service install</code> / <code>uninstall</code></td><td>Install/remove the systemd unit (Linux) or Windows service (SCM).</td></tr>
             </tbody>
           </table>
 
-          <h2>Collector Framework</h2>
-          <p>Every collector implements a simple interface:</p>
-
-          <div class="code-header"><span>go</span></div>
-<pre><code>type Collector interface {
-    Name() string
-    Enabled(cfg *config.Config) bool
-    Collect(ctx context.Context) ([]Sample, error)
-}
-
-type Sample struct {
-    Metric string
-    Value  float64
-    Labels map[string]string
-    Time   time.Time
-}</code></pre>
-
-          <p>Available collectors:</p>
+          <h2>Configuration</h2>
+          <p>Two config files in key=value format (quotes allowed). OS paths:</p>
           <ul>
-            <li><code>cpu</code> – load + per-core utilization (from <code>/proc/stat</code> or <code>GetSystemInfo</code> on Windows)</li>
-            <li><code>ram</code> – total/used/free/swap</li>
-            <li><code>disk</code> – per mountpoint</li>
-            <li><code>smart</code> – via <code>smartctl --scan-open</code> + <code>--all --json=cv</code></li>
-            <li><code>docker</code> – via Docker API socket</li>
-            <li><code>zfs</code> – via <code>zpool status -p</code></li>
-            <li><code>proxmox</code> – via <code>pveversion</code> + API (on PVE hosts only)</li>
+            <li>Linux: <code>/etc/frp/frp.conf</code> and <code>/etc/adminhelper/monitor.conf</code></li>
+            <li>Windows: under <code>%ProgramData%\adminhelper\</code></li>
           </ul>
+          <p><code>FrpcConfig</code> fields: <code>ADMINHELPER_URL</code>, <code>API_KEY</code>, <code>SERVER_ID</code>, <code>CACERT</code>, <code>INSECURE</code>. <code>MonitorConfig</code> additionally carries <code>MONITOR_URL</code> and <code>SERVICES</code> (comma-separated).</p>
+
+          <h2>Monitor Collector</h2>
+          <p>Central collection in <code>internal/monitor/collector.go</code>. Every collector returns <code>map[string]any</code>, which is JSON-serialised on push:</p>
+          <ul>
+            <li><code>collectCPU()</code> &ndash; load and per-core utilization</li>
+            <li><code>collectMemory()</code> &ndash; total / used / free / swap</li>
+            <li><code>collectLoad()</code> &ndash; <code>load_1m</code>, <code>load_5m</code>, <code>load_15m</code></li>
+            <li><code>collectDisks()</code> &ndash; per mountpoint with FS type, usage, inodes</li>
+            <li><code>collectUptime()</code></li>
+            <li><code>collectTemperatures()</code> &ndash; lm-sensors / Windows WMI</li>
+            <li><code>collectServiceHealth()</code> + <code>collectWatchedServices(names)</code></li>
+            <li><code>collectDocker()</code> &ndash; container list via the Docker socket</li>
+            <li><code>collectZFS()</code> &ndash; <code>zpool status -p</code></li>
+            <li><code>collectProxmox()</code> &ndash; <code>pveversion</code> + API (PVE hosts only)</li>
+            <li><code>collectSmart()</code> &ndash; <code>smartctl --scan-open</code> + <code>--all --json=cv</code>; ATA and NVMe paths parsed separately</li>
+          </ul>
+          <p>All data is shipped under the <code>resources</code> JSON key in <code>POST /agent/{server_id}/report</code> at the monitoring service.</p>
 
           <h2>systemd Timer with Jitter</h2>
-          <p>Instead of <code>cron</code>, the agent uses systemd <code>OnCalendar=*:0/5</code> + <code>RandomizedDelaySec=30s</code>. The jitter spreads load across the 5-minute window and avoids thundering-herd requests at the server.</p>
+          <p>Instead of <code>cron</code>, the agent uses systemd with <code>OnBootSec=60</code>, <code>OnUnitActiveSec=300</code> (5&nbsp;min interval) and <code>RandomizedDelaySec=30</code>. The jitter spreads load across the 5-minute window and avoids thundering-herd requests at the server.</p>
 
           <h2>Build</h2>
           <div class="code-header"><span>bash</span></div>
 <pre><code>cd agent-go
-GOOS=linux   GOARCH=amd64 go build -o bin/adminhelper-agent     ./cmd/adminhelper-agent
-GOOS=windows GOARCH=amd64 go build -o bin/adminhelper-agent.exe ./cmd/adminhelper-agent
+make build-linux       # bin/adminhelper-agent       (ELF amd64)
+make build-windows     # bin/adminhelper-agent.exe   (PE amd64)
 
-VERSION=0.18.0 bash build-deb.sh
-VERSION=0.18.0 bash build-rpm.sh</code></pre>
+VERSION=0.20.0 bash build-deb.sh
+VERSION=0.20.0 bash build-rpm.sh</code></pre>
+          <p>The DEB package installs <code>/usr/local/bin/adminhelper-agent</code> plus <code>/usr/bin/frpc</code> (downloaded in CI) and registers the systemd unit + timer.</p>
 
           <div class="callout callout-tip" data-reveal>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-7 7c0 3 2 5 3 7h8c1-2 3-4 3-7a7 7 0 0 0-7-7z"/></svg>

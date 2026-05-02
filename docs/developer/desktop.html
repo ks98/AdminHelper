@@ -19,7 +19,7 @@
           <div class="nav-group"><div class="nav-title">Admin-Handbuch</div><a href="../admin/index.html">Übersicht</a><a href="../admin/installation.html">Installation</a><a href="../admin/betrieb.html">Betrieb &amp; Konfiguration</a><a href="../admin/benutzer.html">Benutzer &amp; Zugriff</a><a href="../admin/agent-deployment.html">Agent-Deployment</a><a href="../admin/monitoring.html">Monitoring</a><a href="../admin/frp-tunnel.html">FRP-Tunnel</a><a href="../admin/extension.html">Browser-Extension</a><a href="../admin/troubleshooting.html">Troubleshooting</a></div>
           <div class="nav-group"><div class="nav-title">Entwickler-Handbuch</div><a href="./index.html">Übersicht</a><a href="./server.html">Server (Backend)</a><a href="./webui.html">Web-Panel</a><a href="./desktop.html">Desktop-Client</a><a href="./agent.html">Go-Agent</a><a href="./monitoring.html">Monitoring-Stack</a><a href="./extension.html">Browser-Extension</a><a href="./api-reference.html">API-Referenz</a><a href="./hooks.html">Hooks &amp; Events</a><a href="./cicd.html">CI/CD &amp; Release</a></div>
         </nav>
-        <div class="sidebar-footer"><span>v0.18.0</span><span id="year"></span></div>
+        <div class="sidebar-footer"><span>v0.20.0</span><span id="year"></span></div>
       </aside>
 
       <header class="topbar">
@@ -31,35 +31,54 @@
         <div class="content-inner">
           <span class="eyebrow">Entwickler-Handbuch</span>
           <h1>Desktop-Client</h1>
-          <p class="lead">Der Desktop-Client ist ein Tauri-2-Wrapper um eine Svelte-5-SPA. Das Backend in Rust (<code>desktop/src-tauri/</code>) stellt 24 typisierte Commands bereit; das Frontend (<code>desktop-src/</code>) nutzt sie über eine 1:1-abgebildete Bridge.</p>
+          <p class="lead">Der Desktop-Client ist ein Tauri-2-Wrapper um eine Svelte-5-SPA. Das Backend in Rust (<code>desktop/src-tauri/</code>) stellt 23 typisierte Commands bereit; das Frontend (<code>desktop-src/</code>) nutzt sie über eine 1:1-abgebildete Bridge.</p>
 
           <h2>Architektur</h2>
           <div class="code-header"><span>tree</span></div>
 <pre><code>desktop/
-├── src-tauri/
-│   ├── src/
-│   │   ├── main.rs           Tauri-App-Setup
-│   │   ├── commands/         24 #[tauri::command] (auth, connect, frp, ...)
-│   │   ├── connection/       RDP/SSH/VNC/HTTP-Launcher
-│   │   ├── frp/              FRP-Sidecar-Verwaltung
-│   │   ├── keyring/          OS-Keyring (Linux: secret-service, macOS: keychain)
-│   │   ├── http/             Reqwest-Client mit Auto-Refresh
-│   │   └── rdp/              Race-Guard mit monotoner UUID
-│   ├── tauri.conf.json
-│   └── Cargo.toml
-└── binaries/                 frpc-Sidecar pro Target-Triple
+&#9500;&#9472;&#9472; src-tauri/
+&#9474;   &#9500;&#9472;&#9472; src/
+&#9474;   &#9474;   &#9500;&#9472;&#9472; main.rs           Tauri-App-Setup, invoke_handler mit 23 Commands
+&#9474;   &#9474;   &#9500;&#9472;&#9472; commands/         #[tauri::command] (auth, connect, frp, &hellip;)
+&#9474;   &#9474;   &#9500;&#9472;&#9472; connection/       RDP/SSH/VNC/HTTP-Launcher
+&#9474;   &#9474;   &#9500;&#9472;&#9472; frp/              FRP-Sidecar-Verwaltung
+&#9474;   &#9474;   &#9500;&#9472;&#9472; keyring/          OS-Keyring (Linux: secret-service, macOS: Keychain)
+&#9474;   &#9474;   &#9500;&#9472;&#9472; http/             Reqwest-Client mit Auto-Refresh
+&#9474;   &#9474;   &#9492;&#9472;&#9472; rdp/              Race-Guard mit monotoner UUID
+&#9474;   &#9500;&#9472;&#9472; capabilities/         Strikt gescopte Tauri-Capabilities
+&#9474;   &#9500;&#9472;&#9472; tauri.conf.json       <code>beforeBuildCommand</code> &rarr; <code>../desktop-src</code>
+&#9474;   &#9492;&#9472;&#9472; Cargo.toml
+&#9492;&#9472;&#9472; binaries/                 frpc-Sidecar pro Target-Triple
 desktop-src/
-├── src/
-│   ├── lib/
-│   │   ├── bridge/           invoke()-Wrapper je Command
-│   │   ├── stores/           10 Stores (session, connections, ...)
-│   │   ├── components/       Modals, Widgets
-│   │   └── pages/            4 Pages (Dashboard, Connections, Monitoring, Ansible)
-│   └── main.ts
-└── tests/                    41 Vitest-Unit-Tests</code></pre>
+&#9500;&#9472;&#9472; src/
+&#9474;   &#9500;&#9472;&#9472; lib/
+&#9474;   &#9474;   &#9500;&#9472;&#9472; bridge/           index.ts + types.ts mit 22 invoke()-Wrappern
+&#9474;   &#9474;   &#9500;&#9472;&#9472; stores/           12 Stores (session, connections, tunnel, &hellip;)
+&#9474;   &#9474;   &#9500;&#9472;&#9472; models/           connection / settings / ansible / monitoring (typisiert)
+&#9474;   &#9474;   &#9500;&#9472;&#9472; api/              ansible.ts, monitoring.ts, types.ts (Rest l&auml;uft &uuml;ber die Bridge)
+&#9474;   &#9474;   &#9500;&#9472;&#9472; i18n/             DE/EN-Dictionaries
+&#9474;   &#9474;   &#9492;&#9472;&#9472; utils/
+&#9474;   &#9500;&#9472;&#9472; components/           AppShell, Login, PasswordPrompt, StatusBar, ConnectionEditor, &hellip; (~30 Stk.)
+&#9474;   &#9500;&#9472;&#9472; pages/                4 Pages: Dashboard, Connections, Ansible, Monitoring
+&#9474;   &#9492;&#9472;&#9472; main.ts
+&#9492;&#9472;&#9472; vitest.setup.ts           ~41 Vitest-Unit-Tests in stores/ + models/</code></pre>
 
           <h2>Tauri-Commands</h2>
-          <p>Die 24 Commands decken Auth, Connection-CRUD, Connect-Flow, FRP-Tunnel, Monitoring, Ansible und Settings ab. Jeder Command ist typisiert – die Bridge nutzt TypeScript-Typen, die exakt zu den Rust-Structs passen:</p>
+          <p>Die 23 Commands sind in <code>src/main.rs</code> als <code>invoke_handler</code> registriert und decken Auth, Connection-Persistenz, Connect-Flow, FRP-Tunnel, Keyring, API-Proxy und Ansible ab. Jeder Command ist typisiert &ndash; die Bridge in <code>desktop-src/src/lib/bridge/</code> spiegelt sie 1:1.</p>
+          <table>
+            <thead><tr><th>Bereich</th><th>Commands</th></tr></thead>
+            <tbody>
+              <tr><td>Persistenz</td><td><code>load_connections</code>, <code>save_connections</code>, <code>load_settings</code>, <code>save_settings</code></td></tr>
+              <tr><td>Auth</td><td><code>login</code>, <code>logout</code>, <code>check_session</code>, <code>check_server_cert</code></td></tr>
+              <tr><td>Server-API</td><td><code>api_proxy</code>, <code>fetch_connections_jwt</code>, <code>sync_connections</code>, <code>fetch_tunnels</code></td></tr>
+              <tr><td>Connect-Flow</td><td><code>open_connection</code>, <code>open_connection_stored</code>, <code>resolve_connection</code></td></tr>
+              <tr><td>Keyring</td><td><code>password_state</code>, <code>save_password</code>, <code>delete_password</code></td></tr>
+              <tr><td>Tunnel (frpc)</td><td><code>start_tunnel</code>, <code>stop_tunnel</code>, <code>tunnel_status</code></td></tr>
+              <tr><td>Ansible</td><td><code>ansible_generate_inventory</code>, <code>ansible_write_playbook</code>, <code>ansible_launch</code></td></tr>
+            </tbody>
+          </table>
+
+          <p>Beispiel f&uuml;r einen race-gesch&uuml;tzten Connect-Command:</p>
 
           <div class="code-header"><span>rust</span></div>
 <pre><code>#[tauri::command]
@@ -110,7 +129,7 @@ cargo tauri build --bundles deb  # DEB-Release</code></pre>
 
           <div class="callout callout-note" data-reveal>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
-            <div><div class="callout-title">Seit v0.18.0</div><p>Alter Plain-JS-Client in <code>desktop/src/</code> ist tot – nur noch historisch im Repo. <code>tauri.conf.json.beforeBuildCommand</code> zeigt auf <code>../desktop-src</code>.</p></div>
+            <div><div class="callout-title">Seit v0.19.0</div><p>Big-Bang-Migration des Desktop-Clients von Plain-JS auf Svelte 5. Der alte <code>desktop/src/</code> ist tot &ndash; nur noch historisch im Repo. <code>tauri.conf.json.beforeBuildCommand</code> zeigt auf <code>../desktop-src</code>.</p></div>
           </div>
 
           <div class="page-nav">

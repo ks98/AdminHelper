@@ -19,7 +19,7 @@
           <div class="nav-group"><div class="nav-title">Admin Guide</div><a href="../admin/index.html">Overview</a><a href="../admin/installation.html">Installation</a><a href="../admin/operations.html">Operations &amp; Config</a><a href="../admin/users.html">Users &amp; Access</a><a href="../admin/agent-deployment.html">Agent Deployment</a><a href="../admin/monitoring.html">Monitoring</a><a href="../admin/frp-tunnel.html">FRP Tunnel</a><a href="../admin/extension.html">Browser Extension</a><a href="../admin/troubleshooting.html">Troubleshooting</a></div>
           <div class="nav-group"><div class="nav-title">Developer Guide</div><a href="./index.html">Overview</a><a href="./server.html">Server (Backend)</a><a href="./webui.html">Web Panel</a><a href="./desktop.html">Desktop Client</a><a href="./agent.html">Go Agent</a><a href="./monitoring.html">Monitoring Stack</a><a href="./extension.html">Browser Extension</a><a href="./api-reference.html">API Reference</a><a href="./hooks.html">Hooks &amp; Events</a><a href="./cicd.html">CI/CD &amp; Release</a></div>
         </nav>
-        <div class="sidebar-footer"><span>v0.18.0</span><span id="year"></span></div>
+        <div class="sidebar-footer"><span>v0.20.0</span><span id="year"></span></div>
       </aside>
 
       <header class="topbar">
@@ -31,35 +31,54 @@
         <div class="content-inner">
           <span class="eyebrow">Developer Guide</span>
           <h1>Desktop Client</h1>
-          <p class="lead">The Desktop Client is a Tauri 2 wrapper around a Svelte 5 SPA. The Rust backend (<code>desktop/src-tauri/</code>) exposes 24 typed commands; the frontend (<code>desktop-src/</code>) consumes them through a 1:1 bridge.</p>
+          <p class="lead">The Desktop Client is a Tauri 2 wrapper around a Svelte 5 SPA. The Rust backend (<code>desktop/src-tauri/</code>) exposes 23 typed commands; the frontend (<code>desktop-src/</code>) consumes them through a 1:1 bridge.</p>
 
           <h2>Architecture</h2>
           <div class="code-header"><span>tree</span></div>
 <pre><code>desktop/
-├── src-tauri/
-│   ├── src/
-│   │   ├── main.rs           Tauri app setup
-│   │   ├── commands/         24 #[tauri::command] (auth, connect, frp, ...)
-│   │   ├── connection/       RDP/SSH/VNC/HTTP launcher
-│   │   ├── frp/              FRP sidecar management
-│   │   ├── keyring/          OS keyring (Linux: secret-service, macOS: keychain)
-│   │   ├── http/             Reqwest client with auto-refresh
-│   │   └── rdp/              Race guard with monotonic UUID
-│   ├── tauri.conf.json
-│   └── Cargo.toml
-└── binaries/                 frpc sidecar per target triple
+&#9500;&#9472;&#9472; src-tauri/
+&#9474;   &#9500;&#9472;&#9472; src/
+&#9474;   &#9474;   &#9500;&#9472;&#9472; main.rs           Tauri app setup, invoke_handler with 23 commands
+&#9474;   &#9474;   &#9500;&#9472;&#9472; commands/         #[tauri::command] (auth, connect, frp, &hellip;)
+&#9474;   &#9474;   &#9500;&#9472;&#9472; connection/       RDP/SSH/VNC/HTTP launcher
+&#9474;   &#9474;   &#9500;&#9472;&#9472; frp/              FRP sidecar management
+&#9474;   &#9474;   &#9500;&#9472;&#9472; keyring/          OS keyring (Linux: secret-service, macOS: Keychain)
+&#9474;   &#9474;   &#9500;&#9472;&#9472; http/             Reqwest client with auto-refresh
+&#9474;   &#9474;   &#9492;&#9472;&#9472; rdp/              Race guard with monotonic UUID
+&#9474;   &#9500;&#9472;&#9472; capabilities/         Strictly scoped Tauri capabilities
+&#9474;   &#9500;&#9472;&#9472; tauri.conf.json       <code>beforeBuildCommand</code> &rarr; <code>../desktop-src</code>
+&#9474;   &#9492;&#9472;&#9472; Cargo.toml
+&#9492;&#9472;&#9472; binaries/                 frpc sidecar per target triple
 desktop-src/
-├── src/
-│   ├── lib/
-│   │   ├── bridge/           invoke() wrapper per command
-│   │   ├── stores/           10 stores (session, connections, ...)
-│   │   ├── components/       Modals, widgets
-│   │   └── pages/            4 pages (Dashboard, Connections, Monitoring, Ansible)
-│   └── main.ts
-└── tests/                    41 Vitest unit tests</code></pre>
+&#9500;&#9472;&#9472; src/
+&#9474;   &#9500;&#9472;&#9472; lib/
+&#9474;   &#9474;   &#9500;&#9472;&#9472; bridge/           index.ts + types.ts with 22 invoke() wrappers
+&#9474;   &#9474;   &#9500;&#9472;&#9472; stores/           12 stores (session, connections, tunnel, &hellip;)
+&#9474;   &#9474;   &#9500;&#9472;&#9472; models/           connection / settings / ansible / monitoring (typed)
+&#9474;   &#9474;   &#9500;&#9472;&#9472; api/              ansible.ts, monitoring.ts, types.ts (everything else via the bridge)
+&#9474;   &#9474;   &#9500;&#9472;&#9472; i18n/             DE/EN dictionaries
+&#9474;   &#9474;   &#9492;&#9472;&#9472; utils/
+&#9474;   &#9500;&#9472;&#9472; components/           AppShell, Login, PasswordPrompt, StatusBar, ConnectionEditor, &hellip; (~30)
+&#9474;   &#9500;&#9472;&#9472; pages/                4 pages: Dashboard, Connections, Ansible, Monitoring
+&#9474;   &#9492;&#9472;&#9472; main.ts
+&#9492;&#9472;&#9472; vitest.setup.ts           ~41 Vitest unit tests in stores/ + models/</code></pre>
 
           <h2>Tauri Commands</h2>
-          <p>The 24 commands cover auth, connection CRUD, connect flow, FRP tunnel, monitoring, Ansible, and settings. Each command is typed – the bridge uses TypeScript types that mirror the Rust structs exactly:</p>
+          <p>The 23 commands are registered in <code>src/main.rs</code> via <code>invoke_handler</code> and cover auth, connection persistence, connect flow, FRP tunnel, keyring, API proxy and Ansible. Each command is typed &ndash; the bridge in <code>desktop-src/src/lib/bridge/</code> mirrors them 1:1.</p>
+          <table>
+            <thead><tr><th>Area</th><th>Commands</th></tr></thead>
+            <tbody>
+              <tr><td>Persistence</td><td><code>load_connections</code>, <code>save_connections</code>, <code>load_settings</code>, <code>save_settings</code></td></tr>
+              <tr><td>Auth</td><td><code>login</code>, <code>logout</code>, <code>check_session</code>, <code>check_server_cert</code></td></tr>
+              <tr><td>Server API</td><td><code>api_proxy</code>, <code>fetch_connections_jwt</code>, <code>sync_connections</code>, <code>fetch_tunnels</code></td></tr>
+              <tr><td>Connect flow</td><td><code>open_connection</code>, <code>open_connection_stored</code>, <code>resolve_connection</code></td></tr>
+              <tr><td>Keyring</td><td><code>password_state</code>, <code>save_password</code>, <code>delete_password</code></td></tr>
+              <tr><td>Tunnel (frpc)</td><td><code>start_tunnel</code>, <code>stop_tunnel</code>, <code>tunnel_status</code></td></tr>
+              <tr><td>Ansible</td><td><code>ansible_generate_inventory</code>, <code>ansible_write_playbook</code>, <code>ansible_launch</code></td></tr>
+            </tbody>
+          </table>
+
+          <p>Example of a race-guarded connect command:</p>
 
           <div class="code-header"><span>rust</span></div>
 <pre><code>#[tauri::command]
@@ -110,7 +129,7 @@ cargo tauri build --bundles deb  # DEB release</code></pre>
 
           <div class="callout callout-note" data-reveal>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
-            <div><div class="callout-title">Since v0.18.0</div><p>The old plain-JS client in <code>desktop/src/</code> is dead – kept for history only. <code>tauri.conf.json.beforeBuildCommand</code> points to <code>../desktop-src</code>.</p></div>
+            <div><div class="callout-title">Since v0.19.0</div><p>Big-bang migration of the desktop client from plain JS to Svelte 5. The old <code>desktop/src/</code> is dead &ndash; kept for history only. <code>tauri.conf.json.beforeBuildCommand</code> points to <code>../desktop-src</code>.</p></div>
           </div>
 
           <div class="page-nav">
