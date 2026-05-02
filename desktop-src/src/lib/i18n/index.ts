@@ -1,5 +1,4 @@
 // i18n-Engine: reaktiver Sprach-Store + t()-Funktion mit {placeholder}-Ersetzung.
-// Ports desktop/src/app.js:63 (t) und :96 (setLanguage) auf Svelte-Stores.
 
 import { writable, derived, get, type Readable } from 'svelte/store';
 import { translations, type Language } from './dictionaries';

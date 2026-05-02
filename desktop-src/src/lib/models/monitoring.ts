@@ -1,5 +1,4 @@
-// Monitoring-Model: reine Funktionen fuer Sortierung, Filterung, Gruppierung,
-// Formatierung. 1:1-Port von desktop/src/monitoringModel.js.
+// Monitoring-Model: reine Funktionen fuer Sortierung, Filterung, Gruppierung, Formatierung.
 
 import type {
   MonCheckSummary,

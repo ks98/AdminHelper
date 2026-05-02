@@ -1,5 +1,4 @@
 // Settings-Store: Modal-State, Persistenz und Sync-Timer.
-// Ersetzt desktop/src/settingsManager.js (DOM-imperativ) durch Store-Logik.
 
 import { writable, get } from 'svelte/store';
 import * as bridge from '$lib/bridge';

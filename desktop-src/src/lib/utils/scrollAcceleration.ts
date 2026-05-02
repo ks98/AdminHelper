@@ -1,6 +1,5 @@
-// Beschleunigt Mausrad-Scrolling in langen Listen/Panels. Port von
-// desktop/src/scrollUtils.js als Svelte-Action, damit Bindings automatisch
-// mit dem Lebenszyklus der Komponente verschwinden.
+// Beschleunigt Mausrad-Scrolling in langen Listen/Panels. Als Svelte-Action,
+// damit Bindings automatisch mit dem Lebenszyklus der Komponente verschwinden.
 
 import type { Action } from 'svelte/action';
 

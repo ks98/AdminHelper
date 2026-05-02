@@ -1,5 +1,4 @@
 // Status-Bar-Store: globale Info/Fehler-Nachrichten.
-// Ersetzt die showStatus/reportError-Callbacks aus desktop/src/.
 // Auto-clear nach timeoutMs, aktuell 6s bei Erfolg und 10s bei Fehler.
 
 import { writable } from 'svelte/store';

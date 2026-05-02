@@ -1,5 +1,4 @@
 // Settings-Model: reine Funktionen + Konstanten, keine Seiteneffekte.
-// Spiegelt desktop/src/settingsModel.js 1:1.
 
 import type { Settings } from '$lib/bridge/types';
 import { tNow } from '$lib/i18n';

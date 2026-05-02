@@ -1,5 +1,4 @@
 // Connection-Modell: Normalisierung, Validierung, Darstellungs-Helfer.
-// 1:1-Port von desktop/src/connectionModel.js mit TS-Typen.
 
 import type { Connection, ConnectionKind } from '$lib/bridge/types';
 import { tNow } from '$lib/i18n';

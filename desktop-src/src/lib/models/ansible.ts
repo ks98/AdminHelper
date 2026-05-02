@@ -1,5 +1,4 @@
 // Ansible-Model: reine Transformationen ohne Seiteneffekte.
-// Spiegelt desktop/src/ansibleModel.js.
 
 import type { Server } from '$lib/api/types';
 import type { AnsibleTarget } from '$lib/bridge/types';
