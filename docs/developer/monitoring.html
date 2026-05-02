@@ -13,7 +13,7 @@
   <body>
     <div class="app-shell">
       <aside class="sidebar" aria-label="Dokumentations-Navigation">
-        <a class="sidebar-brand" href="../index.html"><span class="logo-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M8 15 L12 7 L16 15"/><path d="M9.5 12 L14.5 12"/></svg></span><span class="brand-text"><span class="brand-name">SimpleRemoteManager</span><span class="brand-sub">Dokumentation</span></span></a>
+        <a class="sidebar-brand" href="../index.html"><span class="logo-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M8 15 L12 7 L16 15"/><path d="M9.5 12 L14.5 12"/></svg></span><span class="brand-text"><span class="brand-name">AdminHelper</span><span class="brand-sub">Dokumentation</span></span></a>
         <nav class="sidebar-nav">
           <div class="nav-group"><a href="../index.html">Willkommen</a></div>
           <div class="nav-group"><div class="nav-title">Admin-Handbuch</div><a href="../admin/index.html">Übersicht</a><a href="../admin/installation.html">Installation</a><a href="../admin/betrieb.html">Betrieb &amp; Konfiguration</a><a href="../admin/benutzer.html">Benutzer &amp; Zugriff</a><a href="../admin/agent-deployment.html">Agent-Deployment</a><a href="../admin/monitoring.html">Monitoring</a><a href="../admin/frp-tunnel.html">FRP-Tunnel</a><a href="../admin/extension.html">Browser-Extension</a><a href="../admin/troubleshooting.html">Troubleshooting</a></div>
@@ -31,7 +31,7 @@
         <div class="content-inner">
           <span class="eyebrow">Entwickler-Handbuch</span>
           <h1>Monitoring-Stack</h1>
-          <p class="lead">Monitoring ist ein Zusammenspiel aus drei Ebenen: der SRM-Server agiert als Reverse-Proxy und reicht UI-Queries weiter, der separate <code>monitoring/</code>-Service h&auml;lt Checks/Alerts/Templates und f&uuml;hrt Scheduler-Checks aus, VictoriaMetrics speichert die Zeitreihen (Retention 90&nbsp;Tage).</p>
+          <p class="lead">Monitoring ist ein Zusammenspiel aus drei Ebenen: der AdminHelper-Server agiert als Reverse-Proxy und reicht UI-Queries weiter, der separate <code>monitoring/</code>-Service h&auml;lt Checks/Alerts/Templates und f&uuml;hrt Scheduler-Checks aus, VictoriaMetrics speichert die Zeitreihen (Retention 90&nbsp;Tage).</p>
 
           <h2>Daten-Fluss</h2>
           <div class="code-header"><span>flow</span></div>
@@ -46,15 +46,15 @@
                                               |  APScheduler -> http / ping /  |
                                               |  tcp / agent_ping ------------>|
                                               |
-[Web-Panel] -> /api/monitoring/* (admin) -> SRM-Server -> /monitor/* (X-Internal-Key) -> Monitoring-Service</code></pre>
+[Web-Panel] -> /api/monitoring/* (admin) -> AdminHelper-Server -> /monitor/* (X-Internal-Key) -> Monitoring-Service</code></pre>
 
-          <h2>SRM-seitig: <code>monitoring_proxy</code></h2>
-          <p>Im SRM-Server gibt es kein eigenes Monitoring-Modul mehr; alles l&auml;uft durch <code>server/app/modules/monitoring_proxy.py</code>:</p>
+          <h2>AdminHelper-seitig: <code>monitoring_proxy</code></h2>
+          <p>Im AdminHelper-Server gibt es kein eigenes Monitoring-Modul mehr; alles l&auml;uft durch <code>server/app/modules/monitoring_proxy.py</code>:</p>
           <ul>
             <li><code>POST /api/monitoring/agent/{server_id}/report</code> &ndash; <strong>&ouml;ffentlich</strong> (X-API-Key), reicht 1:1 an den Service</li>
             <li><code>GET/POST/PUT/DELETE /api/monitoring/{path:path}</code> &ndash; admin-only, intern erweitert um <code>X-Internal-Key: $MONITOR_API_KEY</code></li>
             <li>SSRF-Schutz: erlaubte Pfad-Prefixe sind <code>checks</code>, <code>alerts</code>, <code>log</code>, <code>metrics</code>, <code>status</code>, <code>templates</code>, <code>agent</code>; Path-Traversal (<code>..</code>) wird blockiert</li>
-            <li>Beim Server-Delete im SRM wird <code>DELETE /servers/{id}/cleanup</code> am Monitoring-Service gefeuert &ndash; verwaiste Checks/Alerts werden so automatisch aufger&auml;umt</li>
+            <li>Beim Server-Delete im AdminHelper wird <code>DELETE /servers/{id}/cleanup</code> am Monitoring-Service gefeuert &ndash; verwaiste Checks/Alerts werden so automatisch aufger&auml;umt</li>
           </ul>
 
           <h2>Monitoring-Service-Struktur</h2>
@@ -85,7 +85,7 @@
           <h2>Auth-Modi</h2>
           <ul>
             <li><code>require_agent</code> (Agent-Push): Header <code>X-API-Key</code>; Schl&uuml;ssel werden als SHA-256-Hash in <code>MonitorAgentKey</code> abgelegt (Klartext-Migration ist im Lifespan-Hook von <code>main.py</code> verdrahtet).</li>
-            <li><code>require_internal</code> (SRM &harr; Service): Header <code>X-Internal-Key</code> mit Wert <code>INTERNAL_API_KEY</code>.</li>
+            <li><code>require_internal</code> (AdminHelper &harr; Service): Header <code>X-Internal-Key</code> mit Wert <code>INTERNAL_API_KEY</code>.</li>
           </ul>
 
           <h2>Templates</h2>

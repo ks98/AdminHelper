@@ -15,7 +15,7 @@
       <aside class="sidebar" aria-label="Dokumentations-Navigation">
         <a class="sidebar-brand" href="../index.html">
           <span class="logo-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M8 15 L12 7 L16 15"/><path d="M9.5 12 L14.5 12"/></svg></span>
-          <span class="brand-text"><span class="brand-name">SimpleRemoteManager</span><span class="brand-sub">Dokumentation</span></span>
+          <span class="brand-text"><span class="brand-name">AdminHelper</span><span class="brand-sub">Dokumentation</span></span>
         </a>
         <nav class="sidebar-nav">
           <div class="nav-group"><a href="../index.html">Willkommen</a></div>
@@ -83,7 +83,7 @@
           <p>Für ein konsistentes Backup reicht es, den Stack kurz zu stoppen und das <code>data/</code>-Verzeichnis zu archivieren:</p>
           <div class="code-header"><span>bash</span></div>
 <pre><code>docker compose stop server
-tar czf srm-backup-$(date +%F).tar.gz data/
+tar czf adminhelper-backup-$(date +%F).tar.gz data/
 docker compose start server</code></pre>
 
           <div class="callout callout-tip" data-reveal>
