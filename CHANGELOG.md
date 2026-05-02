@@ -5,6 +5,24 @@ Alle nennenswerten Aenderungen an diesem Projekt werden hier dokumentiert.
 Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
+## [0.22.1] - 2026-05-02
+
+### Fixed
+
+- `docker compose pull` scheiterte mit `pull access denied for
+  adminhelper-monitoring`, weil das Monitoring-Image nirgends in
+  der Registry lebte (es gab nur einen `docker_server`-Job). Neuer
+  `docker_monitoring`-Job in `.gitlab-ci.yml` (1:1 analog zu
+  `docker_server`) baut + pusht jetzt das Monitoring-Image nach
+  `docker.nevondo.com/$CI_PROJECT_PATH/monitoring` mit den Tags
+  SHA, `latest`, `dev` (main-Branch) und `$CI_COMMIT_TAG` (bei Tags).
+  `MONITORING_IMAGE`-Default in `docker-compose.yml` zeigt jetzt
+  auf den Registry-Pfad statt den nicht-pullbaren lokalen Tag.
+
+### Changed
+
+- Versions-Bump aller Komponenten auf `v0.22.1` (Patch-Release).
+
 ## [0.22.0] - 2026-05-02
 
 ### Changed
@@ -23,15 +41,6 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
   CI installiert beide Files. Production-Container (Dockerfile)
   bleibt schlanker, weil testcontainers + pytest nicht mehr in
   jedem Server-Image landen.
-- `docker compose pull` scheiterte mit `pull access denied for
-  adminhelper-monitoring`, weil das Monitoring-Image nirgends in
-  der Registry lebte (es gab nur einen `docker_server`-Job). Neuer
-  `docker_monitoring`-Job in `.gitlab-ci.yml` (1:1 analog zu
-  `docker_server`) baut + pusht jetzt das Monitoring-Image nach
-  `docker.nevondo.com/$CI_PROJECT_PATH/monitoring` mit den Tags
-  SHA, `latest`, `dev` (main-Branch) und `$CI_COMMIT_TAG` (bei Tags).
-  `MONITORING_IMAGE`-Default in `docker-compose.yml` zeigt jetzt
-  auf den Registry-Pfad statt den nicht-pullbaren lokalen Tag.
 
 ## [0.21.0] - 2026-05-02
 
@@ -392,6 +401,7 @@ ueber einen Multi-Stage-Build ausgeliefert.
 
 Aeltere Releases siehe Git-Tags `v0.7.0` bis `v0.16.0`.
 
+[0.22.1]: https://git.nevondo.com/ks98/adminhelper/-/releases/v0.22.1
 [0.22.0]: https://git.nevondo.com/ks98/adminhelper/-/releases/v0.22.0
 [0.21.0]: https://git.nevondo.com/ks98/adminhelper/-/releases/v0.21.0
 [0.20.0]: https://git.nevondo.com/ks98/adminhelper/-/releases/v0.20.0
