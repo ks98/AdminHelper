@@ -85,7 +85,7 @@ source .venv/bin/activate
 DATA_DIR=../data uvicorn app.main:app --reload --host 127.0.0.1 --port 8080
 ```
 
-Der Server laeuft dann unter `http://127.0.0.1:8080` mit Web-Interface und API-Docs unter `/docs` (Swagger UI) bzw. `/openapi.json`.
+Der Server laeuft dann unter `http://127.0.0.1:8080` mit Web-Interface und API-Docs unter `/api/docs` (Swagger UI) bzw. `/openapi.json`.
 
 **Standard-Login:** `admin` / `admin`
 
@@ -249,7 +249,7 @@ cd server && source .venv/bin/activate
 DATA_DIR=../data uvicorn app.main:app --reload --host 127.0.0.1 --port 8080
 
 # In einem anderen Terminal:
-curl http://127.0.0.1:8080/docs
+curl http://127.0.0.1:8080/api/docs
 ```
 
 ### Server-Login per CLI testen

@@ -191,7 +191,7 @@ GET    /api/monitoring/templates # Monitoring-Templates (Admin)
 POST   /api/monitoring/agent-keys/{server_id}  # Agent-Key generieren
 ```
 
-API-Dokumentation: `http://localhost:8080/docs` (Swagger UI) bzw. `/openapi.json`
+API-Dokumentation: `http://localhost:8080/api/docs` (Swagger UI) bzw. `/openapi.json`
 
 ---
 
