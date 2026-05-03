@@ -5,15 +5,25 @@ Alle nennenswerten Aenderungen an diesem Projekt werden hier dokumentiert.
 Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
-## [0.23.0] - 2026-05-02
+## [0.23.1] - 2026-05-03
 
 ### Highlights
 
 **Server-zentrisches Provisioning** — bis v0.22.x war der Provision-Flow
 fest an FRP gekoppelt; wer keinen Tunnel hatte, konnte den Token-Flow nicht
-nutzen und bekam keinen Monitor-Agent-Key. Ab v0.23.0 lebt Provisioning im
+nutzen und bekam keinen Monitor-Agent-Key. Ab v0.23.x lebt Provisioning im
 Server-Modul und liefert je nach Konfiguration optional FRP-Bundle und
 Monitor-Key. Ein einziger Agent-Aufruf ersetzt das alte zweistufige Setup.
+
+(v0.23.0 wurde lokal getaggt, aber nie auf origin gepusht — der CI-Job
+scheiterte an einer Prettier-Verletzung in `Frp.svelte`. v0.23.1 enthaelt
+denselben Funktionsumfang plus den Style-Fix.)
+
+### Fixed
+
+- `prettier --check` failte im CI-Job auf `Frp.svelte`, weil beim Entfernen
+  der Provision-Modal-Einbindung eine ueberzaehlige Leerzeile stehengeblieben
+  war. Inhaltlich kein Effekt, blockierte aber die Tag-Pipeline.
 
 ### Added
 
@@ -63,7 +73,7 @@ Monitor-Key. Ein einziger Agent-Aufruf ersetzt das alte zweistufige Setup.
   `createProvisionToken` sind aus `lib/api/frp.ts` in das neue
   `lib/api/provisioning.ts` umgezogen, Types `FrpProvisionToken[…]`
   heissen jetzt `ProvisionToken[…]`.
-- Versions-Bump aller Komponenten auf `v0.23.0` (Server, Monitoring,
+- Versions-Bump aller Komponenten auf `v0.23.1` (Server, Monitoring,
   Web-Admin-Panel, Desktop-Client, Browser-Extension, Go-Agent via
   `.gitlab-ci.yml AGENT_VERSION`, 40 Doku-HTML-Footer).
 
