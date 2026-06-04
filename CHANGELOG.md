@@ -5,6 +5,59 @@ Alle nennenswerten Aenderungen an diesem Projekt werden hier dokumentiert.
 Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
+## [0.24.0] - 2026-06-04
+
+### Security
+
+- **FRP-PKI-Schluessel jetzt `0600`, PKI-Verzeichnis `0700`.** Private Keys
+  (`ca.key`, `frps.key`, Client-Keys) wurden zuvor umask-abhaengig (oft
+  world-readable `0644`) geschrieben. `_write_key` erzeugt sie nun atomar mit
+  `0600`; bestehende lax-permissionierte Deployments werden bei jedem
+  PKI-Zugriff idempotent nachgezogen.
+- **IDOR auf `GET /api/frp/provision/{server_id}/config(-hash)` geschlossen.**
+  Mit einem beliebigen gueltigen Read-API-Key war zuvor die `frpc.toml`
+  (globaler `auth.token` + STCP-Secrets) jedes Servers abrufbar. API-Keys sind
+  jetzt an einen `server_id` gebunden; der Endpoint prueft die Server-Scope
+  strikt (403) und ist Admin-only.
+- **TOCTOU im Provision-Activate behoben.** Der Einmal-Token wird nun atomar
+  per bedingtem `UPDATE ... WHERE used_at IS NULL` konsumiert; ein verlorenes
+  Rennen liefert `409` und erzeugt fail-closed keinen API-Key.
+- **Hook-Ausfuehrung: ehrliche Sicherheits-Posture.** Das wirkungslose
+  `exec()`-Pseudo-Sandbox wurde entfernt; die Worker-Umgebung ist auf das
+  Noetigste minimiert (entfernt u.a. `ADMIN_PASSWORD`). Hooks bleiben bewusst
+  vertrauenswuerdiger Admin-Code mit DB-Zugriff — das ist nun dokumentiert und
+  testverankert, statt faelschlich „isoliert" zu suggerieren.
+
+### Added
+
+- **GitHub Actions CI/CD.** `ci.yml` (Lint/Tests aller Komponenten),
+  `docker.yml` (Server- + Monitoring-Images nach ghcr.io) und `release.yml`
+  (Desktop-DEB/RPM, Agent-Pakete + Binaries, Checksums, Draft-Release).
+- **Periodische JWT-Blacklist-Bereinigung.** `cleanup_expired_blacklist` laeuft
+  jetzt als System-Job (Intervall 6 h); zuvor wuchs die `token_blacklist`-
+  Tabelle unbegrenzt.
+- **Server-Bindung fuer API-Keys** (`api_keys.server_id`, inkl.
+  Alembic-Migration mit Backfill).
+
+### Changed
+
+- **Docker-Images kommen aus ghcr.io**
+  (`ghcr.io/ks98/adminhelper/{server,monitoring}`); `docker-compose.yml` und
+  `.env.example` entsprechend vereinheitlicht.
+- **Quellcode-Kommentare und README auf Englisch** vereinheitlicht; Doku-Links
+  und CI-Beschreibung von GitLab auf GitHub umgestellt. Lokalisierte
+  UI-Strings (DE/EN) bleiben unveraendert.
+
+### Removed
+
+- Toter Code: `ScriptSecurityError`, `ScriptTimeoutError`, ungenutzte
+  `UserResponse` und die wirkungslose Hook-Sandbox.
+
+### Fixed
+
+- Alembic-`downgrade` Postgres-kompatibel (`sa.DateTime()` / `sa.String()`
+  statt `sa.DATETIME()` / `sa.VARCHAR()`).
+
 ## [0.23.2] - 2026-05-03
 
 ### Fixed
