@@ -2,15 +2,15 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// Rust-Backend-Spiegeltypen.
-// Entsprechen 1:1 den Structs/Enums in desktop/src-tauri/src/models.rs
-// und den Command-Signaturen in desktop/src-tauri/src/commands.rs.
+// Rust backend mirror types.
+// Correspond 1:1 to the structs/enums in desktop/src-tauri/src/models.rs
+// and to the command signatures in desktop/src-tauri/src/commands.rs.
 //
-// Diese Types sind BEWUSST getrennt von src/lib/api/types.ts (Web-API).
-// Der Rust-Backend-Connection-Typ ist enger (nur ssh/rdp/web) als der
-// Server-API-Typ (ssh/rdp/vnc/web/custom).
+// These types are DELIBERATELY separate from src/lib/api/types.ts (web API).
+// The Rust backend connection type is narrower (only ssh/rdp/web) than the
+// server API type (ssh/rdp/vnc/web/custom).
 //
-// Bei Aenderungen in models.rs diese Datei manuell nachziehen.
+// When models.rs changes, update this file manually.
 
 export type ConnectionKind = 'ssh' | 'rdp' | 'web';
 export type SyncMode = 'local' | 'sync' | 'server';

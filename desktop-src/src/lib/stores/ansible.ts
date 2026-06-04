@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// Ansible-Store: 3-stufiger Wizard (Playbook -> Ziele -> Ausfuehren).
-// Laedt Playbooks + Server vom Server-API und startet den lokalen Terminal-Runner.
+// Ansible store: 3-step wizard (playbook -> targets -> run).
+// Loads playbooks + servers from the server API and starts the local terminal runner.
 
 import { writable, derived, get } from 'svelte/store';
 import * as bridge from '$lib/bridge';

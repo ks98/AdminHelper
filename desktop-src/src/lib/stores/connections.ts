@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// Connections-Store. Laedt, cached und speichert Verbindungen ueber die
-// Tauri-Bridge. Filter + Suche sind derived-stores - UI liest sie direkt.
+// Connections store. Loads, caches and saves connections via the
+// Tauri bridge. Filter + search are derived stores - the UI reads them directly.
 
 import { writable, derived, get } from 'svelte/store';
 import * as bridge from '$lib/bridge';
@@ -112,7 +112,7 @@ export async function upsert(conn: Connection): Promise<void> {
   await saveAll(next);
 }
 
-/** Patcht ein Item nur im Memory-Store (keine Persistenz). Fuer Sync- und Server-Modus. */
+/** Patches an item only in the memory store (no persistence). For sync and server mode. */
 export function patchInMemory(conn: Connection): void {
   _state.update((s) => ({
     ...s,

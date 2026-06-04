@@ -42,7 +42,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
   const config = $derived(check.config ?? {});
 
-  // ── Config-Darstellung (aus _formatCheckConfigWeb) ─────────────────────
+  // ── Config rendering (from _formatCheckConfigWeb) ──────────────────────
   const configKv = $derived.by(() => {
     const c = config;
     const tp = check.checkType;
@@ -138,7 +138,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
     return kv;
   });
 
-  // ── Type-Content-Daten (typisiert je nach checkType) ───────────────────
+  // ── Type-content data (typed per checkType) ────────────────────────────
   const resourceDetails = $derived.by<MonitorResourceDetails | null>(() =>
     check.checkType === 'agent_resources'
       ? ((check.state?.details as MonitorResourceDetails) ?? null)
@@ -264,7 +264,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
     }
   });
 
-  // ── Aktuelle Werte (neben Period-Tabs) ─────────────────────────────────
+  // ── Current values (next to period tabs) ───────────────────────────────
   const currentValues = $derived.by(() => {
     if (skipChart || !mainData) return [] as { label: string; text: string }[];
     const series = mainData.data ?? [];
@@ -322,7 +322,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
     return segs;
   });
 
-  // ── agent_ping-Seconds extrahieren ─────────────────────────────────────
+  // ── Extract agent_ping seconds ─────────────────────────────────────────
   const pingSeconds = $derived.by(() => {
     if (check.checkType !== 'agent_ping') return null;
     const msg = check.state?.message ?? '';

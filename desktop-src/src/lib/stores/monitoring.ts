@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// Monitoring-Store: haelt Checks, Server, Filter, Alert-Rules, Alert-Log.
-// Auto-Refresh via activate()/deactivate() aus der Monitoring-Seite.
+// Monitoring store: holds checks, servers, filters, alert rules, alert log.
+// Auto-refresh via activate()/deactivate() from the monitoring page.
 
 import { writable, derived, get } from 'svelte/store';
 import { sessionStore } from './session';
@@ -137,7 +137,7 @@ export async function loadMonitoring(): Promise<void> {
     _state.update((s) => ({ ...s, loading: true }));
     const checks = await monitoringApi.fetchStatus(session);
     _state.update((s) => {
-      // Auto-Select: wenn noch nichts gewaehlt, nimm Server mit schlechtestem Status.
+      // Auto-select: if nothing is selected yet, take the server with the worst status.
       let selected = s.selectedServerId;
       const ids = new Set(checks.map((c) => c.serverId || '__none'));
       if (selected && !ids.has(selected)) selected = null;

@@ -80,12 +80,12 @@ SPDX-License-Identifier: GPL-3.0-or-later
     try {
       chart = new uPlot(opts, uData, container);
     } catch {
-      // Wenn Rendern scheitert, belasse den Fehler-Fallback per Markup.
+      // If rendering fails, leave the error fallback to the markup.
     }
   }
 
   $effect(() => {
-    // Re-render bei Daten- oder Container-Wechsel
+    // Re-render on data or container change
     void data;
     render();
   });

@@ -2,13 +2,13 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// Connect-Flow: orchestriert das Starten einer Verbindung.
-// Bei RDP wird ggf. der Password-Store befragt oder ein Prompt gezeigt.
+// Connect flow: orchestrates starting a connection.
+// For RDP the password store may be queried or a prompt shown.
 //
-// Race-Condition-Schutz: jede RDP-Attempt bekommt eine UUID, die an die
-// Tauri-Bridge uebergeben und in jedem rdp-error-Event mitgeschickt wird.
-// markRdpError filtert ueber die UUID, sodass spaete Fehler einer abgebrochenen
-// Verbindung keine parallel laufende neue Verbindung als fehlgeschlagen markieren.
+// Race-condition protection: each RDP attempt gets a UUID that is passed to the
+// Tauri bridge and sent along in every rdp-error event.
+// markRdpError filters by the UUID so that late errors of an aborted
+// connection do not mark a concurrently running new connection as failed.
 
 import { get } from 'svelte/store';
 import * as bridge from '$lib/bridge';
@@ -66,9 +66,9 @@ function clearRdpAttempt(id: string): void {
 }
 
 /**
- * Wird vom rdp-error Tauri-Event aufgerufen. correlationId == null fuer Legacy-
- * Events ohne ID -> alle laufenden Attempts werden als errored markiert (alte
- * Semantik). Mit ID wird nur der zugehoerige Attempt beeinflusst.
+ * Called from the rdp-error Tauri event. correlationId == null for legacy
+ * events without an ID -> all running attempts are marked as errored (old
+ * semantics). With an ID only the corresponding attempt is affected.
  */
 export function markRdpError(correlationId: string | null, message: string): void {
   if (correlationId) {
@@ -94,10 +94,10 @@ function passwordStoreEnabled(): boolean {
 }
 
 /**
- * Aktualisiert lastUsed mode-spezifisch:
- *  - local:  upsert in lokale SQLite (persistent).
- *  - server: POST /api/connections/{id}/touch -> Memory-Patch mit Server-Antwort.
- *  - sync:   nur Memory-Patch (Sync-URL ist read-only, ueberlebt nicht den naechsten Sync).
+ * Updates lastUsed in a mode-specific way:
+ *  - local:  upsert into local SQLite (persistent).
+ *  - server: POST /api/connections/{id}/touch -> memory patch with server response.
+ *  - sync:   memory patch only (sync URL is read-only, does not survive the next sync).
  */
 async function markConnectionUsed(connection: Connection): Promise<void> {
   const { settings, session } = get(sessionStore);

@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// Settings-Model: reine Funktionen + Konstanten, keine Seiteneffekte.
+// Settings model: pure functions + constants, no side effects.
 
 import type { Settings } from '$lib/bridge/types';
 import { tNow } from '$lib/i18n';

@@ -2,16 +2,16 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// Session-Store fuer Desktop-Auth.
+// Session store for desktop auth.
 //
-// Der Desktop kennt drei Modi (Settings.mode):
-//   - 'local':  keine Server-Verbindung, keine Auth noetig
-//   - 'sync':   nur JSON-Sync ueber URL, keine Auth noetig
-//   - 'server': AdminHelper-Server mit Login erforderlich
+// The desktop has three modes (Settings.mode):
+//   - 'local':  no server connection, no auth needed
+//   - 'sync':   JSON sync via URL only, no auth needed
+//   - 'server': AdminHelper server with login required
 //
-// Auth-Token + Refresh-Token werden ausschliesslich im Rust-Keyring abgelegt
-// (keine localStorage-Kopie im Frontend). Das Frontend fragt via
-// bridge.checkSession() ob aktuell eine gueltige Session existiert.
+// Auth token + refresh token are stored exclusively in the Rust keyring
+// (no localStorage copy in the frontend). The frontend asks via
+// bridge.checkSession() whether a valid session currently exists.
 
 import { writable, derived, get } from 'svelte/store';
 import * as bridge from '$lib/bridge';
@@ -34,19 +34,19 @@ export const settings = derived(_state, ($s) => $s.settings);
 export const session = derived(_state, ($s) => $s.session);
 export const ready = derived(_state, ($s) => $s.ready);
 
-/** Liefert true, wenn der aktuelle Modus Auth erfordert UND eine Session existiert. */
+/** Returns true if the current mode requires auth AND a session exists. */
 export const isAuthenticated = derived(_state, ($s) => {
   if (!$s.settings) return false;
   if ($s.settings.mode !== 'server') return true;
   return $s.session !== null;
 });
 
-/** Liefert true, wenn der aktuelle Modus Auth erfordert, aber keine Session existiert. */
+/** Returns true if the current mode requires auth but no session exists. */
 export const needsLogin = derived(_state, ($s) => {
   return $s.ready && $s.settings?.mode === 'server' && $s.session === null;
 });
 
-/** Laedt Settings + optional Session beim App-Start. */
+/** Loads settings + optionally the session at app start. */
 export async function hydrate(): Promise<void> {
   try {
     const s = await bridge.loadSettings();
@@ -71,8 +71,8 @@ export async function login(serverUrl: string, username: string, password: strin
   const allowSelfSigned = current.settings?.allowSelfSignedCerts ?? false;
   const sess = await bridge.login(serverUrl, username, password, allowSelfSigned);
   _state.update((s) => ({ ...s, session: sess }));
-  // Connections vom neuen Server frisch holen — verhindert, dass nach
-  // Server-Wechsel der alte connections.json-Datei-Cache sichtbar bleibt.
+  // Fetch connections fresh from the new server — prevents the old
+  // connections.json file cache from staying visible after a server switch.
   if (current.settings) {
     await reloadForMode(current.settings, sess);
   }
@@ -82,13 +82,13 @@ export async function logout(): Promise<void> {
   try {
     await bridge.logout();
   } finally {
-    // Erst Connection-Cache leeren (Memory + Datei via saveAll([])), dann
-    // Session auf null setzen — sonst sehen Subscriber kurz die alten
-    // Daten im bereits ausgeloggten State.
+    // First clear the connection cache (memory + file via saveAll([])), then
+    // set session to null — otherwise subscribers briefly see the old
+    // data in the already-logged-out state.
     try {
       await setConnections([]);
     } catch {
-      /* Cache-Cleanup darf Logout nicht blocken */
+      /* cache cleanup must not block logout */
     }
     _state.update((s) => ({ ...s, session: null }));
   }

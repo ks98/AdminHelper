@@ -35,7 +35,7 @@ export function worstStatusOf(checks: MonitorCheck[]): MonStatus {
   return worst;
 }
 
-// ── Default-Schwellwerte (zentral) ───────────────────────────────────────
+// ── Default thresholds (central) ─────────────────────────────────────────
 export const TEMP_GAUGE_MAX = 120;
 export const DEF_CPU_WARN = 80;
 export const DEF_CPU_CRIT = 95;
@@ -46,14 +46,14 @@ export const DEF_DISK_CRIT = 95;
 export const DEF_TEMP_WARN = 80;
 export const DEF_TEMP_CRIT = 95;
 
-// Check-Typen ohne automatischen Chart
+// Check types without an automatic chart
 export const NO_CHART_TYPES: readonly MonitorCheckType[] = [
   'service_process',
   'docker_health',
   'proxmox_backup',
 ];
 
-// Farben fuer uPlot-Serien (1:1 aus dem Original)
+// Colors for uPlot series (verbatim from the original)
 export const CHART_COLORS = ['#4a9eff', '#ff6b6b', '#ffa726', '#66bb6a', '#ab47bc', '#26c6da'];
 
 export function gaugeClass(

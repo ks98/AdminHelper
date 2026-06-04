@@ -51,7 +51,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
   let consecutiveFails = $state(3);
   let description = $state('');
 
-  // Einzelne Config-Felder pro Typ
+  // Individual config fields per type
   let pingTarget = $state('');
   let pingTimeout = $state(5);
 

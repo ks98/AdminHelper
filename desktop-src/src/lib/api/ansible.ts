@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// Ansible-API: Wrapper um apiProxy() fuer Playbook-Verwaltung.
+// Ansible API: wrapper around apiProxy() for playbook management.
 
 import * as bridge from '$lib/bridge';
 import type { AuthSession } from '$lib/bridge/types';

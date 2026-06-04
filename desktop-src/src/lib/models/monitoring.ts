@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// Monitoring-Model: reine Funktionen fuer Sortierung, Filterung, Gruppierung, Formatierung.
+// Monitoring model: pure functions for sorting, filtering, grouping, formatting.
 
 import type {
   MonCheckSummary,

@@ -17,7 +17,7 @@ import type {
   MonitoringTemplateInput,
 } from './types';
 
-// ── Legacy / Server-Modal-Aufrufe ────────────────────────────────────────
+// ── Legacy / server-modal calls ──────────────────────────────────────────
 export function listStatus(): Promise<MonCheckSummary[]> {
   return http.get<MonCheckSummary[]>('/api/monitoring/status');
 }
@@ -47,7 +47,7 @@ export function unassignTemplate(templateId: string, serverId: string): Promise<
   return http.del<void>(`/api/monitoring/templates/${templateId}/assign/${serverId}`);
 }
 
-// ── Checks (volle Monitoring-Seite) ──────────────────────────────────────
+// ── Checks (full monitoring page) ────────────────────────────────────────
 export function listChecks(): Promise<MonitorCheck[]> {
   return http.get<MonitorCheck[]>('/api/monitoring/status');
 }
@@ -106,7 +106,7 @@ export function alertLog(limit = 50): Promise<AlertLogEntry[]> {
   return http.get<AlertLogEntry[]>(`/api/monitoring/alerts/log?limit=${limit}`);
 }
 
-// ── Templates (volle Definitionen) ───────────────────────────────────────
+// ── Templates (full definitions) ─────────────────────────────────────────
 export function listTemplatesFull(): Promise<MonitoringTemplateFull[]> {
   return http.get<MonitoringTemplateFull[]>('/api/monitoring/templates');
 }

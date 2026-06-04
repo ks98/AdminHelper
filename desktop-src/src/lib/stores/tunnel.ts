@@ -2,9 +2,9 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// Tunnel-Store: haelt TunnelStatus + Tunnel-Mappings, startet frpc auf Bedarf.
-// Wird vom AppShell beim Login/Mode-Wechsel angestossen und reagiert auf
-// Tauri-Events frpc-terminated / frpc-error.
+// Tunnel store: holds TunnelStatus + tunnel mappings, starts frpc on demand.
+// Triggered by AppShell on login/mode switch and reacts to
+// Tauri events frpc-terminated / frpc-error.
 
 import { writable, derived, get } from 'svelte/store';
 import * as bridge from '$lib/bridge';

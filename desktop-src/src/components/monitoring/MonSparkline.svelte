@@ -44,7 +44,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
       if (vals.length < 2) return;
       points = vals;
     } catch {
-      // Sparkline darf fehlschlagen — bleibt leer
+      // Sparkline is allowed to fail — stays empty
     }
   }
 

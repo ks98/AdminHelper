@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// Beschleunigt Mausrad-Scrolling in langen Listen/Panels. Als Svelte-Action,
-// damit Bindings automatisch mit dem Lebenszyklus der Komponente verschwinden.
+// Accelerates mouse-wheel scrolling in long lists/panels. Implemented as a
+// Svelte action so bindings disappear automatically with the component lifecycle.
 
 import type { Action } from 'svelte/action';
 

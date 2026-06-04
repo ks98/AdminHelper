@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// Settings-Store: Modal-State, Persistenz und Sync-Timer.
+// Settings store: modal state, persistence and sync timer.
 
 import { writable, get } from 'svelte/store';
 import * as bridge from '$lib/bridge';
@@ -61,8 +61,8 @@ export interface SaveResult {
 }
 
 /**
- * Speichert Settings, stoppt/startet Tunnel + Sync je nach Modus-Wechsel
- * und triggert ggf. Connection-Reload. Ruft ggf. needsLogin zurueck.
+ * Saves settings, stops/starts tunnel + sync depending on the mode switch
+ * and triggers a connection reload if needed. May return needsLogin.
  */
 export async function saveSettings(next: Settings): Promise<SaveResult> {
   const v = validateSettings(next);
@@ -70,10 +70,10 @@ export async function saveSettings(next: Settings): Promise<SaveResult> {
     reportError(v.error ?? tNow('error.invalidSettings'));
     return { ok: false };
   }
-  // Server-URL-Wechsel mit aktiver Session erzwingt Logout: das alte
-  // JWT gehoert zum alten Server und wird vom neuen Server abgelehnt.
-  // Ohne Logout blieben in der lokalen connections.json + im Store die
-  // Daten vom alten Server sichtbar, bis der User selbst neu einloggt.
+  // A server URL change with an active session forces a logout: the old
+  // JWT belongs to the old server and is rejected by the new server.
+  // Without a logout, the data from the old server would stay visible in the
+  // local connections.json + the store until the user logs in again.
   const previous = get(sessionStore).settings;
   const serverUrlChanged =
     previous?.mode === 'server' && next.mode === 'server' && previous.serverUrl !== next.serverUrl;

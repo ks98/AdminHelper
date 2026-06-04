@@ -16,7 +16,7 @@ export async function logout(): Promise<void> {
   try {
     await http.post('/api/auth/logout', refresh ? { refresh_token: refresh } : undefined);
   } catch {
-    // Lokales Clear muss in jedem Fall passieren (z.B. wenn Server unerreichbar).
+    // The local clear must happen in any case (e.g. if the server is unreachable).
   } finally {
     clearTokens();
   }

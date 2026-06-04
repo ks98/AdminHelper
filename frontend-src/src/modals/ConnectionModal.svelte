@@ -51,14 +51,14 @@ SPDX-License-Identifier: GPL-3.0-or-later
     }
   });
 
-  // Sichtbarkeit der Kind-abhaengigen Felder
+  // Visibility of the kind-dependent fields
   const showHost = $derived(kind !== 'web');
   const showPort = $derived(kind !== 'web');
   const showDomain = $derived(kind === 'rdp');
   const showUrl = $derived(kind === 'web');
   const showKey = $derived(kind === 'ssh');
 
-  // Default-Port bei Kind-Wechsel, wenn Feld leer
+  // Default port on kind change, when the field is empty
   $effect(() => {
     if (!showPort) return;
     if (port !== '') return;

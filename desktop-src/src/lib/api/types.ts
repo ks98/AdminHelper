@@ -325,7 +325,7 @@ export interface MonitoringAgentKeyResult {
   serverId: string;
 }
 
-// ── Monitoring (volle Payloads vom Monitoring-Service) ──────────────────
+// ── Monitoring (full payloads from the monitoring service) ──────────────
 export type MonitorCheckType =
   | 'ping'
   | 'tcp'

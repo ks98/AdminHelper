@@ -2,9 +2,9 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// Editor-Modal-Store: steuert, ob der Connection-Editor offen ist
-// und welche Connection gerade bearbeitet wird. Open mit undefined
-// bedeutet "neue Verbindung".
+// Editor modal store: controls whether the connection editor is open
+// and which connection is currently being edited. Opening with undefined
+// means "new connection".
 
 import { writable } from 'svelte/store';
 import type { Connection } from '$lib/bridge/types';

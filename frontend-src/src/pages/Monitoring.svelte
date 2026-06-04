@@ -65,7 +65,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
     return m;
   });
 
-  // ── Gefilterte Checks ─────────────────────────────────────────────────
+  // ── Filtered checks ────────────────────────────────────────────────────
   const filteredChecks = $derived.by(() => {
     let list = $monitorChecks;
     if (serverFilter) list = list.filter((c) => c.serverId === serverFilter);
@@ -119,7 +119,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
     return Array.from(set).sort();
   });
 
-  // ── Checks gruppiert nach Server ──────────────────────────────────────
+  // ── Checks grouped by server ───────────────────────────────────────────
   interface CheckGroup {
     key: string;
     title: string;
@@ -271,7 +271,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
     void monitoringTemplates.refresh();
   }
 
-  // ── Tab-Wechsel ───────────────────────────────────────────────────────
+  // ── Tab change ─────────────────────────────────────────────────────────
   async function switchTab(tab: Tab) {
     activeTab = tab;
     if (tab === 'log' && !logLoaded) {
@@ -341,7 +341,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
     >
   </div>
 
-  <!-- Tab: Uebersicht -->
+  <!-- Tab: Overview -->
   {#if activeTab === 'overview'}
     <div class="monitor-tab-content active">
       <div class="monitor-filters">

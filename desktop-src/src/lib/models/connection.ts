@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// Connection-Modell: Normalisierung, Validierung, Darstellungs-Helfer.
+// Connection model: normalization, validation, presentation helpers.
 
 import type { Connection, ConnectionKind } from '$lib/bridge/types';
 import { tNow } from '$lib/i18n';

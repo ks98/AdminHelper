@@ -59,7 +59,7 @@ describe('statusBar store', () => {
     showStatus('saved');
     clearStatus();
     expect(get(status)).toBeNull();
-    // Sicherstellen, dass der ehemalige Timer nichts mehr tut.
+    // Make sure the former timer no longer does anything.
     vi.advanceTimersByTime(10_000);
     expect(get(status)).toBeNull();
   });
@@ -68,10 +68,10 @@ describe('statusBar store', () => {
     showStatus('first');
     vi.advanceTimersByTime(3000);
     showStatus('second');
-    // Erster Timer wuerde bei 6000ms feuern -> 3000ms nach dem zweiten Set.
+    // The first timer would fire at 6000ms -> 3000ms after the second set.
     vi.advanceTimersByTime(3000);
     expect(get(status)?.text).toBe('second');
-    // Der Timer des zweiten Messages feuert erst weitere 3000ms spaeter.
+    // The timer of the second message fires only another 3000ms later.
     vi.advanceTimersByTime(3000);
     expect(get(status)).toBeNull();
   });

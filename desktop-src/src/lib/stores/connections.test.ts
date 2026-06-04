@@ -6,8 +6,8 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { get } from 'svelte/store';
 import type { Connection } from '$lib/bridge/types';
 
-// Bridge mocken: die State-Transition-Logik (saveAll/upsert/remove) ist das,
-// was wir testen wollen — die Persistenz ist nur ein Seitenkanal.
+// Mock the bridge: the state transition logic (saveAll/upsert/remove) is what
+// we want to test — persistence is just a side channel.
 vi.mock('$lib/bridge', () => ({
   saveConnections: vi.fn(async () => {}),
   loadConnections: vi.fn(async () => []),

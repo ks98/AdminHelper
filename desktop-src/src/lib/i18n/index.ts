@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// i18n-Engine: reaktiver Sprach-Store + t()-Funktion mit {placeholder}-Ersetzung.
+// i18n engine: reactive language store + t() function with {placeholder} replacement.
 
 import { writable, derived, get, type Readable } from 'svelte/store';
 import { translations, type Language } from './dictionaries';

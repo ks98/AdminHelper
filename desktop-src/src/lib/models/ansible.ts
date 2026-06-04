@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// Ansible-Model: reine Transformationen ohne Seiteneffekte.
+// Ansible model: pure transformations without side effects.
 
 import type { Server } from '$lib/api/types';
 import type { AnsibleTarget } from '$lib/bridge/types';

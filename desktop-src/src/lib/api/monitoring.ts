@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// Monitoring-API: getypte Wrapper um apiProxy() fuer Monitoring-Endpoints.
-// Nimmt die aktuelle AuthSession aus dem session-Store.
+// Monitoring API: typed wrappers around apiProxy() for monitoring endpoints.
+// Takes the current AuthSession from the session store.
 
 import { get } from 'svelte/store';
 import * as bridge from '$lib/bridge';

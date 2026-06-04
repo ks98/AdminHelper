@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// Password-Prompt-Store: steuert das RDP-Passwort-Modal.
-// Nach Bestaetigen geht es via continuation weiter in den performConnect-Flow.
+// Password prompt store: controls the RDP password modal.
+// After confirmation it continues via the continuation into the performConnect flow.
 
 import { writable } from 'svelte/store';
 import type { Connection } from '$lib/bridge/types';

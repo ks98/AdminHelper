@@ -52,8 +52,8 @@ SPDX-License-Identifier: GPL-3.0-or-later
     try {
       const result = await api.createProvisionToken(server.id);
       const srmUrl = window.location.origin;
-      // Ein einziger provision-Aufruf — der Agent holt sich Server-API-Key,
-      // optional Monitor-Key, optional FRP-Bundle aus der Activate-Antwort.
+      // A single provision call — the agent fetches the server API key,
+      // optionally a monitor key, optionally an FRP bundle from the activate response.
       command = `sudo adminhelper-agent provision \\\n  --url ${srmUrl} \\\n  --token ${result.token} \\\n  --server-id ${server.id} \\\n  --insecure`;
       showToast($t('toast.provision.created'));
       await loadTokens();

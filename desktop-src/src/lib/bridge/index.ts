@@ -2,16 +2,16 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// Typisierte Wrapper um tauri.invoke() fuer alle Backend-Commands.
+// Typed wrappers around tauri.invoke() for all backend commands.
 //
-// Jede Funktion mappt 1:1 auf einen #[tauri::command] in
-// desktop/src-tauri/src/commands.rs. Die Signatur-Typen stammen aus ./types.
+// Each function maps 1:1 to a #[tauri::command] in
+// desktop/src-tauri/src/commands.rs. The signature types come from ./types.
 //
-// Bei Hinzufuegen/Aendern eines Commands:
-//   1. commands.rs + models.rs anpassen
-//   2. main.rs invoke_handler-Liste ergaenzen
-//   3. ./types.ts nachziehen wenn Payload sich aendert
-//   4. Funktion hier hinzufuegen/anpassen
+// When adding/changing a command:
+//   1. Adjust commands.rs + models.rs
+//   2. Extend the main.rs invoke_handler list
+//   3. Update ./types.ts if the payload changes
+//   4. Add/adjust the function here
 
 import { invoke } from '@tauri-apps/api/core';
 import type {
@@ -27,7 +27,7 @@ import type {
   TunnelStatus,
 } from './types';
 
-// ─────────────────────────── Persistenz ───────────────────────────
+// ─────────────────────────── Persistence ──────────────────────────
 
 export function loadConnections(): Promise<Connection[]> {
   return invoke<Connection[]>('load_connections');
@@ -73,7 +73,7 @@ export function checkServerCert(serverUrl: string): Promise<boolean> {
   return invoke<boolean>('check_server_cert', { serverUrl });
 }
 
-// ─────────────────────────── Server-API-Proxy ─────────────────────
+// ─────────────────────────── Server API proxy ────────────────────
 
 export function apiProxy<T = unknown>(
   serverUrl: string,
@@ -127,7 +127,7 @@ export function resolveConnection(
   return invoke<ResolvedConnection>('resolve_connection', { connection, tunnels });
 }
 
-// ─────────────────────────── Passwort-Keychain ────────────────────
+// ─────────────────────────── Password keychain ───────────────────
 
 export function passwordState(connection: Connection): Promise<PasswordState> {
   return invoke<PasswordState>('password_state', { connection });
