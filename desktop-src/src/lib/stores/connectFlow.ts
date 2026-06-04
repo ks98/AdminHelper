@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Kevin Stenzel
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 // Connect-Flow: orchestriert das Starten einer Verbindung.
 // Bei RDP wird ggf. der Password-Store befragt oder ein Prompt gezeigt.
 //

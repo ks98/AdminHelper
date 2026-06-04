@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Kevin Stenzel
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 import { writable, derived, get } from 'svelte/store';
 import type { User } from '$lib/api/types';
 import { getAccessToken, registerAuthFailureHandler } from '$lib/api/client';

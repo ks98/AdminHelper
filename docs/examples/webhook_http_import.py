@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Kevin Stenzel
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # Hook-Beispiel (Typ: webhook): Verbindungen per HTTP-API importieren
 # Trigger: POST /api/hooks/trigger/<TOKEN>
 #

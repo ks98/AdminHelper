@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Kevin Stenzel
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 import { test, expect } from '@playwright/test';
 import { mockApi } from './mocks';
 

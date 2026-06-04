@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Kevin Stenzel
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Monitoring-Service Router — aufgeteilt nach Domäne."""
 
 from app.routers.checks import router as checks_router

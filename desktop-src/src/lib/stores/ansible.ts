@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Kevin Stenzel
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 // Ansible-Store: 3-stufiger Wizard (Playbook -> Ziele -> Ausfuehren).
 // Laedt Playbooks + Server vom Server-API und startet den lokalen Terminal-Runner.
 

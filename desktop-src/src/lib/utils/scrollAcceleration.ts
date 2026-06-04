@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Kevin Stenzel
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 // Beschleunigt Mausrad-Scrolling in langen Listen/Panels. Als Svelte-Action,
 // damit Bindings automatisch mit dem Lebenszyklus der Komponente verschwinden.
 

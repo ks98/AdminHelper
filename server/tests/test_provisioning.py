@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Kevin Stenzel
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Tests fuer den Server-Provisioning-Flow (FRP-unabhaengig).
 
 Activate-Endpoint liefert je nach Konfiguration:

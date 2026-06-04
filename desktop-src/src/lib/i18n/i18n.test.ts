@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Kevin Stenzel
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 import { describe, it, expect, beforeEach } from 'vitest';
 import { get } from 'svelte/store';
 import { t, language, setLanguage, tNow } from './index';

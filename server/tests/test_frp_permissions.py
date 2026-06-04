@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Kevin Stenzel
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Tests fuer Authorization-Filter im FRP-Visitor-Bundle / -TOML.
 
 Hintergrund: Vor diesem Test war die Logik `if server_ids: filter(...)` so,

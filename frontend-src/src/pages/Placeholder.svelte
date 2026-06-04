@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2026 Kevin Stenzel
+
+SPDX-License-Identifier: GPL-3.0-or-later
+-->
+
 <script lang="ts">
   interface Props {
     params?: { page?: string };

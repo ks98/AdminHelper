@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Kevin Stenzel
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 use crate::error::AppError;
 use crate::models::{ClientInfo, Connection, RdpErrorPayload, RdpOptions};
 #[cfg(any(unix, target_os = "windows"))]

@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Kevin Stenzel
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 // Rust-Backend-Spiegeltypen.
 // Entsprechen 1:1 den Structs/Enums in desktop/src-tauri/src/models.rs
 // und den Command-Signaturen in desktop/src-tauri/src/commands.rs.

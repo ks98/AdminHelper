@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Kevin Stenzel
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Reine-Logik-Tests fuer das InfluxDB Line Protocol Formatting in
 app/core/victoria.py: _esc_tag (Escaping) und format_line (int/float/str)."""
 

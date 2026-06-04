@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Kevin Stenzel
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 /* Translations — ported 1:1 from server/frontend/js/i18n.js */
 
 export type Language = 'de' | 'en';

@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Kevin Stenzel
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 import { describe, it, expect } from 'vitest';
 import { buildAnsibleTargets, groupServersByTag } from './ansible';
 import type { Server } from '$lib/api/types';

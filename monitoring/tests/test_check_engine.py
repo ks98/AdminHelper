@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Kevin Stenzel
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Reine-Logik-Tests fuer die Status-Uebergaenge in app/check_engine.py.
 
 Getestet werden die aus execute_check extrahierten reinen Funktionen

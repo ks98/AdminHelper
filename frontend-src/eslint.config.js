@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Kevin Stenzel
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 import js from '@eslint/js';
 import svelte from 'eslint-plugin-svelte';
 import tseslint from 'typescript-eslint';

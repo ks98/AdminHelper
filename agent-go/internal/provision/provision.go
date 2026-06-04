@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Kevin Stenzel
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 // Package provision implementiert den Server-zentrischen Provisioning-Flow.
 //
 // Ab v0.23.0 ist Provisioning nicht mehr an FRP gekoppelt. Ein einziger

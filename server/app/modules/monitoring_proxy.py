@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Kevin Stenzel
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """
 Reverse-Proxy: Leitet /api/monitoring/* Anfragen an den Monitoring-Service weiter.
 

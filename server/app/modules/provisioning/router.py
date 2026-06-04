@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Kevin Stenzel
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Server-Provisioning-Endpoints (FRP-unabhaengig).
 
 POST /api/servers/{server_id}/provision/token       — Token erstellen (admin)

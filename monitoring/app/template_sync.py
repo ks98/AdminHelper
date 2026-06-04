@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Kevin Stenzel
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """
 Template-Sync — Live-Verknuepfung zwischen Templates und Checks/Alerts.
 

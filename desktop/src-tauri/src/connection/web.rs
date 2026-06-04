@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Kevin Stenzel
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 use crate::error::AppError;
 use crate::models::Connection;
 use crate::validation::validate_web_url;

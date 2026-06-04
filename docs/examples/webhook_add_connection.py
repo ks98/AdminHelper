@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Kevin Stenzel
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # Hook-Beispiel (Typ: webhook): Verbindung anlegen oder aktualisieren
 # Trigger: POST /api/hooks/trigger/<TOKEN>
 # Erwarteter JSON-Body:

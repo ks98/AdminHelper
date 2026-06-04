@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Kevin Stenzel
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Drift-Detektor: stellt sicher, dass alembic/versions/ und Base.metadata
 synchron sind. Schlaegt fehl, wenn jemand ein Model aendert ohne eine neue
 Alembic-Migration zu generieren (oder umgekehrt).

@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2026 Kevin Stenzel
+
+SPDX-License-Identifier: GPL-3.0-or-later
+-->
+
 <script lang="ts">
   import { status, clearStatus } from '$lib/stores/statusBar';
   import { t } from '$lib/i18n';

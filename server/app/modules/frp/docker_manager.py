@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Kevin Stenzel
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Schreibt generierte FRP-Configs ins Shared Volume fuer den frps-Container."""
 
 import logging

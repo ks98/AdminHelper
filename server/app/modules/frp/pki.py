@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Kevin Stenzel
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """PKI-Management fuer FRP mTLS — CA, Server- und Client-Zertifikate."""
 
 import datetime

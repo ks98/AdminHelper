@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Kevin Stenzel
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 // Status-Bar-Store: globale Info/Fehler-Nachrichten.
 // Auto-clear nach timeoutMs, aktuell 6s bei Erfolg und 10s bei Fehler.
 

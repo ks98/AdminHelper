@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Kevin Stenzel
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 // Editor-Modal-Store: steuert, ob der Connection-Editor offen ist
 // und welche Connection gerade bearbeitet wird. Open mit undefined
 // bedeutet "neue Verbindung".

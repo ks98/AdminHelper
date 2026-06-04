@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Kevin Stenzel
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Tests fuer den Bootstrap-Flow: Erst-Admin per Setup-Token statt Default 'admin/admin'.
 
 Hintergrund: Pre-Release-Audit P0-6. Statt einem fixen 'admin/admin'-Default

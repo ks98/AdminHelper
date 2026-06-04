@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Kevin Stenzel
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 // Password-Prompt-Store: steuert das RDP-Passwort-Modal.
 // Nach Bestaetigen geht es via continuation weiter in den performConnect-Flow.
 

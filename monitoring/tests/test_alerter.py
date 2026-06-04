@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Kevin Stenzel
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Reine-Logik-Tests fuer app/alerter.py.
 
 Getestet ohne echte DB: Rule-Filter (_rule_matches), Cooldown-Zeitfenster

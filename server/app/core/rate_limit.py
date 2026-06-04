@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Kevin Stenzel
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Rate-Limit-Backend mit Redis und In-Memory-Fallback.
 
 Redis ist erforderlich, sobald der Server mit mehreren Worker-Prozessen

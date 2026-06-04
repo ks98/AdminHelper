@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Kevin Stenzel
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 // i18n-Engine: reaktiver Sprach-Store + t()-Funktion mit {placeholder}-Ersetzung.
 
 import { writable, derived, get, type Readable } from 'svelte/store';

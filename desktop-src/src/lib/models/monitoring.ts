@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Kevin Stenzel
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 // Monitoring-Model: reine Funktionen fuer Sortierung, Filterung, Gruppierung, Formatierung.
 
 import type {

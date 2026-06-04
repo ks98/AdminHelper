@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Kevin Stenzel
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """FRP-Sync-Endpoints fuer den frpc-Agent.
 
 Server-Provisioning (Token-Lifecycle, Activate) ist seit v0.23.0 in

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Kevin Stenzel
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Alembic env.py — liest DATABASE_URL aus app.core.config, importiert alle
 Models, damit autogenerate die volle Base.metadata sieht."""
 

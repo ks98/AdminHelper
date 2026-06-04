@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Kevin Stenzel
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 // Ansible-API: Wrapper um apiProxy() fuer Playbook-Verwaltung.
 
 import * as bridge from '$lib/bridge';

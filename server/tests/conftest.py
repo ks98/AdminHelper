@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Kevin Stenzel
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Shared test fixtures: Postgres via testcontainers (lokal) oder GitLab-services (CI),
 SAVEPOINT-basiertes Transaction-Rollback-Pattern fuer Test-Isolation."""
 

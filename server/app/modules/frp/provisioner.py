@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Kevin Stenzel
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Provisioning-Logik: Config-Hash, Activate-Endpoint-Hilfen."""
 
 import base64

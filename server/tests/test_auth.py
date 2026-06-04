@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Kevin Stenzel
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Tests fuer Auth-Funktionen: Passwort-Hashing, Token-Erstellung, Token-Validierung."""
 
 from datetime import timedelta

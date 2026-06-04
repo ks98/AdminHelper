@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Kevin Stenzel
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 // Monitoring-API: getypte Wrapper um apiProxy() fuer Monitoring-Endpoints.
 // Nimmt die aktuelle AuthSession aus dem session-Store.
 

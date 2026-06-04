@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Kevin Stenzel
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """ProvisionToken — verschoben aus app.modules.frp.models, weil Provisioning
 nicht mehr FRP-spezifisch ist (Server-zentriertes Onboarding-Token).
 

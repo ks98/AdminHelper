@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Kevin Stenzel
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 import { tNow } from '$lib/i18n';
 
 export function timeAgo(dateStr: string | null | undefined): string {

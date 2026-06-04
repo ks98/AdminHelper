@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Kevin Stenzel
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 import { writable } from 'svelte/store';
 
 export type ToastKind = 'success' | 'error' | 'info';

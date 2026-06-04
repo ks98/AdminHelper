@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Kevin Stenzel
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Tests fuer Pydantic-Schemas: ConnectionCreate, ConnectionUpdate."""
 
 import pytest

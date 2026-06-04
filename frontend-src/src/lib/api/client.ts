@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Kevin Stenzel
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 import { ApiError, type HttpMethod, type RefreshResponse } from './types';
 
 const TOKEN_KEY = 'adminhelper_token';

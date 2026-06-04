@@ -1,16 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Kevin Stenzel
+//
 // SPDX-License-Identifier: GPL-3.0-or-later
-//
-// Zero-dependency Unit-Tests fuer die reinen Logik-Funktionen aus popup.js
-// (parseTags, filterConnections, escapeHtml). Ausfuehren mit:
-//
-//     node --test
-//
-// popup.js ist ein klassisches Browser-Script (kein ES-Modul, keine exports)
-// und greift beim Laden auf document/chrome zu sowie ruft init() auf. Daher
-// kann es nicht direkt importiert werden. Statt die Funktionen hier zu
-// duplizieren (Drift-Gefahr), wird der reine, DOM-freie Funktions-Prolog des
-// Originals (bis einschliesslich filterConnections) in einer vm-Sandbox
-// evaluiert. So testen wir den echten Quellcode.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';

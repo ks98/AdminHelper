@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Kevin Stenzel
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 // Tunnel-Store: haelt TunnelStatus + Tunnel-Mappings, startet frpc auf Bedarf.
 // Wird vom AppShell beim Login/Mode-Wechsel angestossen und reagiert auf
 // Tauri-Events frpc-terminated / frpc-error.

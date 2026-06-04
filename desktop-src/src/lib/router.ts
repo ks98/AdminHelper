@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Kevin Stenzel
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 // Minimaler Hash-Router. 1:1 uebernommen aus frontend-src/src/lib/router.ts
 // fuer konsistentes Verhalten zwischen Web und Desktop.
 

@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Kevin Stenzel
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 // Typisierte Wrapper um tauri.invoke() fuer alle Backend-Commands.
 //
 // Jede Funktion mappt 1:1 auf einen #[tauri::command] in

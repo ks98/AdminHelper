@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Kevin Stenzel
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Tests fuer FRP Config-Generator: frps.toml, frpc.toml, visitor.toml."""
 
 from types import SimpleNamespace

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Kevin Stenzel
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Check CRUD, Status-Dashboard und Metriken."""
 
 from __future__ import annotations

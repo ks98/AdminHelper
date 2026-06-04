@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Kevin Stenzel
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 // Monitoring-Store: haelt Checks, Server, Filter, Alert-Rules, Alert-Log.
 // Auto-Refresh via activate()/deactivate() aus der Monitoring-Seite.
 

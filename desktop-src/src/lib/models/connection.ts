@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Kevin Stenzel
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 // Connection-Modell: Normalisierung, Validierung, Darstellungs-Helfer.
 
 import type { Connection, ConnectionKind } from '$lib/bridge/types';

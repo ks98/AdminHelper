@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Kevin Stenzel
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Tests fuer IP-Filter-Middleware: Netzwerk-Parsing und resolve_client_ip."""
 
 from app.core.middleware import _parse_networks, _in_networks, resolve_client_ip
