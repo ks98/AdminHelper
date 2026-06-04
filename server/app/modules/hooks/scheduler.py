@@ -131,3 +131,39 @@ def load_all_scheduled_hooks() -> None:
         db.commit()
     finally:
         db.close()
+
+
+# ---------------------------------------------------------------------------
+# System-Jobs (nicht user-konfigurierbar)
+# ---------------------------------------------------------------------------
+
+_BLACKLIST_CLEANUP_JOB_ID = "system:blacklist-cleanup"
+
+
+def _run_blacklist_cleanup() -> None:
+    """Abgelaufene JWT-Blacklist-Eintraege entfernen, damit die token_blacklist-
+    Tabelle nicht unbegrenzt waechst."""
+    from app.core.database import SessionLocal
+    from app.core.auth import cleanup_expired_blacklist
+
+    db = SessionLocal()
+    try:
+        removed = cleanup_expired_blacklist(db)
+        if removed:
+            logger.info("Blacklist-Cleanup: %d abgelaufene Eintraege entfernt", removed)
+    except Exception:
+        logger.exception("Blacklist-Cleanup fehlgeschlagen")
+    finally:
+        db.close()
+
+
+def schedule_blacklist_cleanup(hours: int = 6) -> None:
+    """Periodischen System-Job fuer den Blacklist-Cleanup registrieren (idempotent).
+    Laeuft beim Start einmal sofort und danach alle `hours` Stunden."""
+    scheduler.add_job(
+        _run_blacklist_cleanup,
+        trigger=IntervalTrigger(hours=hours),
+        id=_BLACKLIST_CLEANUP_JOB_ID,
+        replace_existing=True,
+        next_run_time=datetime.now(timezone.utc),
+    )

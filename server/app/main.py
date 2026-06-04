@@ -167,12 +167,17 @@ def _run_startup_tasks():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    from app.modules.hooks.scheduler import scheduler, load_all_scheduled_hooks
+    from app.modules.hooks.scheduler import (
+        scheduler,
+        load_all_scheduled_hooks,
+        schedule_blacklist_cleanup,
+    )
     from app.core.events import fire_event
 
     _run_startup_tasks()
 
     load_all_scheduled_hooks()
+    schedule_blacklist_cleanup()
     scheduler.start()
     fire_event("server.startup", {})
     yield
