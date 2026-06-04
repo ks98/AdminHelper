@@ -28,6 +28,15 @@ router = APIRouter(prefix="/api/frp", tags=["frp"])
 read_dep = ApiKeyOrUser(require_write=False)
 
 
+def _require_server_scope(auth, server_id: str) -> None:
+    """IDOR-Schutz: ein API-Key (Agent) darf NUR seinen eigenen Server lesen.
+    JWT-User (interaktive Admin-Verwaltung) sind nicht server-gebunden. Die Pruefung
+    laeuft VOR der 404-Existenzpruefung, um Server-ID-Enumeration zu verhindern."""
+    _user, api_key = auth
+    if api_key is not None and api_key.server_id != server_id:
+        raise HTTPException(status_code=403, detail="Kein Zugriff auf diesen Server")
+
+
 @router.get("/provision/{server_id}/config")
 def get_provision_config(
     server_id: str,
@@ -35,6 +44,7 @@ def get_provision_config(
     auth=Depends(read_dep),
 ):
     """Liefert die aktuelle frpc.toml fuer den Sync-Agent."""
+    _require_server_scope(auth, server_id)
     server = db.query(Server).filter(Server.id == server_id).first()
     if not server:
         raise HTTPException(status_code=404, detail="Server nicht gefunden")
@@ -60,6 +70,7 @@ def get_provision_config_hash(
     auth=Depends(read_dep),
 ):
     """Liefert den SHA256-Hash der aktuellen frpc.toml."""
+    _require_server_scope(auth, server_id)
     server = db.query(Server).filter(Server.id == server_id).first()
     if not server:
         raise HTTPException(status_code=404, detail="Server nicht gefunden")

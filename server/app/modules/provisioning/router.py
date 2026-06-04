@@ -131,6 +131,7 @@ def activate_provision(
         name=f"agent-{server.name}",
         hashed_key=hash_api_key(raw_api_key),
         permission="read",
+        server_id=server_id,  # an genau diesen Server gebunden (IDOR-Schutz)
     )
     db.add(api_key)
     db.commit()
