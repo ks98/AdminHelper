@@ -5,8 +5,8 @@
 """ProvisionToken — verschoben aus app.modules.frp.models, weil Provisioning
 nicht mehr FRP-spezifisch ist (Server-zentriertes Onboarding-Token).
 
-Tabellenname bleibt vorlaeufig 'frp_provision_tokens' kompatibel; der
-Alembic-Migration-Schritt benennt das auf 'provision_tokens' um."""
+Tabellenname ist 'provision_tokens' (Umbenennung aus 'frp_provision_tokens'
+erfolgte in Alembic-Migration 0494a8f377ef)."""
 
 from __future__ import annotations
 

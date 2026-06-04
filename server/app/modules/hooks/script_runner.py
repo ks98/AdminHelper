@@ -56,19 +56,6 @@ _WORKER_SCRIPT = str(Path(__file__).parent / "script_worker.py")
 
 
 # ---------------------------------------------------------------------------
-# Exceptions
-# ---------------------------------------------------------------------------
-
-
-class ScriptTimeoutError(Exception):
-    """Wird ausgelöst wenn ein Script das Zeitlimit überschreitet."""
-
-
-class ScriptSecurityError(Exception):
-    """Wird ausgelöst wenn ein Script unsichere Konstrukte verwendet."""
-
-
-# ---------------------------------------------------------------------------
 # Hauptfunktion
 # ---------------------------------------------------------------------------
 
