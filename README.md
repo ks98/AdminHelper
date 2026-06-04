@@ -160,7 +160,7 @@ Use it to create the first admin:
 ```bash
 curl -k -X POST https://localhost/api/auth/bootstrap \
   -H 'Content-Type: application/json' \
-  -d '{"token":"<TOKEN>","username":"admin","password":"<eigenes-passwort>"}'
+  -d '{"token":"<TOKEN>","username":"admin","password":"<your-password>"}'
 ```
 
 The response directly contains `access_token` + `refresh_token` — no additional login required. The token file is automatically deleted after the bootstrap.
@@ -279,7 +279,7 @@ The **Unified Go Agent** (`adminhelper-agent`) combines FRP sync and monitoring 
 
 ```bash
 # Install the DEB:
-apt install ./adminhelper-agent_0.24.0_amd64.deb
+sudo apt install ./adminhelper-agent_0.24.0_amd64.deb
 
 # Full provisioning in a single call (server API key + optional monitor + optional FRP):
 sudo adminhelper-agent provision \
