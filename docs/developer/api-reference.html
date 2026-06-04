@@ -57,6 +57,10 @@
             <span class="method-get">GET</span><code>/api/auth/me</code>
             <p>Aktueller User; ben&ouml;tigt g&uuml;ltigen Access-Token.</p>
           </div>
+          <div class="endpoint">
+            <span class="method-post">POST</span><code>/api/auth/bootstrap</code>
+            <p>Legt beim ersten Start den ersten Admin-User per Setup-Token an (Status <code>201</code>). Body: <code>{ "token", "username", "password" }</code> &ndash; <code>username</code> 3&ndash;64 Zeichen, <code>password</code> 8&ndash;128 Zeichen. Antwort: <code>{ "access_token", "refresh_token", "token_type" }</code> (wie Login). Der Setup-Token wird beim ersten Start ins WARNING-Log geschrieben (Hash unter <code>DATA_DIR/.bootstrap_token</code>) und nach erfolgreichem Bootstrap verbraucht. Es gilt dasselbe Login-Rate-Limit (5 Fehlversuche / 60&nbsp;s / IP). Sobald ein User existiert, antwortet der Endpoint dauerhaft mit <code>409 Conflict</code> (&bdquo;Server ist bereits initialisiert"); fehlt der aktive Token, kommt <code>401</code>.</p>
+          </div>
 
           <h2>Users</h2>
           <div class="endpoint"><span class="method-get">GET</span><code>/api/users</code><p>Liste aller User (admin).</p></div>
@@ -129,7 +133,7 @@
           <h2>Server-Provisioning (FRP-unabhaengig, ab v0.23.2)</h2>
           <div class="endpoint"><span class="method-post">POST</span><code>/api/servers/{server_id}/provision/token</code><p>Admin-only (JWT). Liefert <code>{ token, expiresAt, serverId, serverName }</code> &ndash; one-time, 24&nbsp;h TTL.</p></div>
           <div class="endpoint"><span class="method-get">GET</span><code>/api/servers/{server_id}/provision/tokens</code></div>
-          <div class="endpoint"><span class="method-post">POST</span><code>/api/servers/{server_id}/provision/activate</code><p>Header <code>X-Provision-Token</code>. Antwort: <code>{ serverName, apiKey, monitorApiKey?, monitorUrl?, frp? }</code>. <code>monitorApiKey</code>/<code>monitorUrl</code> sind <code>null</code>, wenn der Monitor-Service nicht erreichbar ist; <code>frp</code> ist <code>null</code>, wenn der Server keine FRP-Tunnel hat.</p></div>
+          <div class="endpoint"><span class="method-post">POST</span><code>/api/servers/{server_id}/provision/activate</code><p>Header <code>X-Provision-Token</code>. Antwort: <code>{ serverName, apiKey, monitorApiKey?, monitorUrl?, frp? }</code>. <code>apiKey</code> ist immer der einmalig generierte Server-Read-API-Key. <code>monitorApiKey</code>/<code>monitorUrl</code> sind <code>null</code>, wenn der Monitor-Service nicht erreichbar ist; <code>frp</code> ist <code>null</code>, wenn keine FRP-Server-Config existiert oder der Server keine Tunnel hat. Ist <code>frp</code> gesetzt, hat es die Struktur <code>{ config, pkiBundle }</code>: <code>config</code> ist die fertige <code>frpc.toml</code> als Base64-String, <code>pkiBundle</code> ein Base64-kodiertes <code>tar.gz</code> mit <code>pki/ca.crt</code>, <code>pki/&lt;servername&gt;.crt</code> und <code>pki/&lt;servername&gt;.key</code> (leerer String <code>""</code>, wenn keine PKI-Dateien vorliegen).</p></div>
 
           <h2>FRP &ndash; Sync (laufender Betrieb)</h2>
           <div class="endpoint"><span class="method-get">GET</span><code>/api/frp/provision/{server_id}/config</code><p>Aktueller <code>frpc.toml</code>-Plaintext (JWT oder API-Key) &ndash; nur fuer den laufenden Sync.</p></div>
