@@ -263,7 +263,7 @@ Der **Monitoring-Service** l√§uft als separater Container neben dem Server und √
 
 ### Features
 
-- **Check-Typen**: Ping, TCP, HTTP, SNMP, Agent-basierte Ressourcen-Checks
+- **Check-Typen**: Ping, TCP, HTTP, Agent-basierte Ressourcen-Checks
 - **Agent-Plugins**: CPU, RAM, Disk, Systemd Health, Docker, ZFS, Proxmox (automatisch erkannt)
 - **Templates**: Monitoring-Konfigurationen als Templates definieren und an Server zuweisen
 - **Alerting**: Webhook- und E-Mail-Benachrichtigungen mit konfigurierbarem Cooldown
