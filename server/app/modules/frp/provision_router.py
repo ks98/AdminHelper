@@ -25,7 +25,10 @@ from app.modules.servers.models import Server
 
 router = APIRouter(prefix="/api/frp", tags=["frp"])
 
-read_dep = ApiKeyOrUser(require_write=False)
+# require_admin=True: JWT-User muessen Admin sein — die frpc.toml enthaelt globale
+# FRP-Secrets (auth.token + STCP secret_keys). API-Keys werden zusaetzlich per
+# server_id-Scope geprueft (siehe _require_server_scope).
+read_dep = ApiKeyOrUser(require_write=False, require_admin=True)
 
 
 def _require_server_scope(auth, server_id: str) -> None:

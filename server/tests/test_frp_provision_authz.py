@@ -80,3 +80,17 @@ class TestFrpProvisionConfigIDOR:
             headers={"Authorization": f"Bearer {token}"},
         )
         assert res.status_code != 403, res.text
+
+    def test_non_admin_jwt_denied(self, test_client, db_session, normal_user):
+        # Rest-Lücke aus der adversarischen Abnahme: ein NICHT-Admin-JWT-User darf
+        # die frpc.toml (globaler auth.token + STCP-Secrets) NICHT lesen.
+        _server(db_session, "srv-a", "server-a")
+        login = test_client.post(
+            "/api/auth/login", json={"username": "viewer", "password": "viewerpass"}
+        )
+        token = login.json()["access_token"]
+        res = test_client.get(
+            "/api/frp/provision/srv-a/config",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert res.status_code == 403, res.text
