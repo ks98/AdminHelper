@@ -51,8 +51,9 @@ export const ansibleRunning = derived(_state, ($s) => $s.running);
 export const ansibleLoadError = derived(_state, ($s) => $s.loadError);
 
 export const ansibleTagGroups = derived(_state, ($s) => groupServersByTag($s.servers));
-export const ansibleSelectedPlaybook = derived(_state, ($s) =>
-  $s.playbooks.find((p) => p.id === $s.selectedPlaybookId) ?? null,
+export const ansibleSelectedPlaybook = derived(
+  _state,
+  ($s) => $s.playbooks.find((p) => p.id === $s.selectedPlaybookId) ?? null,
 );
 export const ansibleCanRun = derived(
   _state,

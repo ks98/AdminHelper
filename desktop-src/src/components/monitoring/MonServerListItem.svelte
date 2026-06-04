@@ -16,12 +16,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
   let { group, selected, onSelect }: Props = $props();
 </script>
 
-<button
-  type="button"
-  class="mon-srv-item"
-  class:selected
-  onclick={() => onSelect(group.key)}
->
+<button type="button" class="mon-srv-item" class:selected onclick={() => onSelect(group.key)}>
   <span class="mon-srv-stripe {statusClass(group.worst)}"></span>
   <span class="mon-srv-info">
     <span class="mon-srv-name">{group.serverName}</span>

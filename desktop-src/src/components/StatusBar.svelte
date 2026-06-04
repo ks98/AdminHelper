@@ -10,13 +10,11 @@ SPDX-License-Identifier: GPL-3.0-or-later
 </script>
 
 {#if $status}
-  <div
-    class="status-bar"
-    class:error={$status.isError}
-    role={$status.isError ? 'alert' : 'status'}
-  >
+  <div class="status-bar" class:error={$status.isError} role={$status.isError ? 'alert' : 'status'}>
     <span class="status-text">{$status.text}</span>
-    <button class="status-close" onclick={() => clearStatus()} aria-label={$t('action.close')}>×</button>
+    <button class="status-close" onclick={() => clearStatus()} aria-label={$t('action.close')}
+      >×</button
+    >
   </div>
 {/if}
 
@@ -41,7 +39,9 @@ SPDX-License-Identifier: GPL-3.0-or-later
     border-color: var(--error, #e05555);
     color: var(--error, #e05555);
   }
-  .status-text { font-size: 13px; }
+  .status-text {
+    font-size: 13px;
+  }
   .status-close {
     background: transparent;
     border: 0;

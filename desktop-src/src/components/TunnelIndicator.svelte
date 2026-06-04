@@ -8,7 +8,9 @@ SPDX-License-Identifier: GPL-3.0-or-later
   import { tunnel } from '$lib/stores/tunnel';
   import { sessionStore } from '$lib/stores/session';
 
-  let visible = $derived($sessionStore.settings?.mode === 'server' && $sessionStore.session !== null);
+  let visible = $derived(
+    $sessionStore.settings?.mode === 'server' && $sessionStore.session !== null,
+  );
   let label = $derived.by(() => {
     const t = $tunnel;
     if (t.ui === 'connecting') return 'Tunnel verbindet…';
@@ -43,7 +45,13 @@ SPDX-License-Identifier: GPL-3.0-or-later
     border-radius: 50%;
     background: var(--text-muted);
   }
-  .tunnel-indicator[data-status="connected"] .tunnel-dot { background: var(--success, #4caf50); }
-  .tunnel-indicator[data-status="connecting"] .tunnel-dot { background: var(--warning, #e0a500); }
-  .tunnel-indicator[data-status="disconnected"] .tunnel-dot { background: var(--error, #e05555); }
+  .tunnel-indicator[data-status='connected'] .tunnel-dot {
+    background: var(--success, #4caf50);
+  }
+  .tunnel-indicator[data-status='connecting'] .tunnel-dot {
+    background: var(--warning, #e0a500);
+  }
+  .tunnel-indicator[data-status='disconnected'] .tunnel-dot {
+    background: var(--error, #e05555);
+  }
 </style>

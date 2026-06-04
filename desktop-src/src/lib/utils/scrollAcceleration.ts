@@ -10,10 +10,7 @@ import type { Action } from 'svelte/action';
 export const LIST_FACTOR = 1.55;
 export const PANEL_FACTOR = 1.35;
 
-export const accelerateScroll: Action<HTMLElement, number | undefined> = (
-  node,
-  factorParam,
-) => {
+export const accelerateScroll: Action<HTMLElement, number | undefined> = (node, factorParam) => {
   let factor = factorParam ?? LIST_FACTOR;
 
   function onWheel(event: WheelEvent): void {
@@ -34,8 +31,7 @@ export const accelerateScroll: Action<HTMLElement, number | undefined> = (
     node.scrollTop += deltaY * factor;
     node.scrollLeft += deltaX * factor;
     const changed =
-      Math.abs(node.scrollTop - beforeTop) > 0.1 ||
-      Math.abs(node.scrollLeft - beforeLeft) > 0.1;
+      Math.abs(node.scrollTop - beforeTop) > 0.1 || Math.abs(node.scrollLeft - beforeLeft) > 0.1;
     if (changed) event.preventDefault();
   }
 

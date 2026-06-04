@@ -12,7 +12,9 @@ export const DEFAULT_PORTS: Record<Extract<ConnectionKind, 'ssh' | 'rdp'>, numbe
   rdp: 3389,
 };
 
-export function normalizeConnection(raw: Partial<Connection> & Record<string, unknown>): Connection {
+export function normalizeConnection(
+  raw: Partial<Connection> & Record<string, unknown>,
+): Connection {
   const name = String(raw.name ?? '').trim();
   const kind = (raw.kind as ConnectionKind) || 'ssh';
   const host = String(raw.host ?? '').trim();
@@ -23,9 +25,7 @@ export function normalizeConnection(raw: Partial<Connection> & Record<string, un
   const notes = String(raw.notes ?? '').trim();
   const trustCert = Boolean(raw.trustCert);
   const tags = Array.isArray(raw.tags)
-    ? (raw.tags as unknown[])
-        .map((tag) => String(tag).trim())
-        .filter((tag) => tag.length > 0)
+    ? (raw.tags as unknown[]).map((tag) => String(tag).trim()).filter((tag) => tag.length > 0)
     : [];
 
   let port: number | null = null;
@@ -150,12 +150,15 @@ export function groupConnectionsByHost(
   connections: Connection[],
   search: string,
 ): ConnectionGroup[] {
-  const groups = new Map<string, {
-    key: string;
-    host: string;
-    connections: Connection[];
-    kindBuckets: Record<'ssh' | 'rdp' | 'web', Connection[]>;
-  }>();
+  const groups = new Map<
+    string,
+    {
+      key: string;
+      host: string;
+      connections: Connection[];
+      kindBuckets: Record<'ssh' | 'rdp' | 'web', Connection[]>;
+    }
+  >();
   const query = (search ?? '').toLowerCase();
 
   for (const c of connections) {

@@ -66,11 +66,7 @@ export async function hydrate(): Promise<void> {
   }
 }
 
-export async function login(
-  serverUrl: string,
-  username: string,
-  password: string,
-): Promise<void> {
+export async function login(serverUrl: string, username: string, password: string): Promise<void> {
   const current = get(_state);
   const allowSelfSigned = current.settings?.allowSelfSignedCerts ?? false;
   const sess = await bridge.login(serverUrl, username, password, allowSelfSigned);

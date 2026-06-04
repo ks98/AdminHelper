@@ -56,9 +56,8 @@ export const filteredConnections = derived(
   },
 );
 
-export const groupedConnections = derived(
-  [_state, searchTerm],
-  ([$s, $term]): ConnectionGroup[] => groupConnectionsByHost($s.items, $term),
+export const groupedConnections = derived([_state, searchTerm], ([$s, $term]): ConnectionGroup[] =>
+  groupConnectionsByHost($s.items, $term),
 );
 
 export async function load(): Promise<void> {

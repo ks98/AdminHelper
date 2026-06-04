@@ -13,7 +13,9 @@ SPDX-License-Identifier: GPL-3.0-or-later
   import MonStatusTimeline from '../MonStatusTimeline.svelte';
   import { t } from '$lib/i18n';
 
-  interface Props { check: MonitorCheck; }
+  interface Props {
+    check: MonitorCheck;
+  }
   let { check }: Props = $props();
 
   const PERIODS = ['1h', '6h', '24h', '7d'] as const;
@@ -52,11 +54,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
   <div class="mon-segmented">
     {#each PERIODS as p}
-      <button
-        class="mon-seg-btn"
-        class:active={p === activePeriod}
-        onclick={() => setPeriod(p)}
-      >
+      <button class="mon-seg-btn" class:active={p === activePeriod} onclick={() => setPeriod(p)}>
         {p}
       </button>
     {/each}

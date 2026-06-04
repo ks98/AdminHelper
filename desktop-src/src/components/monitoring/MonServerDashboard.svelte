@@ -5,11 +5,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 -->
 
 <script lang="ts">
-  import {
-    monitoringChecks,
-    monitoringServers,
-    selectedServerId,
-  } from '$lib/stores/monitoring';
+  import { monitoringChecks, monitoringServers, selectedServerId } from '$lib/stores/monitoring';
   import { computeSummary, statusClass } from '$lib/models/monitoring';
   import type { MonitorCheck, MonitorCheckType } from '$lib/api/types';
   import SecLive from './section/SecLive.svelte';
@@ -85,17 +81,25 @@ SPDX-License-Identifier: GPL-3.0-or-later
         </div>
         <div class="mon-dashboard-stats">
           {#if summary.critical > 0}
-            <span class="mon-pill pill-crit">{summary.critical} {$t('monitoring.status.critical')}</span>
+            <span class="mon-pill pill-crit"
+              >{summary.critical} {$t('monitoring.status.critical')}</span
+            >
           {/if}
           {#if summary.warning > 0}
-            <span class="mon-pill pill-warn">{summary.warning} {$t('monitoring.status.warning')}</span>
+            <span class="mon-pill pill-warn"
+              >{summary.warning} {$t('monitoring.status.warning')}</span
+            >
           {/if}
           <span class="mon-pill pill-ok">{summary.ok} {$t('monitoring.status.ok')}</span>
           {#if summary.unknown > 0}
-            <span class="mon-pill pill-muted">{summary.unknown} {$t('monitoring.status.unknown')}</span>
+            <span class="mon-pill pill-muted"
+              >{summary.unknown} {$t('monitoring.status.unknown')}</span
+            >
           {/if}
           {#if summary.pending > 0}
-            <span class="mon-pill pill-muted">{summary.pending} {$t('monitoring.status.pending')}</span>
+            <span class="mon-pill pill-muted"
+              >{summary.pending} {$t('monitoring.status.pending')}</span
+            >
           {/if}
         </div>
       </div>

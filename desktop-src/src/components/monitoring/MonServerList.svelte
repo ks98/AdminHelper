@@ -39,11 +39,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
       <div class="mon-srv-empty">{$t('monitoring.serverList.empty')}</div>
     {:else}
       {#each groups as group (group.key)}
-        <MonServerListItem
-          {group}
-          selected={selected === group.key}
-          onSelect={setSelectedServer}
-        />
+        <MonServerListItem {group} selected={selected === group.key} onSelect={setSelectedServer} />
       {/each}
     {/if}
   </div>

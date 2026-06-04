@@ -11,12 +11,18 @@ SPDX-License-Identifier: GPL-3.0-or-later
   import MonCheckLine from './MonCheckLine.svelte';
   import { t } from '$lib/i18n';
 
-  interface Props { checks: MonitorCheck[]; }
+  interface Props {
+    checks: MonitorCheck[];
+  }
   let { checks }: Props = $props();
 
   let worst = $derived(worstStatus(checks));
 
-  interface Svc { name: string; status: 'ok' | 'warn' | 'crit'; note: string; }
+  interface Svc {
+    name: string;
+    status: 'ok' | 'warn' | 'crit';
+    note: string;
+  }
   interface Info {
     total: number;
     problems: Svc[];
@@ -57,7 +63,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
   <MonSectionHeader
     icon="services"
     title={$t('monitoring.section.services')}
-    worst={worst}
+    {worst}
     count={checks.length}
   />
 
@@ -70,16 +76,24 @@ SPDX-License-Identifier: GPL-3.0-or-later
         {/snippet}
         {#snippet value()}
           {#if i.allOk}
-            <span class="mon-line-pill pill-ok">{$t('monitoring.services.allOk', { count: i.running })}</span>
+            <span class="mon-line-pill pill-ok"
+              >{$t('monitoring.services.allOk', { count: i.running })}</span
+            >
           {:else}
-            <span class="mon-line-pill pill-crit">{i.problems.length} {$t('monitoring.services.problems')}</span>
-            <span class="mon-line-pill">{i.running}/{i.total} {$t('monitoring.services.running')}</span>
+            <span class="mon-line-pill pill-crit"
+              >{i.problems.length} {$t('monitoring.services.problems')}</span
+            >
+            <span class="mon-line-pill"
+              >{i.running}/{i.total} {$t('monitoring.services.running')}</span
+            >
           {/if}
         {/snippet}
         {#snippet extraBody()}
           {#if i.allOk}
             <div class="mon-expand-list">
-              <div class="mon-expand-hint">{$t('monitoring.services.allOkHint', { count: i.running })}</div>
+              <div class="mon-expand-hint">
+                {$t('monitoring.services.allOkHint', { count: i.running })}
+              </div>
             </div>
           {:else}
             <div class="mon-expand-list">

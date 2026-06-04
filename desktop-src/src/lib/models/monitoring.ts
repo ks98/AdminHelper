@@ -69,10 +69,7 @@ export function groupChecksByServerWithSummary(
   return filtered;
 }
 
-export function groupChecksByServer(
-  checks: MonitorCheck[],
-  servers: Server[] = [],
-): ServerGroup[] {
+export function groupChecksByServer(checks: MonitorCheck[], servers: Server[] = []): ServerGroup[] {
   const serverMap: Record<string, Server> = {};
   for (const s of servers) serverMap[s.id] = s;
   const map = new Map<string, ServerGroup>();
@@ -80,7 +77,9 @@ export function groupChecksByServer(
     const key = c.serverId || '__none';
     if (!map.has(key)) {
       const srv = c.serverId ? serverMap[c.serverId] : null;
-      const serverName = srv ? (srv.name || srv.hostname || c.serverId || '') : (c.serverId || 'Ohne Server');
+      const serverName = srv
+        ? srv.name || srv.hostname || c.serverId || ''
+        : c.serverId || 'Ohne Server';
       map.set(key, { serverId: c.serverId ?? null, serverName, checks: [] });
     }
     map.get(key)!.checks.push(c);
@@ -107,7 +106,8 @@ export function filterChecks(checks: MonitorCheck[], filters: MonitoringFilters)
       if (s !== filters.status) return false;
     }
     if (query) {
-      const hay = `${c.name} ${c.description || ''} ${c.checkType} ${c.state?.message || ''}`.toLowerCase();
+      const hay =
+        `${c.name} ${c.description || ''} ${c.checkType} ${c.state?.message || ''}`.toLowerCase();
       if (!hay.includes(query)) return false;
     }
     return true;
@@ -141,7 +141,10 @@ export function formatCheckConfig(check: MonitorCheck): KV[] {
   if (type === 'ping') {
     kv.push(['Ziel', String(c.target ?? '')], ['Timeout', `${(c.timeout as number) || 5}s`]);
   } else if (type === 'tcp') {
-    kv.push(['Ziel', `${c.target ?? ''}:${c.port ?? ''}`], ['Timeout', `${(c.timeout as number) || 5}s`]);
+    kv.push(
+      ['Ziel', `${c.target ?? ''}:${c.port ?? ''}`],
+      ['Timeout', `${(c.timeout as number) || 5}s`],
+    );
   } else if (type === 'http') {
     kv.push(
       ['URL', String(c.url ?? '')],
@@ -155,7 +158,10 @@ export function formatCheckConfig(check: MonitorCheck): KV[] {
   } else if (type === 'agent_resources') {
     kv.push(
       ['CPU', `Warn ${(c.cpu_warn as number) || 80}% / Crit ${(c.cpu_crit as number) || 95}%`],
-      ['RAM', `Warn ${(c.memory_warn as number) || 80}% / Crit ${(c.memory_crit as number) || 95}%`],
+      [
+        'RAM',
+        `Warn ${(c.memory_warn as number) || 80}% / Crit ${(c.memory_crit as number) || 95}%`,
+      ],
       ['Disk', `Warn ${(c.disk_warn as number) || 85}% / Crit ${(c.disk_crit as number) || 95}%`],
     );
   } else if (type === 'service_process') {
@@ -169,22 +175,47 @@ export function formatCheckConfig(check: MonitorCheck): KV[] {
     const excl = c.exclude_vmids as Array<string | number> | undefined;
     if (excl?.length) kv.push(['Exclude VMIDs', excl.join(', ')]);
   } else if (type === 'zfs_health') {
-    kv.push(
-      ['Kapazität', `Warn ${(c.capacity_warn as number) || 80}% / Crit ${(c.capacity_crit as number) || 90}%`],
-    );
+    kv.push([
+      'Kapazität',
+      `Warn ${(c.capacity_warn as number) || 80}% / Crit ${(c.capacity_crit as number) || 90}%`,
+    ]);
   } else if (type === 'docker_health') {
     const ign = c.ignore_containers as string[] | undefined;
     if (ign?.length) kv.push(['Ignoriert', ign.join(', ')]);
-    kv.push(['Restart-Check', (c as Record<string, unknown>).check_restarts !== false ? 'aktiv' : 'aus']);
+    kv.push([
+      'Restart-Check',
+      (c as Record<string, unknown>).check_restarts !== false ? 'aktiv' : 'aus',
+    ]);
   } else if (type === 'smart_health') {
     kv.push(
-      ['Realloc', `Warn ${(c.reallocated_warn as number) ?? 1} / Crit ${(c.reallocated_crit as number) ?? 10}`],
-      ['Pending', `Warn ${(c.pending_warn as number) ?? 1} / Crit ${(c.pending_crit as number) ?? 5}`],
-      ['NVMe Spare', `Warn <${(c.nvme_spare_warn as number) ?? 20}% / Crit <${(c.nvme_spare_crit as number) ?? 10}%`],
-      ['NVMe Wear', `Warn ${(c.nvme_used_warn as number) ?? 90}% / Crit ${(c.nvme_used_crit as number) ?? 100}%`],
-      ['Temp HDD', `Warn ${(c.temp_hdd_warn as number) ?? 55}\u00b0C / Crit ${(c.temp_hdd_crit as number) ?? 60}\u00b0C`],
-      ['Temp SSD', `Warn ${(c.temp_ssd_warn as number) ?? 60}\u00b0C / Crit ${(c.temp_ssd_crit as number) ?? 70}\u00b0C`],
-      ['Temp NVMe', `Warn ${(c.temp_nvme_warn as number) ?? 65}\u00b0C / Crit ${(c.temp_nvme_crit as number) ?? 75}\u00b0C`],
+      [
+        'Realloc',
+        `Warn ${(c.reallocated_warn as number) ?? 1} / Crit ${(c.reallocated_crit as number) ?? 10}`,
+      ],
+      [
+        'Pending',
+        `Warn ${(c.pending_warn as number) ?? 1} / Crit ${(c.pending_crit as number) ?? 5}`,
+      ],
+      [
+        'NVMe Spare',
+        `Warn <${(c.nvme_spare_warn as number) ?? 20}% / Crit <${(c.nvme_spare_crit as number) ?? 10}%`,
+      ],
+      [
+        'NVMe Wear',
+        `Warn ${(c.nvme_used_warn as number) ?? 90}% / Crit ${(c.nvme_used_crit as number) ?? 100}%`,
+      ],
+      [
+        'Temp HDD',
+        `Warn ${(c.temp_hdd_warn as number) ?? 55}\u00b0C / Crit ${(c.temp_hdd_crit as number) ?? 60}\u00b0C`,
+      ],
+      [
+        'Temp SSD',
+        `Warn ${(c.temp_ssd_warn as number) ?? 60}\u00b0C / Crit ${(c.temp_ssd_crit as number) ?? 70}\u00b0C`,
+      ],
+      [
+        'Temp NVMe',
+        `Warn ${(c.temp_nvme_warn as number) ?? 65}\u00b0C / Crit ${(c.temp_nvme_crit as number) ?? 75}\u00b0C`,
+      ],
     );
     const ignd = c.ignore_devices as string[] | undefined;
     if (ignd?.length) kv.push(['Ignoriert', ignd.join(', ')]);
@@ -232,4 +263,3 @@ export function computeSummary(checks: MonCheckSummary[] | MonitorCheck[]): Moni
   }
   return s;
 }
-

@@ -29,9 +29,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
   type Chip = 'single' | 'grouped' | 'ssh' | 'rdp' | 'web';
 
-  let activeChip = $derived<Chip>(
-    $kindFilter !== 'all' ? ($kindFilter as Chip) : $groupFilter,
-  );
+  let activeChip = $derived<Chip>($kindFilter !== 'all' ? ($kindFilter as Chip) : $groupFilter);
 
   function setChip(chip: Chip): void {
     if (chip === 'single' || chip === 'grouped') {
@@ -52,7 +50,8 @@ SPDX-License-Identifier: GPL-3.0-or-later
   function onGroupClick(group: ConnectionGroup, ev: MouseEvent | KeyboardEvent): void {
     const target = ev.target as HTMLElement;
     if (target.closest('button')) return;
-    const preferred = group.byKind.ssh ?? group.byKind.rdp ?? group.byKind.web ?? group.connections[0];
+    const preferred =
+      group.byKind.ssh ?? group.byKind.rdp ?? group.byKind.web ?? group.connections[0];
     if (preferred) void initiateConnect(preferred);
   }
 
@@ -116,21 +115,38 @@ SPDX-License-Identifier: GPL-3.0-or-later
     return openTags[tag] ?? true;
   }
 
-  const PENCIL_PATH = 'M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.996.996 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z';
+  const PENCIL_PATH =
+    'M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.996.996 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z';
 </script>
 
 <div class="section-toolbar">
   <div class="toolbar-left">
     <div class="filters">
-      <button class="chip" class:active={activeChip === 'single'} onclick={() => setChip('single')}>{$t('filters.single')}</button>
-      <button class="chip" class:active={activeChip === 'grouped'} onclick={() => setChip('grouped')}>{$t('filters.grouped')}</button>
-      <button class="chip" class:active={activeChip === 'ssh'} onclick={() => setChip('ssh')}>{$t('filters.ssh')}</button>
-      <button class="chip" class:active={activeChip === 'rdp'} onclick={() => setChip('rdp')}>{$t('filters.rdp')}</button>
-      <button class="chip" class:active={activeChip === 'web'} onclick={() => setChip('web')}>{$t('filters.web')}</button>
+      <button class="chip" class:active={activeChip === 'single'} onclick={() => setChip('single')}
+        >{$t('filters.single')}</button
+      >
+      <button
+        class="chip"
+        class:active={activeChip === 'grouped'}
+        onclick={() => setChip('grouped')}>{$t('filters.grouped')}</button
+      >
+      <button class="chip" class:active={activeChip === 'ssh'} onclick={() => setChip('ssh')}
+        >{$t('filters.ssh')}</button
+      >
+      <button class="chip" class:active={activeChip === 'rdp'} onclick={() => setChip('rdp')}
+        >{$t('filters.rdp')}</button
+      >
+      <button class="chip" class:active={activeChip === 'web'} onclick={() => setChip('web')}
+        >{$t('filters.web')}</button
+      >
     </div>
     <div class="view-toggle">
-      <button class="chip" class:active={$viewMode === 'list'} onclick={() => viewMode.set('list')}>{$t('view.list')}</button>
-      <button class="chip" class:active={$viewMode === 'tree'} onclick={() => viewMode.set('tree')}>{$t('view.tree')}</button>
+      <button class="chip" class:active={$viewMode === 'list'} onclick={() => viewMode.set('list')}
+        >{$t('view.list')}</button
+      >
+      <button class="chip" class:active={$viewMode === 'tree'} onclick={() => viewMode.set('tree')}
+        >{$t('view.tree')}</button
+      >
     </div>
   </div>
   <div class="toolbar-right">
@@ -192,7 +208,8 @@ SPDX-License-Identifier: GPL-3.0-or-later
       <div class="dash-empty" style="padding: var(--sp-6);">{$t('connections.noResults')}</div>
     {:else}
       {#each $groupedConnections as group (group.key)}
-        {@const preferred = group.byKind.ssh ?? group.byKind.rdp ?? group.byKind.web ?? group.connections[0]}
+        {@const preferred =
+          group.byKind.ssh ?? group.byKind.rdp ?? group.byKind.web ?? group.connections[0]}
         <div
           class="card"
           role="button"
@@ -202,9 +219,14 @@ SPDX-License-Identifier: GPL-3.0-or-later
         >
           <div class="card-main">
             <div class="card-title">{group.displayName || $t('list.noName')}</div>
-            <div class="card-meta">{group.host} · {$t('grouped.connections', { count: group.connections.length })}</div>
+            <div class="card-meta">
+              {group.host} · {$t('grouped.connections', { count: group.connections.length })}
+            </div>
             <div class="card-tag">
-              {['ssh', 'rdp', 'web'].filter((k) => group.byKind[k as ConnectionKind]).map((k) => k.toUpperCase()).join(' · ')}
+              {['ssh', 'rdp', 'web']
+                .filter((k) => group.byKind[k as ConnectionKind])
+                .map((k) => k.toUpperCase())
+                .join(' · ')}
             </div>
           </div>
           <div class="card-actions">
@@ -213,7 +235,8 @@ SPDX-License-Identifier: GPL-3.0-or-later
                 <button
                   class="btn small accent"
                   onclick={(e) => onConnect(group.byKind[kind as ConnectionKind]!, e)}
-                >{kind.toUpperCase()}</button>
+                  >{kind.toUpperCase()}</button
+                >
               {/if}
             {/each}
             {#if preferred}
@@ -238,20 +261,27 @@ SPDX-License-Identifier: GPL-3.0-or-later
     {:else}
       {#each treeNodes as node (node.tag)}
         <div class="tree-group" class:open={isOpen(node.tag)}>
-          <div class="tree-header" role="button" tabindex="0"
-               onclick={() => toggleTag(node.tag)}
-               onkeydown={(e) => e.key === 'Enter' && toggleTag(node.tag)}>
+          <div
+            class="tree-header"
+            role="button"
+            tabindex="0"
+            onclick={() => toggleTag(node.tag)}
+            onkeydown={(e) => e.key === 'Enter' && toggleTag(node.tag)}
+          >
             <div class="tree-tag">{node.tag}</div>
             <div class="tree-toggle">
               <span class="tree-count">
-                {$t('tree.connections', { count: $groupFilter === 'grouped' ? node.groups.length : node.items.length })}
+                {$t('tree.connections', {
+                  count: $groupFilter === 'grouped' ? node.groups.length : node.items.length,
+                })}
               </span>
             </div>
           </div>
           <div class="tree-list">
             {#if $groupFilter === 'grouped'}
               {#each node.groups as group (group.key)}
-                {@const preferred = group.byKind.ssh ?? group.byKind.rdp ?? group.byKind.web ?? group.connections[0]}
+                {@const preferred =
+                  group.byKind.ssh ?? group.byKind.rdp ?? group.byKind.web ?? group.connections[0]}
                 <div class="tree-node">
                   <div
                     class="card"
@@ -262,9 +292,16 @@ SPDX-License-Identifier: GPL-3.0-or-later
                   >
                     <div class="card-main">
                       <div class="card-title">{group.displayName || $t('list.noName')}</div>
-                      <div class="card-meta">{group.host} · {$t('grouped.connections', { count: group.connections.length })}</div>
+                      <div class="card-meta">
+                        {group.host} · {$t('grouped.connections', {
+                          count: group.connections.length,
+                        })}
+                      </div>
                       <div class="card-tag">
-                        {['ssh', 'rdp', 'web'].filter((k) => group.byKind[k as ConnectionKind]).map((k) => k.toUpperCase()).join(' · ')}
+                        {['ssh', 'rdp', 'web']
+                          .filter((k) => group.byKind[k as ConnectionKind])
+                          .map((k) => k.toUpperCase())
+                          .join(' · ')}
                       </div>
                     </div>
                     <div class="card-actions">
@@ -273,7 +310,8 @@ SPDX-License-Identifier: GPL-3.0-or-later
                           <button
                             class="btn small accent"
                             onclick={(e) => onConnect(group.byKind[kind as ConnectionKind]!, e)}
-                          >{kind.toUpperCase()}</button>
+                            >{kind.toUpperCase()}</button
+                          >
                         {/if}
                       {/each}
                       {#if preferred}
@@ -306,7 +344,9 @@ SPDX-License-Identifier: GPL-3.0-or-later
                       <div class="card-meta">{toCardMeta(conn)}</div>
                       <div class="card-tag">{conn.kind.toUpperCase()}</div>
                       {#if tunnelName}
-                        <div class="card-tag tunnel-badge" title={tunnelName}>{$t('tunnel.badge')}</div>
+                        <div class="card-tag tunnel-badge" title={tunnelName}>
+                          {$t('tunnel.badge')}
+                        </div>
                       {/if}
                     </div>
                     <div class="card-actions">

@@ -38,13 +38,9 @@ SPDX-License-Identifier: GPL-3.0-or-later
     loaded = true;
     try {
       const res = await monitoringApi.fetchMetrics(session, checkId, period);
-      const series = (res.data ?? []).filter(
-        (s) => !(s.metric?.__name__ || '').includes('status'),
-      );
+      const series = (res.data ?? []).filter((s) => !(s.metric?.__name__ || '').includes('status'));
       if (series.length === 0) return;
-      const vals = series[0].values
-        .map((v) => parseFloat(v[1]))
-        .filter((n) => !Number.isNaN(n));
+      const vals = series[0].values.map((v) => parseFloat(v[1])).filter((n) => !Number.isNaN(n));
       if (vals.length < 2) return;
       points = vals;
     } catch {
@@ -105,7 +101,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 <div class="mon-spark" bind:this={host} style="width:{width}px;height:{height}px">
   {#if points.length >= 2}
-    <svg viewBox="0 0 {width} {height}" width={width} height={height} preserveAspectRatio="none">
+    <svg viewBox="0 0 {width} {height}" {width} {height} preserveAspectRatio="none">
       <defs>
         <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stop-color={stroke} stop-opacity="0.28" />
@@ -113,7 +109,14 @@ SPDX-License-Identifier: GPL-3.0-or-later
         </linearGradient>
       </defs>
       <path d={path.area} fill="url(#{gradId})" />
-      <path d={path.line} fill="none" stroke={stroke} stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+      <path
+        d={path.line}
+        fill="none"
+        {stroke}
+        stroke-width="1.6"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
     </svg>
   {:else if loaded}
     <span class="mon-spark-empty"></span>

@@ -21,14 +21,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
     showChart?: boolean;
     dense?: boolean;
   }
-  let {
-    check,
-    label,
-    value,
-    extraBody,
-    showChart = true,
-    dense = false,
-  }: Props = $props();
+  let { check, label, value, extraBody, showChart = true, dense = false }: Props = $props();
 
   let status = $derived(check.state?.status || 'pending');
   let expanded = $derived($monitoring.expandedCheckId === check.id);

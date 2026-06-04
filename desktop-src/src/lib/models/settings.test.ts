@@ -53,9 +53,9 @@ describe('validateSettings', () => {
   });
 
   it('custom rdp size must match pattern', () => {
-    expect(
-      validateSettings({ ...base, rdpWindowMode: 'custom', rdpCustomSize: 'foo' }).ok,
-    ).toBe(false);
+    expect(validateSettings({ ...base, rdpWindowMode: 'custom', rdpCustomSize: 'foo' }).ok).toBe(
+      false,
+    );
     expect(
       validateSettings({ ...base, rdpWindowMode: 'custom', rdpCustomSize: '1920x1080' }).ok,
     ).toBe(true);

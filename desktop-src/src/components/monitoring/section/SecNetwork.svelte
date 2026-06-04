@@ -12,7 +12,9 @@ SPDX-License-Identifier: GPL-3.0-or-later
   import MonSparkline from '../MonSparkline.svelte';
   import { t } from '$lib/i18n';
 
-  interface Props { checks: MonitorCheck[]; }
+  interface Props {
+    checks: MonitorCheck[];
+  }
   let { checks }: Props = $props();
 
   let worst = $derived(worstStatus(checks));
@@ -34,7 +36,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
   <MonSectionHeader
     icon="network"
     title={$t('monitoring.section.network')}
-    worst={worst}
+    {worst}
     count={checks.length}
   />
 
@@ -44,13 +46,19 @@ SPDX-License-Identifier: GPL-3.0-or-later
       {@const tgt = targetOf(check)}
       <MonCheckLine {check} dense>
         {#snippet label()}
-          <span class="mon-type-badge badge-{check.checkType}">{check.checkType.toUpperCase()}</span>
+          <span class="mon-type-badge badge-{check.checkType}">{check.checkType.toUpperCase()}</span
+          >
           <span class="mon-line-name">{check.name}</span>
           <span class="mon-line-target">{tgt}</span>
         {/snippet}
         {#snippet value()}
           <span class="mon-line-spark">
-            <MonSparkline checkId={check.id} status={check.state?.status || 'pending'} width={96} height={24} />
+            <MonSparkline
+              checkId={check.id}
+              status={check.state?.status || 'pending'}
+              width={96}
+              height={24}
+            />
           </span>
           <span class="mon-line-metric">
             {#if lat != null}

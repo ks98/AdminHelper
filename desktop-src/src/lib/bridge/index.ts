@@ -93,10 +93,7 @@ export function apiProxy<T = unknown>(
   });
 }
 
-export function fetchConnectionsJwt(
-  serverUrl: string,
-  token: string,
-): Promise<Connection[]> {
+export function fetchConnectionsJwt(serverUrl: string, token: string): Promise<Connection[]> {
   return invoke<Connection[]>('fetch_connections_jwt', { serverUrl, token });
 }
 
@@ -162,10 +159,7 @@ export function tunnelStatus(): Promise<TunnelStatus> {
   return invoke<TunnelStatus>('tunnel_status');
 }
 
-export function fetchTunnels(
-  serverUrl: string,
-  token: string,
-): Promise<TunnelMapping[]> {
+export function fetchTunnels(serverUrl: string, token: string): Promise<TunnelMapping[]> {
   return invoke<TunnelMapping[]>('fetch_tunnels', { serverUrl, token });
 }
 
@@ -175,17 +169,11 @@ export function ansibleGenerateInventory(servers: AnsibleTarget[]): Promise<stri
   return invoke<string>('ansible_generate_inventory', { servers });
 }
 
-export function ansibleWritePlaybook(
-  filename: string,
-  content: string,
-): Promise<string> {
+export function ansibleWritePlaybook(filename: string, content: string): Promise<string> {
   return invoke<string>('ansible_write_playbook', { filename, content });
 }
 
-export function ansibleLaunch(
-  inventoryPath: string,
-  playbookPath: string,
-): Promise<void> {
+export function ansibleLaunch(inventoryPath: string, playbookPath: string): Promise<void> {
   return invoke('ansible_launch', { inventoryPath, playbookPath });
 }
 

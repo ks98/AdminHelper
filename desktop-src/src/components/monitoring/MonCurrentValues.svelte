@@ -14,7 +14,10 @@ SPDX-License-Identifier: GPL-3.0-or-later
   }
   let { metrics, checkType }: Props = $props();
 
-  interface Entry { label: string; value: string; }
+  interface Entry {
+    label: string;
+    value: string;
+  }
 
   let entries = $derived.by<Entry[]>(() => {
     const results = metrics?.data ?? [];

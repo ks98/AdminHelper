@@ -123,23 +123,21 @@ SPDX-License-Identifier: GPL-3.0-or-later
             {/each}
           </div>
         {/if}
+      {:else if Object.keys($ansibleTagGroups).length === 0}
+        <div class="ansible-empty">{$t('ansible.empty.tags')}</div>
       {:else}
-        {#if Object.keys($ansibleTagGroups).length === 0}
-          <div class="ansible-empty">{$t('ansible.empty.tags')}</div>
-        {:else}
-          <div class="ansible-tag-list">
-            {#each Object.keys($ansibleTagGroups).sort() as tag (tag)}
-              <button
-                type="button"
-                class="ansible-tag-chip"
-                class:active={isTagAllSelected(tag, $ansibleSelectedServerIds)}
-                onclick={() => toggleTag(tag)}
-              >
-                {tag} ({$ansibleTagGroups[tag].length})
-              </button>
-            {/each}
-          </div>
-        {/if}
+        <div class="ansible-tag-list">
+          {#each Object.keys($ansibleTagGroups).sort() as tag (tag)}
+            <button
+              type="button"
+              class="ansible-tag-chip"
+              class:active={isTagAllSelected(tag, $ansibleSelectedServerIds)}
+              onclick={() => toggleTag(tag)}
+            >
+              {tag} ({$ansibleTagGroups[tag].length})
+            </button>
+          {/each}
+        </div>
       {/if}
     </div>
 
@@ -149,16 +147,13 @@ SPDX-License-Identifier: GPL-3.0-or-later
       <div class="ansible-run-summary">
         {#if $ansibleSelectedPlaybook && $ansibleSelectedServerIds.size > 0}
           <strong>{$ansibleSelectedPlaybook.name}</strong>
-          {$t('ansible.run.on')} <strong>{$ansibleSelectedServerIds.size}</strong> {$t('ansible.run.servers')}
+          {$t('ansible.run.on')} <strong>{$ansibleSelectedServerIds.size}</strong>
+          {$t('ansible.run.servers')}
         {:else}
           <span class="ansible-empty">{$t('ansible.hint.select')}</span>
         {/if}
       </div>
-      <button
-        class="btn primary"
-        disabled={!$ansibleCanRun}
-        onclick={() => void runPlaybook()}
-      >
+      <button class="btn primary" disabled={!$ansibleCanRun} onclick={() => void runPlaybook()}>
         {$ansibleRunning ? $t('ansible.run.running') : $t('ansible.run.button')}
       </button>
     </div>
@@ -180,7 +175,9 @@ SPDX-License-Identifier: GPL-3.0-or-later
     opacity: 0.55;
     transition: opacity 0.15s;
   }
-  .ansible-step.active { opacity: 1; }
+  .ansible-step.active {
+    opacity: 1;
+  }
   .ansible-step-title {
     font-size: 13px;
     color: var(--text-muted);
@@ -193,7 +190,9 @@ SPDX-License-Identifier: GPL-3.0-or-later
     font-size: 13px;
     padding: var(--sp-3) 0;
   }
-  .ansible-empty.error { color: var(--danger); }
+  .ansible-empty.error {
+    color: var(--danger);
+  }
 
   /* Step 1 */
   .ansible-playbook-list {
@@ -213,17 +212,44 @@ SPDX-License-Identifier: GPL-3.0-or-later
     display: flex;
     flex-direction: column;
     gap: var(--sp-1);
-    transition: border-color 0.12s, background 0.12s;
+    transition:
+      border-color 0.12s,
+      background 0.12s;
   }
-  .ansible-playbook-card:hover { border-color: var(--accent); }
-  .ansible-playbook-card.selected { border-color: var(--accent); background: var(--bg-accent, var(--bg-elev)); }
-  .ansible-playbook-name { font-weight: 600; font-size: 14px; }
-  .ansible-playbook-desc { color: var(--text-muted); font-size: 12px; }
-  .ansible-playbook-meta { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; margin-top: var(--sp-2); }
-  .ansible-playbook-file { font-family: var(--font-mono, monospace); font-size: 11px; color: var(--text-muted); }
+  .ansible-playbook-card:hover {
+    border-color: var(--accent);
+  }
+  .ansible-playbook-card.selected {
+    border-color: var(--accent);
+    background: var(--bg-accent, var(--bg-elev));
+  }
+  .ansible-playbook-name {
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .ansible-playbook-desc {
+    color: var(--text-muted);
+    font-size: 12px;
+  }
+  .ansible-playbook-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-2);
+    align-items: center;
+    margin-top: var(--sp-2);
+  }
+  .ansible-playbook-file {
+    font-family: var(--font-mono, monospace);
+    font-size: 11px;
+    color: var(--text-muted);
+  }
 
   /* Step 2 */
-  .ansible-target-mode { display: flex; gap: var(--sp-2); margin-bottom: var(--sp-3); }
+  .ansible-target-mode {
+    display: flex;
+    gap: var(--sp-2);
+    margin-bottom: var(--sp-3);
+  }
   .ansible-mode-btn {
     background: transparent;
     border: 1px solid var(--border);
@@ -234,7 +260,11 @@ SPDX-License-Identifier: GPL-3.0-or-later
     font-size: 13px;
     font-family: inherit;
   }
-  .ansible-mode-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+  .ansible-mode-btn.active {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+  }
   .ansible-server-list {
     display: flex;
     flex-direction: column;
@@ -251,9 +281,22 @@ SPDX-License-Identifier: GPL-3.0-or-later
     border-radius: var(--radius-sm);
     cursor: pointer;
   }
-  .ansible-server-info { display: flex; gap: var(--sp-2); align-items: center; flex-wrap: wrap; flex: 1; }
-  .ansible-server-name { font-weight: 600; font-size: 13px; }
-  .ansible-server-host { color: var(--text-muted); font-size: 12px; font-family: var(--font-mono, monospace); }
+  .ansible-server-info {
+    display: flex;
+    gap: var(--sp-2);
+    align-items: center;
+    flex-wrap: wrap;
+    flex: 1;
+  }
+  .ansible-server-name {
+    font-weight: 600;
+    font-size: 13px;
+  }
+  .ansible-server-host {
+    color: var(--text-muted);
+    font-size: 12px;
+    font-family: var(--font-mono, monospace);
+  }
   .ansible-tag {
     font-size: 11px;
     padding: 2px 6px;
@@ -262,7 +305,11 @@ SPDX-License-Identifier: GPL-3.0-or-later
     color: var(--text-muted);
     border: 1px solid var(--border);
   }
-  .ansible-tag-list { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+  .ansible-tag-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-2);
+  }
   .ansible-tag-chip {
     background: transparent;
     border: 1px solid var(--border);
@@ -273,7 +320,11 @@ SPDX-License-Identifier: GPL-3.0-or-later
     font-size: 13px;
     font-family: inherit;
   }
-  .ansible-tag-chip.active { background: var(--accent); color: white; border-color: var(--accent); }
+  .ansible-tag-chip.active {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+  }
 
   /* Step 3 */
   .ansible-run-summary {

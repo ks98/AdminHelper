@@ -14,7 +14,12 @@ import {
 } from './monitoring';
 import type { MonitorCheck, Server } from '$lib/api/types';
 
-const chk = (id: string, serverId: string | null, type: MonitorCheck['checkType'], status?: MonitorCheck['state']): MonitorCheck => ({
+const chk = (
+  id: string,
+  serverId: string | null,
+  type: MonitorCheck['checkType'],
+  status?: MonitorCheck['state'],
+): MonitorCheck => ({
   id,
   name: id,
   serverId,
@@ -27,15 +32,16 @@ const chk = (id: string, serverId: string | null, type: MonitorCheck['checkType'
 
 describe('worstStatus', () => {
   it('critical beats warning beats ok', () => {
-    expect(worstStatus([
-      { state: { status: 'ok' } },
-      { state: { status: 'warning' } },
-      { state: { status: 'critical' } },
-    ])).toBe('critical');
-    expect(worstStatus([
-      { state: { status: 'ok' } },
-      { state: { status: 'warning' } },
-    ])).toBe('warning');
+    expect(
+      worstStatus([
+        { state: { status: 'ok' } },
+        { state: { status: 'warning' } },
+        { state: { status: 'critical' } },
+      ]),
+    ).toBe('critical');
+    expect(worstStatus([{ state: { status: 'ok' } }, { state: { status: 'warning' } }])).toBe(
+      'warning',
+    );
   });
   it('all ok yields ok', () => {
     expect(worstStatus([{ state: { status: 'ok' } }])).toBe('ok');
@@ -48,11 +54,7 @@ describe('groupChecksByServer', () => {
       { id: 's1', name: 'Alpha', hostname: 'a' },
       { id: 's2', name: 'Bravo', hostname: 'b' },
     ];
-    const checks = [
-      chk('c1', 's1', 'ping'),
-      chk('c2', 's2', 'ping'),
-      chk('c3', 's1', 'tcp'),
-    ];
+    const checks = [chk('c1', 's1', 'ping'), chk('c2', 's2', 'ping'), chk('c3', 's1', 'tcp')];
     const groups = groupChecksByServer(checks, servers);
     expect(groups.map((g) => g.serverName)).toEqual(['Alpha', 'Bravo']);
     expect(groups[0].checks.map((c) => c.id).sort()).toEqual(['c1', 'c3']);

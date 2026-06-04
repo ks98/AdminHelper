@@ -41,11 +41,7 @@ export async function startIfServerMode(): Promise<void> {
 
   _state.update((s) => ({ ...s, ui: 'connecting' }));
   try {
-    const status = await bridge.startTunnel(
-      session.serverUrl,
-      session.token,
-      session.username,
-    );
+    const status = await bridge.startTunnel(session.serverUrl, session.token, session.username);
     let mappings: TunnelMapping[] = [];
     try {
       mappings = await bridge.fetchTunnels(session.serverUrl, session.token);

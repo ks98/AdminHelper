@@ -22,7 +22,8 @@ import { requestPassword } from './passwordPrompt';
 import { closeEditor } from './editor';
 import { tNow } from '$lib/i18n';
 
-const isLinux = typeof navigator !== 'undefined' && navigator.userAgent.toLowerCase().includes('linux');
+const isLinux =
+  typeof navigator !== 'undefined' && navigator.userAgent.toLowerCase().includes('linux');
 const isTauri = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
 
 interface RdpAttempt {
@@ -151,7 +152,11 @@ async function handleRdpAuth(connection: Connection, keepEditorOpen: boolean): P
         try {
           await bridge.savePassword(updated, outcome.password);
         } catch (err) {
-          reportError(tNow('error.passwordStore', { message: err instanceof Error ? err.message : String(err) }));
+          reportError(
+            tNow('error.passwordStore', {
+              message: err instanceof Error ? err.message : String(err),
+            }),
+          );
         }
       }
       await performConnect(updated, keepEditorOpen, { password: outcome.password });
@@ -172,7 +177,10 @@ async function handleRdpAuth(connection: Connection, keepEditorOpen: boolean): P
   return false;
 }
 
-export async function initiateConnect(connection: Connection, keepEditorOpen = false): Promise<void> {
+export async function initiateConnect(
+  connection: Connection,
+  keepEditorOpen = false,
+): Promise<void> {
   const validation = validateConnection(connection);
   if (!validation.ok) {
     reportError(validation.message ?? tNow('error.invalidConnection'));

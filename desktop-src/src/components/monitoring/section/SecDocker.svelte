@@ -11,7 +11,9 @@ SPDX-License-Identifier: GPL-3.0-or-later
   import MonCheckLine from './MonCheckLine.svelte';
   import { t } from '$lib/i18n';
 
-  interface Props { checks: MonitorCheck[]; }
+  interface Props {
+    checks: MonitorCheck[];
+  }
   let { checks }: Props = $props();
 
   let worst = $derived(worstStatus(checks));
@@ -34,13 +36,22 @@ SPDX-License-Identifier: GPL-3.0-or-later
   function info(check: MonitorCheck): Info {
     const d = (check.state?.details ?? null) as Record<string, unknown> | null;
     const list = (d?.containers ?? []) as Container[];
-    let ok = 0, warn = 0, crit = 0;
+    let ok = 0,
+      warn = 0,
+      crit = 0;
     for (const c of list) {
       if (c.category === 'critical') crit++;
       else if (c.category === 'warning') warn++;
       else ok++;
     }
-    return { containers: list, total: list.length, ok, warn, crit, allOk: crit === 0 && warn === 0 };
+    return {
+      containers: list,
+      total: list.length,
+      ok,
+      warn,
+      crit,
+      allOk: crit === 0 && warn === 0,
+    };
   }
 </script>
 
@@ -48,7 +59,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
   <MonSectionHeader
     icon="docker"
     title={$t('monitoring.section.docker')}
-    worst={worst}
+    {worst}
     count={checks.length}
   />
 
@@ -63,7 +74,9 @@ SPDX-License-Identifier: GPL-3.0-or-later
           {#if i.total === 0}
             <span class="mon-line-pill">—</span>
           {:else if i.allOk}
-            <span class="mon-line-pill pill-ok">{$t('monitoring.docker.allOk', { count: i.total })}</span>
+            <span class="mon-line-pill pill-ok"
+              >{$t('monitoring.docker.allOk', { count: i.total })}</span
+            >
           {:else}
             {#if i.crit > 0}
               <span class="mon-line-pill pill-crit">{i.crit} ✗</span>
@@ -77,7 +90,9 @@ SPDX-License-Identifier: GPL-3.0-or-later
         {#snippet extraBody()}
           {#if i.allOk && i.total > 0}
             <div class="mon-expand-list">
-              <div class="mon-expand-hint">{$t('monitoring.docker.allOkHint', { count: i.total })}</div>
+              <div class="mon-expand-hint">
+                {$t('monitoring.docker.allOkHint', { count: i.total })}
+              </div>
               {#each i.containers as c}
                 <div class="mon-expand-row level-ok">
                   <span class="mon-dot mon-ok"></span>

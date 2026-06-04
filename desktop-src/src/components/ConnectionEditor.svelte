@@ -109,7 +109,9 @@ SPDX-License-Identifier: GPL-3.0-or-later
   >
     <div class="editor-panel" use:accelerateScroll={PANEL_FACTOR}>
       <div class="panel-header">
-        <h2 class="panel-title">{isNew ? $t('editor.title.new') : form.name || $t('editor.title.fallback')}</h2>
+        <h2 class="panel-title">
+          {isNew ? $t('editor.title.new') : form.name || $t('editor.title.fallback')}
+        </h2>
         <button class="btn ghost small" onclick={onClose} aria-label={$t('editor.close')}>×</button>
       </div>
 
@@ -126,7 +128,11 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
         <label class="field">
           <span class="field-label">{$t('editor.field.kind')}</span>
-          <select value={form.kind} onchange={(e) => setKind((e.currentTarget as HTMLSelectElement).value as ConnectionKind)}>
+          <select
+            value={form.kind}
+            onchange={(e) =>
+              setKind((e.currentTarget as HTMLSelectElement).value as ConnectionKind)}
+          >
             <option value="ssh">SSH</option>
             <option value="rdp">RDP</option>
             <option value="web">Web</option>
@@ -136,7 +142,11 @@ SPDX-License-Identifier: GPL-3.0-or-later
         {#if form.kind !== 'web'}
           <label class="field">
             <span class="field-label">{$t('editor.field.host')}</span>
-            <input type="text" bind:value={form.host} placeholder={$t('editor.field.host.placeholder')} />
+            <input
+              type="text"
+              bind:value={form.host}
+              placeholder={$t('editor.field.host.placeholder')}
+            />
           </label>
 
           <label class="field">
@@ -172,19 +182,32 @@ SPDX-License-Identifier: GPL-3.0-or-later
           {#if form.kind === 'ssh'}
             <label class="field">
               <span class="field-label">{$t('editor.field.keyPath')}</span>
-              <input type="text" bind:value={form.keyPath} placeholder={$t('editor.field.keyPath.placeholder')} />
+              <input
+                type="text"
+                bind:value={form.keyPath}
+                placeholder={$t('editor.field.keyPath.placeholder')}
+              />
             </label>
           {/if}
         {:else}
           <label class="field" style="grid-column: span 2;">
             <span class="field-label">{$t('editor.field.url')}</span>
-            <input type="url" bind:value={form.url} placeholder={$t('editor.field.url.placeholder')} required />
+            <input
+              type="url"
+              bind:value={form.url}
+              placeholder={$t('editor.field.url.placeholder')}
+              required
+            />
           </label>
         {/if}
 
         <label class="field" style="grid-column: span 2;">
           <span class="field-label">{$t('editor.field.tags')}</span>
-          <input type="text" bind:value={tagsInput} placeholder={$t('editor.field.tags.placeholder')} />
+          <input
+            type="text"
+            bind:value={tagsInput}
+            placeholder={$t('editor.field.tags.placeholder')}
+          />
         </label>
 
         <label class="field" style="grid-column: span 2;">

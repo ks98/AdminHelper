@@ -11,7 +11,9 @@ SPDX-License-Identifier: GPL-3.0-or-later
   import MonCheckLine from './MonCheckLine.svelte';
   import { t } from '$lib/i18n';
 
-  interface Props { checks: MonitorCheck[]; }
+  interface Props {
+    checks: MonitorCheck[];
+  }
   let { checks }: Props = $props();
 
   let worst = $derived(worstStatus(checks));
@@ -34,7 +36,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
   <MonSectionHeader
     icon="heartbeat"
     title={$t('monitoring.section.heartbeat')}
-    worst={worst}
+    {worst}
     count={checks.length}
   />
 

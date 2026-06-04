@@ -13,7 +13,7 @@ export const RDP_SCALING_MODES = ['auto', 'normal', 'hdpi'] as const;
 export const RDP_CUSTOM_SIZE_PATTERN = /^\d{3,5}x\d{3,5}$/;
 
 export function detectSystemLanguage(): 'de' | 'en' {
-  const language = typeof navigator !== 'undefined' ? navigator.language ?? '' : '';
+  const language = typeof navigator !== 'undefined' ? (navigator.language ?? '') : '';
   return language.toLowerCase().startsWith('de') ? 'de' : 'en';
 }
 

@@ -11,12 +11,18 @@ SPDX-License-Identifier: GPL-3.0-or-later
   import MonCheckLine from './MonCheckLine.svelte';
   import { t } from '$lib/i18n';
 
-  interface Props { checks: MonitorCheck[]; }
+  interface Props {
+    checks: MonitorCheck[];
+  }
   let { checks }: Props = $props();
 
   let worst = $derived(worstStatus(checks));
 
-  interface Pool { name: string; health: string; capacityPercent: number; }
+  interface Pool {
+    name: string;
+    health: string;
+    capacityPercent: number;
+  }
 
   function poolsOf(check: MonitorCheck): Pool[] {
     return ((check.state?.details as Record<string, unknown> | null)?.pools ?? []) as Pool[];
@@ -40,7 +46,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
   <MonSectionHeader
     icon="storage"
     title={$t('monitoring.section.storage')}
-    worst={worst}
+    {worst}
     count={checks.length}
   />
 
@@ -61,7 +67,14 @@ SPDX-License-Identifier: GPL-3.0-or-later
             {#each pools as p}
               {@const lvl = levelOf(p.capacityPercent, capWarn, capCrit)}
               {@const h = healthClass(p.health)}
-              {@const worstPill = h === 'crit' ? 'crit' : lvl === 'crit' ? 'crit' : h === 'warn' || lvl === 'warn' ? 'warn' : 'ok'}
+              {@const worstPill =
+                h === 'crit'
+                  ? 'crit'
+                  : lvl === 'crit'
+                    ? 'crit'
+                    : h === 'warn' || lvl === 'warn'
+                      ? 'warn'
+                      : 'ok'}
               <span class="mon-line-pill pill-{worstPill}">{p.name} {p.capacityPercent}%</span>
             {/each}
           {/if}
@@ -74,7 +87,10 @@ SPDX-License-Identifier: GPL-3.0-or-later
               <div class="mon-hero-bar-row">
                 <span class="mon-hero-bar-label">{p.name}</span>
                 <div class="mon-hero-bar">
-                  <div class="mon-hero-bar-fill level-{lvl}" style="width:{Math.min(p.capacityPercent, 100)}%"></div>
+                  <div
+                    class="mon-hero-bar-fill level-{lvl}"
+                    style="width:{Math.min(p.capacityPercent, 100)}%"
+                  ></div>
                 </div>
                 <span class="mon-hero-bar-pct">{p.capacityPercent}%</span>
                 <span class="mon-chip chip-{h}">{p.health}</span>

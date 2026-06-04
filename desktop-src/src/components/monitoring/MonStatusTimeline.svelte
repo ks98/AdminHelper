@@ -12,7 +12,10 @@ SPDX-License-Identifier: GPL-3.0-or-later
   }
   let { statusHistory }: Props = $props();
 
-  interface Segment { widthPct: number; color: string; }
+  interface Segment {
+    widthPct: number;
+    color: string;
+  }
 
   const STATUS_COLORS: Record<number, string> = {
     0: 'var(--mon-ok-bg, #22c55e)',

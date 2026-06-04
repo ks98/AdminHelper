@@ -129,12 +129,32 @@ SPDX-License-Identifier: GPL-3.0-or-later
     flex-direction: column;
     gap: var(--sp-3);
   }
-  .panel-header { margin-bottom: var(--sp-1); }
-  .panel-title { margin: 0; font-size: 16px; font-weight: 600; }
-  .pw-hint { color: var(--text-muted); margin: 0 0 var(--sp-2); font-size: 13px; }
-  .field { display: flex; flex-direction: column; gap: var(--sp-2); }
-  .field.checkbox { flex-direction: row; align-items: center; }
-  .field-label { font-size: 12px; color: var(--text-muted); }
+  .panel-header {
+    margin-bottom: var(--sp-1);
+  }
+  .panel-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+  }
+  .pw-hint {
+    color: var(--text-muted);
+    margin: 0 0 var(--sp-2);
+    font-size: 13px;
+  }
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-2);
+  }
+  .field.checkbox {
+    flex-direction: row;
+    align-items: center;
+  }
+  .field-label {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
   .field input {
     background: var(--bg-input, var(--bg-panel));
     border: 1px solid var(--border);
@@ -144,7 +164,9 @@ SPDX-License-Identifier: GPL-3.0-or-later
     font-size: 13px;
     font-family: inherit;
   }
-  .field input:focus { outline: 1px solid var(--accent); }
+  .field input:focus {
+    outline: 1px solid var(--accent);
+  }
   .panel-actions {
     display: flex;
     gap: var(--sp-2);

@@ -11,7 +11,9 @@ SPDX-License-Identifier: GPL-3.0-or-later
   import MonCheckLine from './MonCheckLine.svelte';
   import { t } from '$lib/i18n';
 
-  interface Props { checks: MonitorCheck[]; }
+  interface Props {
+    checks: MonitorCheck[];
+  }
   let { checks }: Props = $props();
 
   let worst = $derived(worstStatus(checks));
@@ -21,7 +23,9 @@ SPDX-License-Identifier: GPL-3.0-or-later
     return Number.isNaN(n) ? fb : n;
   }
   function disksOf(check: MonitorCheck): Array<Record<string, unknown>> {
-    return ((check.state?.details as Record<string, unknown> | null)?.disks ?? []) as Array<Record<string, unknown>>;
+    return ((check.state?.details as Record<string, unknown> | null)?.disks ?? []) as Array<
+      Record<string, unknown>
+    >;
   }
   function maxTempOf(check: MonitorCheck): number {
     let max = 0;
@@ -65,7 +69,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
   <MonSectionHeader
     icon="smart"
     title={$t('monitoring.section.smart')}
-    worst={worst}
+    {worst}
     count={checks.length}
   />
 
@@ -96,18 +100,30 @@ SPDX-License-Identifier: GPL-3.0-or-later
               {@const crit = num(d.temp_crit) || 70}
               {@const lvl = tempLevel(temp, warn, crit)}
               {@const cat = categoryClass(String(d.category ?? 'ok'))}
-              {@const cwBits = Array.isArray(d.critical_warning_bits) ? (d.critical_warning_bits as string[]) : []}
+              {@const cwBits = Array.isArray(d.critical_warning_bits)
+                ? (d.critical_warning_bits as string[])
+                : []}
               {@const secondary = smartSecondary(d)}
               <div class="mon-hero-bar-row">
-                <span class="mon-hero-bar-label">{d.device} <span class="mon-expand-muted">[{d.kind || d.protocol || 'Disk'}]</span></span>
+                <span class="mon-hero-bar-label"
+                  >{d.device}
+                  <span class="mon-expand-muted">[{d.kind || d.protocol || 'Disk'}]</span></span
+                >
                 <div class="mon-hero-bar">
-                  <div class="mon-hero-bar-fill level-{lvl}" style="width:{Math.min((temp / crit) * 100, 100)}%"></div>
+                  <div
+                    class="mon-hero-bar-fill level-{lvl}"
+                    style="width:{Math.min((temp / crit) * 100, 100)}%"
+                  ></div>
                 </div>
                 <span class="mon-hero-bar-pct">{temp}°C</span>
-                <span class="mon-chip chip-{cat}">{cat === 'crit' ? 'CRIT' : cat === 'warn' ? 'WARN' : 'OK'}</span>
+                <span class="mon-chip chip-{cat}"
+                  >{cat === 'crit' ? 'CRIT' : cat === 'warn' ? 'WARN' : 'OK'}</span
+                >
                 {#if d.model}<span class="mon-hero-bar-sub">{d.model}</span>{/if}
                 {#if secondary}<span class="mon-hero-bar-sub">{secondary}</span>{/if}
-                {#if cwBits.length > 0}<span class="mon-hero-bar-sub mon-sub-crit">{cwBits.join(', ')}</span>{/if}
+                {#if cwBits.length > 0}<span class="mon-hero-bar-sub mon-sub-crit"
+                    >{cwBits.join(', ')}</span
+                  >{/if}
               </div>
             {/each}
           </div>

@@ -11,7 +11,9 @@ SPDX-License-Identifier: GPL-3.0-or-later
   import MonCheckLine from './MonCheckLine.svelte';
   import { t } from '$lib/i18n';
 
-  interface Props { checks: MonitorCheck[]; }
+  interface Props {
+    checks: MonitorCheck[];
+  }
   let { checks }: Props = $props();
 
   let worst = $derived(worstStatus(checks));
@@ -34,8 +36,18 @@ SPDX-License-Identifier: GPL-3.0-or-later
     return `${filled.toFixed(1)} ${(C - filled).toFixed(1)}`;
   }
 
-  interface Ring { label: string; pct: number; level: 'ok' | 'warn' | 'crit'; sub: string | null; }
-  interface DiskBar { mount: string; pct: number; level: 'ok' | 'warn' | 'crit'; sub: string | null; }
+  interface Ring {
+    label: string;
+    pct: number;
+    level: 'ok' | 'warn' | 'crit';
+    sub: string | null;
+  }
+  interface DiskBar {
+    mount: string;
+    pct: number;
+    level: 'ok' | 'warn' | 'crit';
+    sub: string | null;
+  }
 
   function rings(check: MonitorCheck): Ring[] {
     const d = (check.state?.details ?? null) as Record<string, unknown> | null;
@@ -44,12 +56,25 @@ SPDX-License-Identifier: GPL-3.0-or-later
     const out: Ring[] = [];
     if (d.cpu != null) {
       const pct = num(d.cpu);
-      out.push({ label: 'CPU', pct, level: level(pct, num(cfg.cpu_warn, 80), num(cfg.cpu_crit, 95)), sub: null });
+      out.push({
+        label: 'CPU',
+        pct,
+        level: level(pct, num(cfg.cpu_warn, 80), num(cfg.cpu_crit, 95)),
+        sub: null,
+      });
     }
     if (d.memory != null) {
       const pct = num(d.memory);
-      const sub = d.memory_total_mb != null ? `${num(d.memory_used_mb)} / ${num(d.memory_total_mb)} MB` : null;
-      out.push({ label: 'RAM', pct, level: level(pct, num(cfg.memory_warn, 80), num(cfg.memory_crit, 95)), sub });
+      const sub =
+        d.memory_total_mb != null
+          ? `${num(d.memory_used_mb)} / ${num(d.memory_total_mb)} MB`
+          : null;
+      out.push({
+        label: 'RAM',
+        pct,
+        level: level(pct, num(cfg.memory_warn, 80), num(cfg.memory_crit, 95)),
+        sub,
+      });
     }
     return out;
   }
@@ -64,7 +89,10 @@ SPDX-License-Identifier: GPL-3.0-or-later
         mount: String(x.mount ?? '?'),
         pct,
         level: level(pct, num(cfg.disk_warn, 85), num(cfg.disk_crit, 95)),
-        sub: x.total_gb != null ? `${num(x.used_gb).toFixed(1)} / ${num(x.total_gb).toFixed(1)} GB` : null,
+        sub:
+          x.total_gb != null
+            ? `${num(x.used_gb).toFixed(1)} / ${num(x.total_gb).toFixed(1)} GB`
+            : null,
       };
     });
   }
@@ -74,7 +102,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
   <MonSectionHeader
     icon="live"
     title={$t('monitoring.section.live')}
-    worst={worst}
+    {worst}
     count={checks.length}
   />
 
@@ -90,7 +118,9 @@ SPDX-License-Identifier: GPL-3.0-or-later
               <span class="mon-live-pill level-{r.level}">{r.label} {r.pct.toFixed(0)}%</span>
             {/each}
             {#if disks(check).length > 0}
-              <span class="mon-live-pill">{disks(check).length} Disk{disks(check).length === 1 ? '' : 's'}</span>
+              <span class="mon-live-pill"
+                >{disks(check).length} Disk{disks(check).length === 1 ? '' : 's'}</span
+              >
             {/if}
           </span>
         {/snippet}
@@ -101,7 +131,14 @@ SPDX-License-Identifier: GPL-3.0-or-later
                 {#each rings(check) as r}
                   <div class="mon-ring level-{r.level}">
                     <svg viewBox="0 0 64 64" width="64" height="64" aria-hidden="true">
-                      <circle cx="32" cy="32" r={R} class="mon-ring-track" fill="none" stroke-width="6" />
+                      <circle
+                        cx="32"
+                        cy="32"
+                        r={R}
+                        class="mon-ring-track"
+                        fill="none"
+                        stroke-width="6"
+                      />
                       <circle
                         cx="32"
                         cy="32"
@@ -127,7 +164,10 @@ SPDX-License-Identifier: GPL-3.0-or-later
                   <div class="mon-hero-bar-row">
                     <span class="mon-hero-bar-label">{d.mount}</span>
                     <div class="mon-hero-bar">
-                      <div class="mon-hero-bar-fill level-{d.level}" style="width:{Math.min(d.pct, 100)}%"></div>
+                      <div
+                        class="mon-hero-bar-fill level-{d.level}"
+                        style="width:{Math.min(d.pct, 100)}%"
+                      ></div>
                     </div>
                     <span class="mon-hero-bar-pct">{d.pct.toFixed(0)}%</span>
                     {#if d.sub}<span class="mon-hero-bar-sub">{d.sub}</span>{/if}

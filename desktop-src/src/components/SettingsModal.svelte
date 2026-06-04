@@ -6,7 +6,12 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 <script lang="ts">
   import { settings, session } from '$lib/stores/session';
-  import { settingsModalOpen, closeSettings, saveSettings, serverLogout } from '$lib/stores/settings';
+  import {
+    settingsModalOpen,
+    closeSettings,
+    saveSettings,
+    serverLogout,
+  } from '$lib/stores/settings';
   import { t } from '$lib/i18n';
   import {
     RDP_WINDOW_MODES,
@@ -15,7 +20,13 @@ SPDX-License-Identifier: GPL-3.0-or-later
     getSettingsDefaults,
     getIntervalMinutes,
   } from '$lib/models/settings';
-  import type { Settings, SyncMode, RdpWindowMode, RdpPerformanceProfile, RdpScalingMode } from '$lib/bridge/types';
+  import type {
+    Settings,
+    SyncMode,
+    RdpWindowMode,
+    RdpPerformanceProfile,
+    RdpScalingMode,
+  } from '$lib/bridge/types';
 
   let mode = $state<SyncMode>('local');
   let url = $state('');
@@ -35,7 +46,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
     mode = s.mode;
     url = s.url ?? '';
     intervalMinutes = getIntervalMinutes(s);
-    language = (s.language === 'en' ? 'en' : 'de');
+    language = s.language === 'en' ? 'en' : 'de';
     storePasswords = Boolean(s.storePasswords);
     allowSelfSignedCerts = Boolean(s.allowSelfSignedCerts);
     rdpScalingMode = s.rdpScalingMode ?? 'auto';
@@ -83,9 +94,15 @@ SPDX-License-Identifier: GPL-3.0-or-later
     broadband: $t('settings.rdp.perf.broadband'),
     low: $t('settings.rdp.perf.low'),
   });
-  function rdpScalingLabel(m: RdpScalingMode): string { return rdpScalingLabels[m]; }
-  function rdpWindowLabel(m: RdpWindowMode): string { return rdpWindowLabels[m]; }
-  function rdpPerfLabel(m: RdpPerformanceProfile): string { return rdpPerfLabels[m]; }
+  function rdpScalingLabel(m: RdpScalingMode): string {
+    return rdpScalingLabels[m];
+  }
+  function rdpWindowLabel(m: RdpWindowMode): string {
+    return rdpWindowLabels[m];
+  }
+  function rdpPerfLabel(m: RdpPerformanceProfile): string {
+    return rdpPerfLabels[m];
+  }
 </script>
 
 {#if $settingsModalOpen}
@@ -93,8 +110,12 @@ SPDX-License-Identifier: GPL-3.0-or-later
     class="sm-overlay"
     role="dialog"
     aria-modal="true"
-    onclick={(e) => { if (e.target === e.currentTarget) closeSettings(); }}
-    onkeydown={(e) => { if (e.key === 'Escape') closeSettings(); }}
+    onclick={(e) => {
+      if (e.target === e.currentTarget) closeSettings();
+    }}
+    onkeydown={(e) => {
+      if (e.key === 'Escape') closeSettings();
+    }}
     tabindex="-1"
   >
     <div class="sm-panel">
@@ -107,15 +128,33 @@ SPDX-License-Identifier: GPL-3.0-or-later
         <div class="sm-section-title">{$t('settings.section.mode')}</div>
         <div class="sm-radio-group">
           <label class="sm-radio">
-            <input type="radio" name="syncMode" value="local" checked={mode === 'local'} onchange={() => (mode = 'local')} />
+            <input
+              type="radio"
+              name="syncMode"
+              value="local"
+              checked={mode === 'local'}
+              onchange={() => (mode = 'local')}
+            />
             <span>{$t('settings.mode.local')}</span>
           </label>
           <label class="sm-radio">
-            <input type="radio" name="syncMode" value="sync" checked={mode === 'sync'} onchange={() => (mode = 'sync')} />
+            <input
+              type="radio"
+              name="syncMode"
+              value="sync"
+              checked={mode === 'sync'}
+              onchange={() => (mode = 'sync')}
+            />
             <span>{$t('settings.mode.syncLabel')}</span>
           </label>
           <label class="sm-radio">
-            <input type="radio" name="syncMode" value="server" checked={mode === 'server'} onchange={() => (mode = 'server')} />
+            <input
+              type="radio"
+              name="syncMode"
+              value="server"
+              checked={mode === 'server'}
+              onchange={() => (mode = 'server')}
+            />
             <span>{$t('settings.mode.server')}</span>
           </label>
         </div>
@@ -137,7 +176,11 @@ SPDX-License-Identifier: GPL-3.0-or-later
       {:else if mode === 'server'}
         <label class="field">
           <span class="field-label">{$t('settings.serverUrl')}</span>
-          <input type="url" bind:value={serverUrl} placeholder={$t('settings.serverUrl.placeholder')} />
+          <input
+            type="url"
+            bind:value={serverUrl}
+            placeholder={$t('settings.serverUrl.placeholder')}
+          />
         </label>
         {#if $session}
           <div class="sm-session-row">
@@ -187,7 +230,11 @@ SPDX-License-Identifier: GPL-3.0-or-later
         {#if rdpWindowMode === 'custom'}
           <label class="field">
             <span class="field-label">{$t('settings.rdp.customSize')}</span>
-            <input type="text" bind:value={rdpCustomSize} placeholder={$t('settings.rdp.customSize.placeholder')} />
+            <input
+              type="text"
+              bind:value={rdpCustomSize}
+              placeholder={$t('settings.rdp.customSize.placeholder')}
+            />
           </label>
         {/if}
         <label class="field">
@@ -239,20 +286,49 @@ SPDX-License-Identifier: GPL-3.0-or-later
     justify-content: space-between;
     margin-bottom: var(--sp-2);
   }
-  .panel-title { margin: 0; font-size: 16px; font-weight: 600; }
-  .sm-section { display: flex; flex-direction: column; gap: var(--sp-2); margin-top: var(--sp-2); }
+  .panel-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+  }
+  .sm-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-2);
+    margin-top: var(--sp-2);
+  }
   .sm-section-title {
     font-size: 12px;
     color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
-  .sm-radio-group { display: flex; gap: var(--sp-4); flex-wrap: wrap; }
-  .sm-radio { display: flex; align-items: center; gap: var(--sp-2); cursor: pointer; }
-  .field { display: flex; flex-direction: column; gap: var(--sp-2); }
-  .field.checkbox { flex-direction: row; align-items: center; }
-  .field-label { font-size: 12px; color: var(--text-muted); }
-  .field input, .field select {
+  .sm-radio-group {
+    display: flex;
+    gap: var(--sp-4);
+    flex-wrap: wrap;
+  }
+  .sm-radio {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+    cursor: pointer;
+  }
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-2);
+  }
+  .field.checkbox {
+    flex-direction: row;
+    align-items: center;
+  }
+  .field-label {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .field input,
+  .field select {
     background: var(--bg-input, var(--bg-panel));
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
@@ -261,7 +337,10 @@ SPDX-License-Identifier: GPL-3.0-or-later
     font-size: 13px;
     font-family: inherit;
   }
-  .field input:focus, .field select:focus { outline: 1px solid var(--accent); }
+  .field input:focus,
+  .field select:focus {
+    outline: 1px solid var(--accent);
+  }
   .sm-session-row {
     display: flex;
     align-items: center;

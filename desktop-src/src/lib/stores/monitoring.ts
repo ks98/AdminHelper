@@ -35,7 +35,10 @@ function pickWorstServerId(checks: MonitorCheck[]): string | null {
   let bestKey: string | null = null;
   let bestP = -1;
   for (const [k, p] of bySrv) {
-    if (p > bestP) { bestP = p; bestKey = k; }
+    if (p > bestP) {
+      bestP = p;
+      bestKey = k;
+    }
   }
   return bestKey;
 }
@@ -98,7 +101,10 @@ export function setTab(tab: MonitoringTab): void {
   else if (tab === 'log') void loadAlertLog();
 }
 
-export function setFilter<K extends keyof MonitoringFilters>(key: K, value: MonitoringFilters[K]): void {
+export function setFilter<K extends keyof MonitoringFilters>(
+  key: K,
+  value: MonitoringFilters[K],
+): void {
   _state.update((s) => ({ ...s, filters: { ...s.filters, [key]: value } }));
 }
 
