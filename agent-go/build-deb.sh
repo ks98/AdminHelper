@@ -2,7 +2,7 @@
 # Build .deb package for adminhelper-agent (unified Go agent)
 set -euo pipefail
 
-VERSION="${VERSION:-0.22.1}"
+VERSION="${VERSION:-0.23.2}"
 PKG_NAME="adminhelper-agent"
 BUILD_DIR="build-deb/${PKG_NAME}_${VERSION}_amd64"
 
