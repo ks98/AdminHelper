@@ -141,12 +141,14 @@ Rust, TypeScript, Python, Go, verteilten Systemen und Cross-Platform-Desktop-App
 - **Go:** `gofmt` + `go vet` sauber.
 - **Python:** FastAPI-Stil des jeweiligen Moduls matchen; Logik mit
   `pytest` absichern. (Kein Formatter/Linter erzwungen.)
-- **SPDX-Header** in jeder Quelldatei:
-  `// SPDX-License-Identifier: GPL-3.0-or-later`.
-  ⚠️ **Soll-Vorgabe, derzeit NICHT erfüllt** — keine `LICENSE`-Datei, 0
-  Quelldateien mit Header. Bis zur Umsetzung (siehe "Offene Soll-Vorgaben")
-  nicht als bestehende Konvention behandeln; bei neuen Dateien nicht
-  blind anwenden, ohne dass Lizenz/Header projektweit geklärt sind.
+- **SPDX-Header & Lizenz:** Das Projekt ist **GPL-3.0-or-later** lizenziert
+  (`LICENSE`, `LICENSES/`, Drittanbieter in `THIRD_PARTY_LICENSES.md`). **Jede
+  neue Quelldatei** (`.py` `.go` `.rs` `.ts` `.svelte` `.js`/`.mjs`) bekommt
+  den REUSE-konformen Header (`SPDX-FileCopyrightText` + `SPDX-License-Identifier`,
+  Lizenz `GPL-3.0-or-later`) — am einfachsten via `reuse annotate --copyright
+  "Kevin Stenzel" --license GPL-3.0-or-later <datei>` (`#` für Python, `//` für
+  Go/Rust/TS/JS, `<!-- -->` für `.svelte`). Bestandscode ist vollständig
+  annotiert.
 - **Tests:** Unit-Tests für reine Logik — hier konkret: FRP-Config-
   Generierung, Permission-/IP-Filter-Checks, Schema-Validierung,
   Agent-Drift-Detektion (SHA-256), Svelte-Stores/Models. Plattform-Code
@@ -187,10 +189,3 @@ Regeln:
 - **Wenn eine Doku-Aussage nicht mehr stimmt: korrigieren**, auch wenn
   sie nicht direkter Teil deiner Änderung ist. Ausnahme zur
   Surgical-Changes-Regel — falsche Doku ist ein Bug.
-
-## Offene Soll-Vorgaben (TODO)
-
-- **Lizenz & SPDX:** `LICENSE`-Datei festlegen (z. B. GPL-3.0-or-later) und
-  SPDX-Header projektweit nachrüsten (`#`-Stil für Python/Go-Shell,
-  `//`-Stil für Rust/TS/JS). Erst danach ist die SPDX-Konvention oben
-  erfüllt und verbindlich.
