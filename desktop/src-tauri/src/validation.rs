@@ -89,3 +89,101 @@ pub fn sanitize_synced_connections(connections: Vec<Connection>) -> Vec<Connecti
         .filter(|c| validate_connection_input(c).is_ok())
         .collect()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::ConnectionKind;
+
+    fn ssh_connection_with_key_path(key_path: &str) -> Connection {
+        Connection {
+            id: "id".to_string(),
+            name: "name".to_string(),
+            kind: ConnectionKind::Ssh,
+            host: Some("example.com".to_string()),
+            port: None,
+            username: None,
+            domain: None,
+            key_path: Some(key_path.to_string()),
+            url: None,
+            notes: None,
+            tags: Vec::new(),
+            trust_cert: false,
+            last_used: None,
+        }
+    }
+
+    #[test]
+    fn validate_host_accepts_plain_hostname() {
+        assert!(validate_host("host.example.com").is_ok());
+        assert!(validate_host("192.168.0.1").is_ok());
+    }
+
+    #[test]
+    fn validate_host_rejects_shell_metacharacters() {
+        for c in [';', '|', '&', '$', '`'] {
+            let host = format!("host{c}evil");
+            assert!(
+                validate_host(&host).is_err(),
+                "Host mit '{c}' muss abgelehnt werden"
+            );
+        }
+    }
+
+    #[test]
+    fn validate_host_rejects_whitespace() {
+        assert!(validate_host("host name").is_err());
+    }
+
+    #[test]
+    fn validate_host_rejects_control_chars() {
+        assert!(validate_host("host\x00name").is_err());
+        assert!(validate_host("host\x1fname").is_err());
+        assert!(validate_host("host\nname").is_err());
+    }
+
+    #[test]
+    fn validate_host_rejects_empty_and_leading_dash() {
+        assert!(validate_host("").is_err());
+        assert!(validate_host("   ").is_err());
+        assert!(validate_host("-oProxyCommand=evil").is_err());
+    }
+
+    #[test]
+    fn validate_web_url_allows_http_and_https() {
+        assert!(validate_web_url("http://example.com").is_ok());
+        assert!(validate_web_url("https://example.com").is_ok());
+        // Ohne Schema wird https:// vorangestellt.
+        assert!(validate_web_url("example.com").is_ok());
+    }
+
+    #[test]
+    fn validate_web_url_rejects_ftp_and_other_schemes() {
+        assert!(validate_web_url("ftp://example.com").is_err());
+        assert!(validate_web_url("file:///etc/passwd").is_err());
+        assert!(validate_web_url("javascript:alert(1)").is_err());
+    }
+
+    #[test]
+    fn validate_connection_input_rejects_path_traversal_in_key_path() {
+        let connection = ssh_connection_with_key_path("../../etc/passwd");
+        assert!(validate_connection_input(&connection).is_err());
+    }
+
+    #[test]
+    fn validate_connection_input_accepts_plain_key_path() {
+        let connection = ssh_connection_with_key_path("/home/user/.ssh/id_ed25519");
+        assert!(validate_connection_input(&connection).is_ok());
+    }
+
+    #[test]
+    fn validate_no_control_chars_rejects_null_and_unit_separator() {
+        assert!(validate_no_control_chars("user\x00name", "Benutzer").is_err());
+        assert!(validate_no_control_chars("user\x1fname", "Benutzer").is_err());
+    }
+
+    #[test]
+    fn validate_no_control_chars_accepts_plain_text() {
+        assert!(validate_no_control_chars("administrator", "Benutzer").is_ok());
+    }
+}

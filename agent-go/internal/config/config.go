@@ -72,6 +72,12 @@ func LoadFrpcConfig() (*FrpcConfig, error) {
 	if err != nil {
 		return nil, err
 	}
+	return frpcConfigFromKV(kv), nil
+}
+
+// frpcConfigFromKV baut die FrpcConfig aus den Roh-Key-Values und wendet die
+// CACert-Fallback-Logik an.
+func frpcConfigFromKV(kv map[string]string) *FrpcConfig {
 	cfg := &FrpcConfig{
 		AdminHelperURL: kv["ADMINHELPER_URL"],
 		APIKey:         kv["API_KEY"],
@@ -84,7 +90,7 @@ func LoadFrpcConfig() (*FrpcConfig, error) {
 	if cfg.CACert == "" && cfg.CurlSSL != "" && strings.Contains(cfg.CurlSSL, "cacert") {
 		cfg.CACert = FrpCACert()
 	}
-	return cfg, nil
+	return cfg
 }
 
 // LoadMonitorConfig liest die Monitor Konfiguration.
@@ -93,20 +99,27 @@ func LoadMonitorConfig() (*MonitorConfig, error) {
 	if err != nil {
 		return nil, err
 	}
-	var services []string
-	if s := kv["SERVICES"]; s != "" {
-		for _, name := range strings.Split(s, ",") {
-			if n := strings.TrimSpace(name); n != "" {
-				services = append(services, n)
-			}
-		}
-	}
 	return &MonitorConfig{
 		MonitorURL: kv["MONITOR_URL"],
 		APIKey:     kv["API_KEY"],
 		ServerID:   kv["SERVER_ID"],
-		Services:   services,
+		Services:   splitServices(kv["SERVICES"]),
 		CACert:     kv["CACERT"],
 		Insecure:   kv["INSECURE"] == "1",
 	}, nil
+}
+
+// splitServices zerlegt eine kommaseparierte SERVICES-Liste, ignoriert Leerraum
+// und leere Eintraege.
+func splitServices(s string) []string {
+	if s == "" {
+		return nil
+	}
+	var services []string
+	for _, name := range strings.Split(s, ",") {
+		if n := strings.TrimSpace(name); n != "" {
+			services = append(services, n)
+		}
+	}
+	return services
 }

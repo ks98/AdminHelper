@@ -18,6 +18,36 @@ from app.models import MonitorCheck, MonitorState
 logger = logging.getLogger("monitor.engine")
 
 
+def next_fail_count(result_status: str, prev_fail_count: int) -> int:
+    """Zaehlt aufeinanderfolgende Fehlschlaege. 'ok' setzt zurueck auf 0."""
+    if result_status != "ok":
+        return prev_fail_count + 1
+    return 0
+
+
+def is_suppressed(result_status: str, new_fail_count: int, consecutive_fails: int) -> bool:
+    """True, solange ein nicht-OK-Ergebnis die geforderte Anzahl
+    aufeinanderfolgender Fehlschlaege noch nicht erreicht hat."""
+    return result_status != "ok" and new_fail_count < consecutive_fails
+
+
+def effective_status(
+    result_status: str,
+    new_fail_count: int,
+    consecutive_fails: int,
+    old_status: str,
+) -> str:
+    """Bestimmt den effektiven Status unter Beruecksichtigung von consecutive_fails.
+
+    Solange ein nicht-OK-Ergebnis die geforderte Anzahl aufeinanderfolgender
+    Fehlschlaege noch nicht erreicht, bleibt der bisherige Status erhalten
+    ('pending' wird dabei als 'ok' behandelt). Sonst gilt das Roh-Ergebnis.
+    """
+    if is_suppressed(result_status, new_fail_count, consecutive_fails):
+        return old_status if old_status != "pending" else "ok"
+    return result_status
+
+
 def execute_check(check_id: str) -> None:
     """Wird vom Scheduler fuer jeden Check-Intervall aufgerufen."""
     db = SessionLocal()
@@ -74,24 +104,22 @@ def execute_check(check_id: str) -> None:
         state = db.query(MonitorState).filter(MonitorState.check_id == check.id).first()
         old_status = state.status if state else "pending"
 
-        if result_status != "ok":
-            new_fail_count = (state.fail_count + 1) if state else 1
-        else:
-            new_fail_count = 0
+        prev_fail_count = state.fail_count if state else 0
+        new_fail_count = next_fail_count(result_status, prev_fail_count)
 
         # Effektiven Status bestimmen (consecutive_fails beruecksichtigen)
-        if result_status != "ok" and new_fail_count < check.consecutive_fails:
-            effective_status = old_status if old_status != "pending" else "ok"
+        eff_status = effective_status(
+            result_status, new_fail_count, check.consecutive_fails, old_status
+        )
+        if is_suppressed(result_status, new_fail_count, check.consecutive_fails):
             message = f"{message} (Fehler {new_fail_count}/{check.consecutive_fails})"
-        else:
-            effective_status = result_status
 
         details_json = json.dumps(details) if details else None
 
         if not state:
             state = MonitorState(
                 check_id=check.id,
-                status=effective_status,
+                status=eff_status,
                 since=now,
                 last_check=now,
                 fail_count=new_fail_count,
@@ -100,13 +128,13 @@ def execute_check(check_id: str) -> None:
             )
             db.add(state)
         else:
-            if effective_status != state.status:
+            if eff_status != state.status:
                 state.since = now
                 logger.info(
                     "Check '%s': %s -> %s (%s)",
-                    check.name, old_status, effective_status, message,
+                    check.name, old_status, eff_status, message,
                 )
-            state.status = effective_status
+            state.status = eff_status
             state.fail_count = new_fail_count
             state.last_check = now
             state.message = message
@@ -115,9 +143,9 @@ def execute_check(check_id: str) -> None:
         db.commit()
 
         # Alerting bei Status-Wechsel
-        if old_status != effective_status:
+        if old_status != eff_status:
             try:
-                process_alert(db, check, old_status, effective_status)
+                process_alert(db, check, old_status, eff_status)
             except Exception:
                 logger.exception("Alerting fuer Check '%s' fehlgeschlagen", check.name)
 

@@ -37,13 +37,10 @@ func Sync() error {
 		logMsg("WARNUNG: Config-Hash konnte nicht abgefragt werden: %v", err)
 		return nil
 	}
-	var hashResp struct {
-		Hash string `json:"hash"`
-	}
-	if err := json.Unmarshal(hashBody, &hashResp); err != nil {
+	remoteHash, err := parseConfigHash(hashBody)
+	if err != nil {
 		return fmt.Errorf("Hash-Antwort parsen: %w", err)
 	}
-	remoteHash := hashResp.Hash
 
 	// Lokalen Hash lesen
 	localHash := ""
@@ -79,12 +76,27 @@ func Sync() error {
 	return nil
 }
 
+// parseConfigHash liest den Hash-Wert aus der Server-Antwort (`{"hash": "..."}`).
+func parseConfigHash(body []byte) (string, error) {
+	var hashResp struct {
+		Hash string `json:"hash"`
+	}
+	if err := json.Unmarshal(body, &hashResp); err != nil {
+		return "", err
+	}
+	return hashResp.Hash, nil
+}
+
+// hashConfig berechnet den hex-kodierten SHA256-Hash der Config-Bytes.
+func hashConfig(data []byte) string {
+	return fmt.Sprintf("%x", sha256.Sum256(data))
+}
+
 // writeConfigHash berechnet den SHA256-Hash der aktuellen frpc.toml.
 func writeConfigHash() error {
 	data, err := os.ReadFile(config.FrpConfigFile())
 	if err != nil {
 		return err
 	}
-	hash := fmt.Sprintf("%x", sha256.Sum256(data))
-	return os.WriteFile(config.FrpHashFile(), []byte(hash), 0644)
+	return os.WriteFile(config.FrpHashFile(), []byte(hashConfig(data)), 0644)
 }
