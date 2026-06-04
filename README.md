@@ -121,13 +121,17 @@ The optional **AdminHelper Server** enables centralized management and shared ac
 - **Monitoring service** with agent-based resource monitoring, templates, and alerting
 - **Server management** with tags, PKI/TLS management, and auto-connection
 - **PostgreSQL 17** as the shared database for server and monitoring
-- **Docker** deployment via GitLab registry
+- **Docker** deployment via GitHub Container Registry (ghcr.io)
 
 ### Quick start
 
-The server image is pulled directly from the GitLab registry:
+The server image is pulled directly from the GitHub Container Registry (ghcr.io):
 
 ```bash
+# Clone the repository:
+git clone https://github.com/ks98/AdminHelper.git
+cd AdminHelper
+
 # In the project root:
 cp .env.example .env
 
@@ -275,7 +279,7 @@ The **Unified Go Agent** (`adminhelper-agent`) combines FRP sync and monitoring 
 
 ```bash
 # Install the DEB:
-apt install ./adminhelper-agent_0.23.2_amd64.deb
+apt install ./adminhelper-agent_0.24.0_amd64.deb
 
 # Full provisioning in a single call (server API key + optional monitor + optional FRP):
 sudo adminhelper-agent provision \
@@ -445,7 +449,7 @@ cargo tauri build
 ├─ Dockerfile                # multi-stage: Vite build (frontend-src) → Python runtime
 ├─ docker-compose.yml
 ├─ docker-compose.override.yml  # local dev overrides (gitignored)
-├─ .gitlab-ci.yml
+├─ .github/workflows/        # CI/CD (GitHub Actions): ci, docker, release
 └─ .env.example
 ```
 

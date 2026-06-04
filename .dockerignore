@@ -1,7 +1,7 @@
 # Git
 .git/
 .gitignore
-.gitlab-ci.yml
+.github/
 
 # Dev-State
 data/

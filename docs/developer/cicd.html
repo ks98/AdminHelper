@@ -19,29 +19,27 @@
           <div class="nav-group"><div class="nav-title">Admin-Handbuch</div><a href="../admin/index.html">Übersicht</a><a href="../admin/installation.html">Installation</a><a href="../admin/betrieb.html">Betrieb &amp; Konfiguration</a><a href="../admin/benutzer.html">Benutzer &amp; Zugriff</a><a href="../admin/agent-deployment.html">Agent-Deployment</a><a href="../admin/monitoring.html">Monitoring</a><a href="../admin/frp-tunnel.html">FRP-Tunnel</a><a href="../admin/extension.html">Browser-Extension</a><a href="../admin/troubleshooting.html">Troubleshooting</a></div>
           <div class="nav-group"><div class="nav-title">Entwickler-Handbuch</div><a href="./index.html">Übersicht</a><a href="./server.html">Server (Backend)</a><a href="./webui.html">Web-Panel</a><a href="./desktop.html">Desktop-Client</a><a href="./agent.html">Go-Agent</a><a href="./monitoring.html">Monitoring-Stack</a><a href="./extension.html">Browser-Extension</a><a href="./api-reference.html">API-Referenz</a><a href="./hooks.html">Hooks &amp; Events</a><a href="./cicd.html">CI/CD &amp; Release</a></div>
         </nav>
-        <div class="sidebar-footer"><span>v0.23.2</span><span id="year"></span></div>
+        <div class="sidebar-footer"><span>v0.24.0</span><span id="year"></span></div>
       </aside>
 
       <header class="topbar">
         <div class="topbar-left"><button class="menu-toggle" type="button" aria-label="Menü öffnen" aria-expanded="false"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button><nav class="crumbs" aria-label="Pfad"><a href="../index.html">Docs</a><span class="sep">/</span><a href="./index.html">Entwickler</a><span class="sep">/</span><span class="current">CI/CD &amp; Release</span></nav></div>
-        <div class="topbar-right"><div class="lang-switch" role="group" aria-label="Sprache"><a href="./cicd.html" class="is-active">DE</a><a href="../en/developer/cicd.html">EN</a></div><a class="btn btn-ghost btn-sm" href="https://git.nevondo.com/ks98/adminhelper" rel="noopener">GitLab</a></div>
+        <div class="topbar-right"><div class="lang-switch" role="group" aria-label="Sprache"><a href="./cicd.html" class="is-active">DE</a><a href="../en/developer/cicd.html">EN</a></div><a class="btn btn-ghost btn-sm" href="https://github.com/ks98/AdminHelper" rel="noopener">GitHub</a></div>
       </header>
 
       <main class="content">
         <div class="content-inner">
           <span class="eyebrow">Entwickler-Handbuch</span>
           <h1>CI/CD &amp; Release</h1>
-          <p class="lead">GitLab-CI-Pipeline baut Docker-Image, Desktop-DEBs und Go-Agent-Pakete. Release-Artefakte werden per Aptly-REST-API in ein signiertes Debian-Repo publiziert – nicht in GitLab-Packages.</p>
+          <p class="lead">GitHub Actions baut und testet alle Komponenten, pusht die Server- und Monitoring-Images in die GitHub Container Registry (ghcr.io) und legt bei einem Versions-Tag ein Draft-Release mit Desktop- und Agent-Artefakten an.</p>
 
-          <h2>Pipeline-Stages</h2>
+          <h2>Workflows</h2>
           <table>
-            <thead><tr><th>Stage</th><th>Jobs</th></tr></thead>
+            <thead><tr><th>Workflow</th><th>Aufgabe</th></tr></thead>
             <tbody>
-              <tr><td><code>check</code></td><td><code>pytest</code>, <code>svelte-check</code>, <code>cargo check</code>, <code>go vet</code></td></tr>
-              <tr><td><code>docker</code></td><td>Server-Image bauen &amp; in <code>docker.nevondo.com</code> pushen</td></tr>
-              <tr><td><code>download</code></td><td><code>frpc</code>-Binary vom offiziellen Release</td></tr>
-              <tr><td><code>build</code></td><td>Desktop-DEB (Trixie), Go-Agent-DEB/RPM für linux-amd64 + windows-amd64</td></tr>
-              <tr><td><code>publish</code></td><td>DEBs via Aptly-API hochladen, Repo-Snapshots erzeugen &amp; publizieren</td></tr>
+              <tr><td><code>ci.yml</code></td><td>Lint &amp; Tests aller Komponenten: Server-<code>pytest</code> (Postgres-Service, Python&nbsp;3.12/3.13), Monitoring-<code>pytest</code>, Go-Agent (<code>gofmt</code>/<code>vet</code>/<code>test</code>), Desktop-UI &amp; Web-Panel (<code>svelte-check</code>/<code>eslint</code>/<code>vitest</code>, Playwright-E2E), Extension (<code>node --test</code>), Rust/Tauri (<code>fmt</code>/<code>clippy</code>/<code>test</code>)</td></tr>
+              <tr><td><code>docker.yml</code></td><td>Server- + Monitoring-Image bauen &amp; nach <code>ghcr.io/ks98/adminhelper/{server,monitoring}</code> pushen</td></tr>
+              <tr><td><code>release.yml</code></td><td>Desktop-DEB/RPM/Binary, Go-Agent-DEB/RPM + Linux/Windows-Binaries, Windows-MSI (best-effort), <code>SHA256SUMS</code>, Draft-Release</td></tr>
             </tbody>
           </table>
 
@@ -49,111 +47,64 @@
           <table>
             <thead><tr><th>Event</th><th>Was läuft</th></tr></thead>
             <tbody>
-              <tr><td>Merge Request</td><td><code>check</code> (muss grün sein)</td></tr>
-              <tr><td>Branch-Push</td><td><code>check</code> + <code>docker</code> + <code>build</code>, aber kein <code>publish</code></td></tr>
-              <tr><td>Tag <code>v*.*.*</code></td><td>Volle Pipeline inklusive <code>publish</code> ins Prod-Repo</td></tr>
-              <tr><td>Tag <code>agent-v*.*.*</code></td><td>Nur Agent-Build + Agent-Publish (Server &amp; Desktop bleiben unberührt)</td></tr>
+              <tr><td>Pull Request</td><td><code>ci.yml</code> (muss grün sein)</td></tr>
+              <tr><td>Push auf <code>main</code></td><td><code>ci.yml</code> + <code>docker.yml</code> (Image-Tags <code>:main</code> + <code>:sha-&hellip;</code>)</td></tr>
+              <tr><td>Tag <code>v*</code></td><td><code>docker.yml</code> (Tags <code>:0.24.0</code> + <code>:latest</code>) + <code>release.yml</code> (Draft-Release mit Artefakten)</td></tr>
             </tbody>
           </table>
 
-          <h2>Version-Stellen</h2>
-          <p>Bei einem Release muss die neue Version an mehreren Stellen parallel gesetzt werden &ndash; Tag allein reicht nicht. Stand v0.23.2:</p>
-          <ul>
-            <li><code>frontend-src/package.json</code> &ndash; Vite-Build des Web-Panels</li>
-            <li><code>desktop-src/package.json</code> &ndash; Vite-Build des Desktop-Frontends</li>
-            <li><code>desktop/src-tauri/tauri.conf.json</code> + <code>desktop/src-tauri/Cargo.toml</code> &ndash; Tauri-Bundle-Version</li>
-            <li><code>extension/manifest.json</code> &ndash; Browser-Extension</li>
-            <li><code>.gitlab-ci.yml</code> &ndash; <code>AGENT_VERSION</code>-Variable in den Agent-Build- und Publish-Jobs (mehrere Stellen)</li>
-            <li><code>docs/**/*.html</code> &ndash; Footer-<code>&lt;span&gt;v0.23.2&lt;/span&gt;</code> in 50 HTML-Dateien (DE + EN)</li>
-            <li><code>CHANGELOG.md</code> &ndash; neuer Abschnitt am Anfang</li>
-          </ul>
-          <p>Der Server selbst h&auml;lt keine eigene <code>version</code> &ndash; das Backend wird &uuml;ber Docker-Image-Tag identifiziert. Im Go-Agent wird die Version per <code>-ldflags "-X main.version=$VERSION"</code> beim CI-Build reingeschrieben.</p>
-
-          <h2>Aptly-Publish</h2>
-          <p>Der CI-Job <code>publish</code> lädt DEBs in ein Aptly-Staging-Repo über die REST-API hoch (mutual TLS). Nach erfolgreichem Upload wird ein Snapshot erstellt und auf <code>stable</code> publiziert:</p>
-
-          <div class="code-header"><span>bash</span></div>
-<pre><code># desktop/scripts/ci_publish_via_api.sh (gekürzt)
-curl --cert "$APTLY_CLIENT_CERT" --key "$APTLY_CLIENT_KEY" \
-     -F file=@"$DEB" \
-     "$APTLY_URL/api/files/srm-staging"
-
-curl --cert "$APTLY_CLIENT_CERT" --key "$APTLY_CLIENT_KEY" \
-     -X POST "$APTLY_URL/api/repos/srm/file/srm-staging"
-
-curl --cert "$APTLY_CLIENT_CERT" --key "$APTLY_CLIENT_KEY" \
-     -X POST -H 'Content-Type: application/json' \
-     -d "{\"Name\":\"srm-$VERSION\",\"SourceKind\":\"local\",\"SourceRepo\":\"srm\"}" \
-     "$APTLY_URL/api/snapshots/srm"
-
-curl --cert "$APTLY_CLIENT_CERT" --key "$APTLY_CLIENT_KEY" \
-     -X PUT -H 'Content-Type: application/json' \
-     -d "{\"Snapshots\":[{\"Component\":\"main\",\"Name\":\"srm-$VERSION\"}]}" \
-     "$APTLY_URL/api/publish/stable/trixie"</code></pre>
+          <h2>Container-Images (ghcr.io)</h2>
+          <p>Getaggt wird über <code>docker/metadata-action</code>. <code>:latest</code> entsteht nur auf einem (Nicht-Prerelease-)Semver-Tag &ndash; nicht bei jedem <code>main</code>-Push:</p>
+          <div class="code-header"><span>text</span></div>
+<pre><code>ghcr.io/ks98/adminhelper/server:0.24.0      # Release-Tag
+ghcr.io/ks98/adminhelper/server:latest      # letzter Semver-Release
+ghcr.io/ks98/adminhelper/server:main        # letzter main-Build
+ghcr.io/ks98/adminhelper/server:sha-abc1234 # pro Commit
+# analog: ghcr.io/ks98/adminhelper/monitoring:&hellip;</code></pre>
 
           <div class="callout callout-warn" data-reveal>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
-            <div><div class="callout-title">Kein GitLab-Packages</div><p>DEBs werden <strong>ausschließlich</strong> über Aptly publiziert. GitLab-Packages wird nicht benutzt – nicht manuell hochladen, nicht als Fallback. Die öffentliche APT-Quelle bezieht ausschließlich aus dem Aptly-Repo.</p></div>
+            <div><div class="callout-title">Package-Sichtbarkeit</div><p>Neu erzeugte ghcr-Pakete sind <strong>privat</strong>. Nach dem ersten erfolgreichen <code>docker.yml</code>-Lauf müssen <code>server</code> und <code>monitoring</code> in den GitHub-Package-Einstellungen einmalig auf <strong>public</strong> gestellt werden &ndash; sonst schlägt <code>docker compose pull</code> für externe Nutzer mit <code>unauthorized</code>/<code>manifest-unknown</code> fehl.</p></div>
           </div>
 
-          <h2>Docker-Image</h2>
-          <div class="code-header"><span>bash</span></div>
-<pre><code># Multi-Stage: Frontend-Build → Python-Runtime
-docker build \
-  --target runtime \
-  -t docker.nevondo.com/ks98/adminhelper/server:$CI_COMMIT_TAG \
-  -t docker.nevondo.com/ks98/adminhelper/server:latest \
-  .
-docker push docker.nevondo.com/ks98/adminhelper/server:$CI_COMMIT_TAG
-docker push docker.nevondo.com/ks98/adminhelper/server:latest</code></pre>
+          <h2>Release-Artefakte</h2>
+          <p><code>release.yml</code> läuft auf Tag <code>v*</code> und hängt die gebauten Artefakte an ein <strong>Draft</strong>-Release (nicht veröffentlicht, bis ein Mensch „Publish" drückt):</p>
+          <ul>
+            <li>Desktop-Client: <code>.deb</code> + <code>.rpm</code> (Tauri) + ELF-Binary</li>
+            <li>Go-Agent: <code>.deb</code> + <code>.rpm</code> + <code>linux</code>/<code>windows</code>-Binaries</li>
+            <li>Desktop-Client Windows-<code>.msi</code> (best-effort &ndash; blockiert das Release nicht, wenn der Windows-Build fehlschlägt)</li>
+            <li><code>SHA256SUMS</code> über alle Assets</li>
+          </ul>
+          <p>Die Agent-Version wird aus dem Tag abgeleitet (<code>${GITHUB_REF_NAME#v}</code>) und per <code>-ldflags "-X main.version=$VERSION"</code> in die Binaries geschrieben.</p>
 
-          <p>Tag <code>latest</code> wird nur bei Prod-Releases geschoben – Dev-Branches bekommen nur den Commit-SHA-Tag, um Deployment-Verwechslungen zu vermeiden.</p>
-
-          <h2>Tauri-Build (Trixie)</h2>
-          <p>Desktop-Client-Build läuft in <code>debian:trixie</code> Docker-Runner. Die Toolchain wird pro Job installiert, aber Cargo-Cache + <code>target/</code> werden über GitLab-Cache wiederverwendet – spart ca. 6 min pro Build:</p>
-
-          <div class="code-header"><span>yaml</span></div>
-<pre><code>cache:
-  key:
-    files: [desktop/src-tauri/Cargo.lock]
-  paths:
-    - .cargo/bin
-    - .cargo/registry/index
-    - .cargo/registry/cache
-    - .cargo/git/db
-    - .rustup/toolchains
-    - desktop/src-tauri/target</code></pre>
-
-          <h2>Go-Agent-Build</h2>
-          <p>Cross-Compile für Linux + Windows in einem Job. Version wird per <code>-ldflags</code> reingeschrieben, damit <code>adminhelper-agent version</code> stimmt:</p>
-
-          <div class="code-header"><span>bash</span></div>
-<pre><code>VERSION=${CI_COMMIT_TAG#v}
-GOOS=linux   GOARCH=amd64 go build \
-  -ldflags "-X main.Version=$VERSION -X main.Commit=$CI_COMMIT_SHORT_SHA" \
-  -o bin/adminhelper-agent ./cmd/adminhelper-agent
-
-GOOS=windows GOARCH=amd64 go build \
-  -ldflags "-X main.Version=$VERSION -X main.Commit=$CI_COMMIT_SHORT_SHA" \
-  -o bin/adminhelper-agent.exe ./cmd/adminhelper-agent
-
-VERSION=$VERSION bash build-deb.sh
-VERSION=$VERSION bash build-rpm.sh</code></pre>
+          <h2>Version-Stellen</h2>
+          <p>Bei einem Release muss die neue Version an mehreren Stellen parallel gesetzt werden &ndash; der Tag allein reicht nicht:</p>
+          <ul>
+            <li><code>desktop/src-tauri/tauri.conf.json</code> + <code>Cargo.toml</code> + <code>Cargo.lock</code> &ndash; Tauri-Bundle</li>
+            <li><code>desktop-src/package.json</code> + <code>frontend-src/package.json</code> (+ jeweils <code>package-lock.json</code>) &ndash; Vite-Builds</li>
+            <li><code>desktop-src/src/components/AppShell.svelte</code> &ndash; Sidebar-Badge</li>
+            <li><code>extension/manifest.json</code> &ndash; Browser-Extension</li>
+            <li><code>agent-go/build-deb.sh</code> + <code>build-rpm.sh</code> &ndash; Default-<code>VERSION</code> (CI überschreibt sie aus dem Tag)</li>
+            <li><code>docs/**/*.html</code> &ndash; Footer-<code>&lt;span&gt;v0.24.0&lt;/span&gt;</code> + Landing-„Was ist neu" + Code-Samples</li>
+            <li><code>README.md</code> &ndash; Agent-DEB-Install-Befehl</li>
+            <li><code>CHANGELOG.md</code> &ndash; neuer Abschnitt am Anfang + Link-Ref</li>
+          </ul>
+          <p>Der Server selbst h&auml;lt keine eigene <code>version</code> &ndash; das Backend wird &uuml;ber den Docker-Image-Tag identifiziert.</p>
 
           <h2>Release-Checkliste</h2>
           <ol>
-            <li>Versionen in den oben gelisteten Dateien auf den Zielwert hochziehen (z.&nbsp;B. mit <code>sed</code> &uuml;ber <code>frontend-src/package.json</code>, <code>desktop-src/package.json</code>, <code>desktop/src-tauri/tauri.conf.json</code>, <code>desktop/src-tauri/Cargo.toml</code>, <code>extension/manifest.json</code>, <code>.gitlab-ci.yml</code>).</li>
-            <li>Footer-Versionen in <code>docs/**/*.html</code> aktualisieren: <code>find docs -name '*.html' -exec sed -i 's/v0\.OLD/v0.NEW/g' {} \;</code></li>
-            <li><code>CHANGELOG.md</code> pflegen (manuell, nach Conventional-Commits-Vorgabe).</li>
-            <li>Commit &amp; Tag: <code>git commit -am "release: v0.23.2" &amp;&amp; git tag v0.23.2</code>.</li>
+            <li>Versionen in den oben gelisteten Dateien auf den Zielwert hochziehen.</li>
+            <li>Footer-Versionen in <code>docs/**/*.html</code> aktualisieren (Footer-Span + Landing-„Was ist neu" + Code-Samples).</li>
+            <li><code>CHANGELOG.md</code> pflegen (Keep-a-Changelog: neuer Abschnitt + Link-Ref).</li>
+            <li>Commit &amp; Tag: <code>git commit -am "release: v0.24.0" &amp;&amp; git tag v0.24.0</code>.</li>
             <li><code>git push --follow-tags</code>.</li>
-            <li>Pipeline beobachten &ndash; bei gr&uuml;nem <code>publish</code> ist die neue Version live auf <code>deb.ks98.de</code>.</li>
-            <li>Release-Notes in GitLab-UI erg&auml;nzen (Markdown aus <code>CHANGELOG.md</code>).</li>
+            <li><code>docker.yml</code> + <code>release.yml</code> beobachten; nach dem ersten Image-Push die ghcr-Pakete (einmalig) auf public stellen.</li>
+            <li>Im GitHub-Draft-Release die Notes prüfen, Pflicht-Assets gegenchecken und „Publish" drücken.</li>
           </ol>
 
           <div class="callout callout-tip" data-reveal>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-7 7c0 3 2 5 3 7h8c1-2 3-4 3-7a7 7 0 0 0-7-7z"/></svg>
-            <div><div class="callout-title">Agent-only Release</div><p>Für Hotfixes am Go-Agent reicht ein Tag <code>agent-v0.20.1</code>. Die Pipeline überspringt Server- und Desktop-Jobs und publisht nur das Agent-DEB/-RPM. Spart 10+ min CI-Zeit.</p></div>
+            <div><div class="callout-title">Draft statt Auto-Publish</div><p>Das Release wird bewusst als <strong>Draft</strong> erzeugt und der Release-Job ist erfolgs-gated auf die Pflicht-Linux-Builds. So lässt sich vor der Veröffentlichung prüfen, ob alle Pflicht-Artefakte (Linux-Desktop + Agent) wirklich angehängt sind &ndash; der Windows-MSI-Build ist best-effort und darf fehlen.</p></div>
           </div>
 
           <div class="page-nav">

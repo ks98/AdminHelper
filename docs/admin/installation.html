@@ -46,7 +46,7 @@
             <a href="../developer/cicd.html">CI/CD &amp; Release</a>
           </div>
         </nav>
-        <div class="sidebar-footer"><span>v0.23.2</span><span id="year"></span></div>
+        <div class="sidebar-footer"><span>v0.24.0</span><span id="year"></span></div>
       </aside>
 
       <header class="topbar">
@@ -56,7 +56,7 @@
         </div>
         <div class="topbar-right">
           <div class="lang-switch" role="group" aria-label="Sprache"><a href="./installation.html" class="is-active">DE</a><a href="../en/admin/installation.html">EN</a></div>
-          <a class="btn btn-ghost btn-sm" href="https://git.nevondo.com/ks98/adminhelper" rel="noopener">GitLab</a>
+          <a class="btn btn-ghost btn-sm" href="https://github.com/ks98/AdminHelper" rel="noopener">GitHub</a>
         </div>
       </header>
 
@@ -90,8 +90,8 @@
           <p>Die offizielle <code>docker-compose.yml</code> liegt im Repository-Root. Für einen schnellen Test reicht:</p>
 
           <div class="code-header"><span>bash</span></div>
-<pre><code>git clone https://git.nevondo.com/ks98/adminhelper.git
-cd adminhelper
+<pre><code>git clone https://github.com/ks98/AdminHelper.git
+cd AdminHelper
 
 cp .env.example .env
 
@@ -189,12 +189,12 @@ docker compose up -d</code></pre>
           </div>
 
           <h2 id="update">Updates</h2>
-          <p>Der Server läuft aus dem Container-Registry <code>docker.nevondo.com</code>. Standard-Tags:</p>
+          <p>Der Server läuft aus der GitHub Container Registry <code>ghcr.io/ks98/adminhelper/server</code>. Standard-Tags:</p>
           <ul>
-            <li><code>:latest</code> – letzter erfolgreicher Build der Default-Branch</li>
-            <li><code>:dev</code> – derselbe Build, explizit für Dev-Umgebungen getaggt</li>
-            <li><code>:v0.23.2</code> – Release-Tag (protected)</li>
-            <li><code>:&lt;commit-sha&gt;</code> – deterministisches Image pro Commit</li>
+            <li><code>:latest</code> – letzter veröffentlichter Release (Semver-Tag)</li>
+            <li><code>:0.24.0</code> – konkreter Release-Tag</li>
+            <li><code>:main</code> – letzter Build der Default-Branch</li>
+            <li><code>:sha-&lt;commit&gt;</code> – deterministisches Image pro Commit</li>
           </ul>
 
           <div class="code-header"><span>bash</span></div>

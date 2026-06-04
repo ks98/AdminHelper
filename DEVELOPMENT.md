@@ -340,7 +340,7 @@ curl -sk https://localhost/api/frp/tunnels \
 ├─ Dockerfile                # Multi-Stage: Vite-Build (frontend-src) → Python-Runtime
 ├─ docker-compose.yml
 ├─ docker-compose.override.yml  # Lokale Dev-Overrides (gitignored)
-├─ .gitlab-ci.yml
+├─ .github/workflows/        # CI/CD (GitHub Actions): ci, docker, release
 └─ .env.example
 ```
 

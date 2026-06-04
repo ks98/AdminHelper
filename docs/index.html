@@ -126,7 +126,7 @@
         </nav>
 
         <div class="sidebar-footer">
-          <span>v0.23.2</span>
+          <span>v0.24.0</span>
           <span id="year"></span>
         </div>
       </aside>
@@ -148,9 +148,9 @@
             <a href="./index.html" class="is-active">DE</a>
             <a href="./en/index.html">EN</a>
           </div>
-          <a class="btn btn-ghost btn-sm" href="https://git.nevondo.com/ks98/adminhelper" rel="noopener">
+          <a class="btn btn-ghost btn-sm" href="https://github.com/ks98/AdminHelper" rel="noopener">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg>
-            GitLab
+            GitHub
           </a>
         </div>
       </header>
@@ -159,7 +159,7 @@
       <main class="content">
         <div class="content-inner">
           <section class="hero" data-reveal>
-            <span class="eyebrow">Version 0.23.2 · 2026-05-02</span>
+            <span class="eyebrow">Version 0.24.0 · 2026-06-04</span>
             <h1>AdminHelper – Dokumentation</h1>
             <p class="lead">
               Ein modularer Monolith zur zentralen Verwaltung von
@@ -268,18 +268,19 @@
             </div>
           </div>
 
-          <h2>Was ist neu in 0.23.2?</h2>
+          <h2>Was ist neu in 0.24.0?</h2>
           <div class="callout callout-note" data-reveal>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
             <div>
-              <div class="callout-title">v0.23.2 &ndash; Sammel-Release (2026-05-02)</div>
+              <div class="callout-title">v0.24.0 &ndash; Security-H&auml;rtung &amp; Umzug auf GitHub (2026-06-04)</div>
               <p>
-                Koordinierter Versions-Bump &uuml;ber alle Komponenten
-                (Server, Web-Panel, Desktop-Client, Go-Agent, Browser-Extension,
-                Docker-Image, CI-Pipeline) auf einen gemeinsamen Versions-Stand.
-                Keine funktionalen &Auml;nderungen &ndash; bringt
-                lediglich alle Artefakte wieder auf eine Linie nach den
-                gro&szlig;en Migrationen aus 0.17 und 0.19.
+                Sicherheits-Release plus Wechsel der Projekt-Infrastruktur auf
+                GitHub: geh&auml;rtete FRP-PKI-Schl&uuml;sselrechte (0600),
+                geschlossene IDOR- und TOCTOU-L&uuml;cken im Provisioning, eine
+                ehrliche Hook-Posture und periodische JWT-Blacklist-Bereinigung.
+                CI/CD l&auml;uft jetzt &uuml;ber GitHub Actions, die Docker-Images
+                kommen aus der GitHub Container Registry
+                (<code>ghcr.io/ks98/adminhelper/&hellip;</code>).
               </p>
             </div>
           </div>
