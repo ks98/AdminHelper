@@ -3,7 +3,7 @@ module adminhelper-agent
 go 1.24.2
 
 require (
-	github.com/shirou/gopsutil/v4 v4.26.3
+	github.com/shirou/gopsutil/v4 v4.26.5
 	github.com/spf13/cobra v1.10.2
 )
 
