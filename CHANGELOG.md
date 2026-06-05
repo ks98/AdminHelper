@@ -39,6 +39,14 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
   erzwingen Passwort-Mindestlaenge (8) und einen Username-Charset
   (`^[a-zA-Z0-9._-]+$`, 3–64) — der Username fliesst in FRP-TOML und PKI-Dateinamen.
 
+- **Container laufen nicht mehr als root.** Server- und Monitoring-Image starten
+  nur kurz als root (chownt die gemounteten Pfade), droppen dann via `gosu` auf
+  einen Non-root-User (uid 10001) — uvicorn, Alembic, Cert-Generierung und
+  Hook-Subprozesse laufen unprivilegiert. Begrenzt die Auswirkung einer
+  App-RCE/Path-Traversal auf einen Non-root-Prozess.
+- **`frps.toml` jetzt `0600`.** Die Datei (globaler `auth.token` +
+  Dashboard-Passwort) im mit frps geteilten Volume wurde zuvor world-readable
+  (`0664`) geschrieben; jetzt umask-robust `0600` (frps liest sie als root).
 - **CI/CD-Supply-Chain gehärtet.** Alle third-party GitHub-Actions sind auf den
   vollen Commit-SHA gepinnt (vorher mutable Tags/Branch-Refs wie
   `rust-toolchain@stable` in Jobs mit ghcr-Push + `contents:write`); der

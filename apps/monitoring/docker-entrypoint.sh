@@ -1,6 +1,14 @@
 #!/bin/sh
 set -e
 
+# --- Drop to the non-root app user -----------------------------------------
+# Start as root only to fix ownership of the data volume (existing deployments
+# may hold root-owned files), then re-exec unprivileged via gosu.
+if [ "$(id -u)" = "0" ]; then
+    chown -R app:app /app/data
+    exec gosu app:app sh "$0" "$@"
+fi
+
 # --- Postgres-Wait + Alembic-Migration -------------------------------------
 PGHOST="${PGHOST:-postgres}"
 PGPORT="${PGPORT:-5432}"

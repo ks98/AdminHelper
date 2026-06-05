@@ -6,7 +6,7 @@ ENV APP_VERSION=$VERSION
 WORKDIR /app
 
 RUN apt-get update \
- && apt-get install -y --no-install-recommends iputils-ping tzdata postgresql-client \
+ && apt-get install -y --no-install-recommends iputils-ping tzdata postgresql-client gosu \
  && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
@@ -18,6 +18,12 @@ COPY alembic/ ./alembic/
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 
 ENV DATA_DIR=/app/data
+
+# Non-root runtime user. The container starts as root so the entrypoint can
+# chown the data volume, then drops to this user via gosu (see entrypoint).
+RUN groupadd -r app && useradd -r -g app -u 10001 -d /app app \
+ && mkdir -p /app/data \
+ && chown -R app:app /app
 
 EXPOSE 8080
 
