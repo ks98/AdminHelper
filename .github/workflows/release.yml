@@ -27,7 +27,7 @@ jobs:
     name: Desktop (deb/rpm/bin, Linux)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Tauri system dependencies
         run: |
           sudo apt-get update
@@ -38,7 +38,7 @@ jobs:
       - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
         with:
           workspaces: apps/desktop/src-tauri
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: "22"
           cache: npm
@@ -67,7 +67,7 @@ jobs:
           cp apps/desktop/src-tauri/target/release/bundle/deb/*.deb dist/
           cp apps/desktop/src-tauri/target/release/bundle/rpm/*.rpm dist/
           cp apps/desktop/src-tauri/target/release/adminhelper dist/adminhelper-desktop-linux-x86_64
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: desktop-linux
           path: dist/
@@ -80,8 +80,8 @@ jobs:
     name: Go Agent (deb/rpm/bins)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
         with:
           go-version: "1.24"
           cache-dependency-path: apps/agent/go.sum
@@ -121,7 +121,7 @@ jobs:
           cp adminhelper-agent-*.rpm dist/
           cp apps/agent/bin/adminhelper-agent dist/adminhelper-agent-linux-x86_64
           cp apps/agent/bin/adminhelper-agent.exe dist/adminhelper-agent-windows-x86_64.exe
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: agent
           path: dist/
@@ -137,12 +137,12 @@ jobs:
     runs-on: windows-latest
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
       - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
         with:
           workspaces: apps/desktop/src-tauri
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: "22"
           cache: npm
@@ -170,7 +170,7 @@ jobs:
         run: |
           mkdir -p dist
           cp apps/desktop/src-tauri/target/release/bundle/msi/*.msi dist/
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: desktop-windows
@@ -193,7 +193,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           path: artifacts
       - name: Flatten and checksum
@@ -205,7 +205,7 @@ jobs:
           echo "=== Release assets ==="
           ls -lah
       - name: Create draft release
-        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
+        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
         with:
           draft: true
           name: AdminHelper ${{ github.ref_name }}
