@@ -195,15 +195,18 @@ SPDX-License-Identifier: GPL-3.0-or-later
     await loadGauge(metric, mount ?? null, '1h');
   }
 
+  let gaugeReqId = 0;
   async function loadGauge(
     metric: string,
     mount: string | null,
     period: '1h' | '6h' | '24h' | '7d',
   ): Promise<void> {
+    const reqId = ++gaugeReqId;
     gaugeLoading = true;
     gaugeError = null;
     try {
       const data = await api.checkMetrics(check.id, period);
+      if (reqId !== gaugeReqId) return; // a newer period switch superseded this
       const all = data.data ?? [];
       const filtered = all.filter((s) => {
         const name = s.metric?.__name__ ?? '';
@@ -217,10 +220,11 @@ SPDX-License-Identifier: GPL-3.0-or-later
       });
       gaugeData = { data: filtered };
     } catch (err) {
-      gaugeError = err instanceof Error ? err.message : 'Fehler';
+      if (reqId !== gaugeReqId) return;
+      gaugeError = err instanceof Error ? err.message : $t('error.generic');
       gaugeData = null;
     } finally {
-      gaugeLoading = false;
+      if (reqId === gaugeReqId) gaugeLoading = false;
     }
   }
 
@@ -240,16 +244,21 @@ SPDX-License-Identifier: GPL-3.0-or-later
   let mainLoading = $state(false);
   let mainError = $state<string | null>(null);
 
+  let mainReqId = 0;
   async function loadMain(period: '1h' | '6h' | '24h' | '7d'): Promise<void> {
+    const reqId = ++mainReqId;
     mainLoading = true;
     mainError = null;
     try {
-      mainData = await api.checkMetrics(check.id, period);
+      const data = await api.checkMetrics(check.id, period);
+      if (reqId !== mainReqId) return; // a newer period switch superseded this
+      mainData = data;
     } catch (err) {
-      mainError = err instanceof Error ? err.message : 'Fehler';
+      if (reqId !== mainReqId) return;
+      mainError = err instanceof Error ? err.message : $t('error.generic');
       mainData = null;
     } finally {
-      mainLoading = false;
+      if (reqId === mainReqId) mainLoading = false;
     }
   }
 
