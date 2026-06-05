@@ -19,6 +19,8 @@ concurrency:
 
 env:
   FRP_VERSION: "0.61.1"
+  # Pinned SHA-256 of the official frp release artifact (verified before use).
+  FRP_SHA256_LINUX_AMD64: "bff260b68ca7b1461182a46c4f34e9709ba32764eed30a15dd94ac97f50a2c40"
 
 jobs:
   server:
@@ -210,15 +212,16 @@ jobs:
         run: |
           curl -fsSL -o frpc.tar.gz \
             "https://github.com/fatedier/frp/releases/download/v${FRP_VERSION}/frp_${FRP_VERSION}_linux_amd64.tar.gz"
+          echo "${FRP_SHA256_LINUX_AMD64}  frpc.tar.gz" | sha256sum -c -
           tar xzf frpc.tar.gz
           mkdir -p apps/desktop/src-tauri/binaries
           cp "frp_${FRP_VERSION}_linux_amd64/frpc" \
             apps/desktop/src-tauri/binaries/frpc-x86_64-unknown-linux-gnu
           chmod +x apps/desktop/src-tauri/binaries/frpc-x86_64-unknown-linux-gnu
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
         with:
           components: rustfmt, clippy
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
         with:
           workspaces: apps/desktop/src-tauri
       - name: cargo fmt

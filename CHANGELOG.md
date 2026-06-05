@@ -39,6 +39,12 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
   erzwingen Passwort-Mindestlaenge (8) und einen Username-Charset
   (`^[a-zA-Z0-9._-]+$`, 3–64) — der Username fliesst in FRP-TOML und PKI-Dateinamen.
 
+- **CI/CD-Supply-Chain gehärtet.** Alle third-party GitHub-Actions sind auf den
+  vollen Commit-SHA gepinnt (vorher mutable Tags/Branch-Refs wie
+  `rust-toolchain@stable` in Jobs mit ghcr-Push + `contents:write`); der
+  `frpc`-Download wird vor Nutzung gegen einen gepinnten SHA-256 verifiziert;
+  Dependabot (`github-actions` + pip/npm/gomod/cargo) hält die Pins aktuell.
+
 ### Changed
 
 - **Provisioning-Antwort `monitorUrl` ist nun ein server-relativer Pfad
