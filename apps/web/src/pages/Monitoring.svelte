@@ -55,7 +55,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
         $serversStore.length === 0 ? serversStore.refresh() : Promise.resolve(),
       ]);
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Fehler', 'error');
+      showToast(err instanceof Error ? err.message : $t('error.generic'), 'error');
     }
   });
 
@@ -175,7 +175,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
       await monitorChecks.run(c.id);
       showToast($t('toast.check.executed'));
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Fehler', 'error');
+      showToast(err instanceof Error ? err.message : $t('error.generic'), 'error');
     }
   }
 
@@ -183,7 +183,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
     try {
       await monitorChecks.toggle(c.id);
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Fehler', 'error');
+      showToast(err instanceof Error ? err.message : $t('error.generic'), 'error');
     }
   }
 
@@ -194,7 +194,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
       await monitorChecks.remove(c.id);
       showToast($t('toast.check.deleted'));
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Fehler', 'error');
+      showToast(err instanceof Error ? err.message : $t('error.generic'), 'error');
     }
   }
 
@@ -220,7 +220,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
       await alertRules.toggle(r.id);
       showToast($t('toast.alert.updated'));
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Fehler', 'error');
+      showToast(err instanceof Error ? err.message : $t('error.generic'), 'error');
     }
   }
 
@@ -231,7 +231,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
       await alertRules.remove(r.id);
       showToast($t('toast.alert.deleted'));
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Fehler', 'error');
+      showToast(err instanceof Error ? err.message : $t('error.generic'), 'error');
     }
   }
 
@@ -261,7 +261,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
       await monitoringTemplates.remove(tpl.id);
       showToast($t('toast.template.deleted'));
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Fehler', 'error');
+      showToast(err instanceof Error ? err.message : $t('error.generic'), 'error');
     }
   }
 
@@ -279,7 +279,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
         await alertLog.refresh();
         logLoaded = true;
       } catch (err) {
-        showToast(err instanceof Error ? err.message : 'Fehler', 'error');
+        showToast(err instanceof Error ? err.message : $t('error.generic'), 'error');
       }
     }
   }
@@ -289,7 +289,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
       await alertLog.refresh();
       logLoaded = true;
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Fehler', 'error');
+      showToast(err instanceof Error ? err.message : $t('error.generic'), 'error');
     }
   }
 

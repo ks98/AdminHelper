@@ -28,7 +28,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
     try {
       await Promise.all([users.refresh(), servers.refresh()]);
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Fehler', 'error');
+      showToast(err instanceof Error ? err.message : $t('error.generic'), 'error');
     }
   }
 
@@ -64,7 +64,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
       await users.remove(u.id);
       showToast($t('toast.user.deleted'));
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Fehler', 'error');
+      showToast(err instanceof Error ? err.message : $t('error.generic'), 'error');
     }
   }
 </script>

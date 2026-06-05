@@ -35,7 +35,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
     try {
       status = await api.status();
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Fehler', 'error');
+      showToast(err instanceof Error ? err.message : $t('error.generic'), 'error');
     } finally {
       loading = false;
     }

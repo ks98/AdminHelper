@@ -24,7 +24,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
       await navigator.clipboard.writeText(content);
       showToast($t('toast.frp.copied'));
     } catch {
-      showToast('Fehler', 'error');
+      showToast($t('error.generic'), 'error');
     }
   }
 </script>

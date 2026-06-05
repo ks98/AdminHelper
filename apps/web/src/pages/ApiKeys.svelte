@@ -28,7 +28,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
     try {
       await apikeys.refresh();
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Fehler', 'error');
+      showToast(err instanceof Error ? err.message : $t('error.generic'), 'error');
     }
   }
 
@@ -64,7 +64,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
       await apikeys.remove(k.id);
       showToast($t('toast.apikey.deleted'));
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Fehler', 'error');
+      showToast(err instanceof Error ? err.message : $t('error.generic'), 'error');
     }
   }
 </script>

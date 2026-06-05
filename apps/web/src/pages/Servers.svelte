@@ -42,7 +42,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
         monitorChecks = [];
       }
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Fehler', 'error');
+      showToast(err instanceof Error ? err.message : $t('error.generic'), 'error');
     }
   }
 
@@ -106,7 +106,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
       showToast($t('toast.server.deleted'));
       await load();
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Fehler', 'error');
+      showToast(err instanceof Error ? err.message : $t('error.generic'), 'error');
     }
   }
 

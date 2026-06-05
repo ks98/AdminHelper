@@ -9,6 +9,7 @@ export type Translations = Record<Language, Record<string, string>>;
 
 export const translations: Translations = {
   de: {
+    'error.generic': 'Fehler',
     // ── Login ──────────────────────────────────────────────────────────
     'login.username': 'Benutzername',
     'login.password': 'Passwort',
@@ -613,6 +614,7 @@ export const translations: Translations = {
   },
 
   en: {
+    'error.generic': 'Error',
     // ── Login ──────────────────────────────────────────────────────────
     'login.username': 'Username',
     'login.password': 'Password',

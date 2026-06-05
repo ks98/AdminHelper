@@ -40,7 +40,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
     try {
       status = await api.pkiStatus();
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Fehler', 'error');
+      showToast(err instanceof Error ? err.message : $t('error.generic'), 'error');
     } finally {
       loading = false;
     }
@@ -65,7 +65,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
       showToast($t('toast.pki.caCreated', { date: formatDate(result.expiry) }));
       await refresh();
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Fehler', 'error');
+      showToast(err instanceof Error ? err.message : $t('error.generic'), 'error');
     }
   }
 
@@ -75,7 +75,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
       showToast($t('toast.pki.serverCertCreated', { name: result.commonName }));
       await refresh();
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Fehler', 'error');
+      showToast(err instanceof Error ? err.message : $t('error.generic'), 'error');
     }
   }
 
@@ -91,7 +91,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
       clientName = '';
       await refresh();
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Fehler', 'error');
+      showToast(err instanceof Error ? err.message : $t('error.generic'), 'error');
     }
   }
 
@@ -100,7 +100,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
       const blob = await api.pkiDownload(filename);
       triggerDownload(blob, filename);
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Fehler', 'error');
+      showToast(err instanceof Error ? err.message : $t('error.generic'), 'error');
     }
   }
 
@@ -109,7 +109,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
       const blob = await api.pkiDownloadBundle(name);
       triggerDownload(blob, `${name}-pki.zip`);
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Fehler', 'error');
+      showToast(err instanceof Error ? err.message : $t('error.generic'), 'error');
     }
   }
 

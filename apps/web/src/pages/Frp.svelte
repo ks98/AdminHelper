@@ -48,7 +48,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
         $serversStore.length === 0 ? serversStore.refresh() : Promise.resolve(),
       ]);
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Fehler', 'error');
+      showToast(err instanceof Error ? err.message : $t('error.generic'), 'error');
     }
   }
 
@@ -115,7 +115,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
       await frpTunnels.remove(tn.id);
       showToast($t('toast.tunnel.deleted'));
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Fehler', 'error');
+      showToast(err instanceof Error ? err.message : $t('error.generic'), 'error');
     }
   }
 
@@ -126,7 +126,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
       previewContent = content;
       previewOpen = true;
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Fehler', 'error');
+      showToast(err instanceof Error ? err.message : $t('error.generic'), 'error');
     }
   }
 
@@ -141,7 +141,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
       URL.revokeObjectURL(url);
       showToast($t('toast.frp.zipDownloaded'));
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Fehler', 'error');
+      showToast(err instanceof Error ? err.message : $t('error.generic'), 'error');
     }
   }
 </script>
