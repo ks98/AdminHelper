@@ -53,15 +53,15 @@ func BuildReport(serviceNames []string) map[string]any {
 
 	// Service health (platform-specific)
 	svcHealth := collectServiceHealth()
-	if serviceNames != nil && len(serviceNames) > 0 {
-		svcHealth["watched"] = collectWatchedServices(serviceNames)
+	if len(serviceNames) > 0 {
+		// Collect once and reuse for both the "watched" sub-key and the legacy
+		// top-level "services" key: avoids double systemctl/sc subprocess spawns
+		// per cycle and two snapshots that could disagree if a service flips.
+		watched := collectWatchedServices(serviceNames)
+		svcHealth["watched"] = watched
+		report["services"] = watched
 	}
 	report["systemd"] = svcHealth
-
-	// Legacy: services key
-	if len(serviceNames) > 0 {
-		report["services"] = collectWatchedServices(serviceNames)
-	}
 
 	// Auto-detected plugins
 	if docker := collectDocker(); docker != nil {
