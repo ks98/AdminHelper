@@ -58,7 +58,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
       showToast($t('toast.provision.created'));
       await loadTokens();
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Fehler', 'error');
+      showToast(err instanceof Error ? err.message : $t('error.generic'), 'error');
     }
   }
 
@@ -68,7 +68,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
       await navigator.clipboard.writeText(command);
       showToast($t('toast.provision.commandCopied'));
     } catch {
-      showToast('Fehler', 'error');
+      showToast($t('error.generic'), 'error');
     }
   }
 

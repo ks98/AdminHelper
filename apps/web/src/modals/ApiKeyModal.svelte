@@ -38,7 +38,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
       const created = await apikeys.create({ name: name.trim(), permission });
       onReveal(created.key);
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Fehler', 'error');
+      showToast(err instanceof Error ? err.message : $t('error.generic'), 'error');
     } finally {
       submitting = false;
     }

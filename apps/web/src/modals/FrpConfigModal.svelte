@@ -71,7 +71,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
       showToast(editing ? $t('toast.frpConfig.saved') : $t('toast.frpConfig.created'));
       onClose();
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Fehler', 'error');
+      showToast(err instanceof Error ? err.message : $t('error.generic'), 'error');
     } finally {
       submitting = false;
     }

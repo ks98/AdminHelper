@@ -34,7 +34,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
     try {
       await Promise.all([connections.refresh(), servers.refresh()]);
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Fehler', 'error');
+      showToast(err instanceof Error ? err.message : $t('error.generic'), 'error');
     }
   }
 
@@ -85,7 +85,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
       await connections.remove(c.id);
       showToast($t('toast.connection.deleted'));
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Fehler', 'error');
+      showToast(err instanceof Error ? err.message : $t('error.generic'), 'error');
     }
   }
 
@@ -99,7 +99,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
       a.click();
       URL.revokeObjectURL(url);
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Fehler', 'error');
+      showToast(err instanceof Error ? err.message : $t('error.generic'), 'error');
     }
   }
 </script>

@@ -7,18 +7,21 @@ SPDX-License-Identifier: GPL-3.0-or-later
 <script lang="ts">
   import { tunnel } from '$lib/stores/tunnel';
   import { sessionStore } from '$lib/stores/session';
+  import { t } from '$lib/i18n';
 
   let visible = $derived(
     $sessionStore.settings?.mode === 'server' && $sessionStore.session !== null,
   );
   let label = $derived.by(() => {
-    const t = $tunnel;
-    if (t.ui === 'connecting') return 'Tunnel verbindet…';
-    if (t.ui === 'connected') {
-      return t.status?.visitorName ? `Tunnel: ${t.status.visitorName}` : 'Tunnel aktiv';
+    const tn = $tunnel;
+    if (tn.ui === 'connecting') return $t('tunnel.connecting');
+    if (tn.ui === 'connected') {
+      return tn.status?.visitorName
+        ? $t('tunnel.activeNamed', { name: tn.status.visitorName })
+        : $t('tunnel.active');
     }
-    if (t.ui === 'disconnected') return 'Tunnel getrennt';
-    return 'Tunnel inaktiv';
+    if (tn.ui === 'disconnected') return $t('tunnel.disconnected');
+    return $t('tunnel.inactive');
   });
 </script>
 
