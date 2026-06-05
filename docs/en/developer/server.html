@@ -179,8 +179,9 @@ allowUsers = ["ops-admin"]</code></pre>
             <li><strong>PostgreSQL</strong> (compose volume <code>postgres-data</code>): two DBs <code>adminhelper</code> (server) and <code>adminhelper_monitor</code> (monitoring).</li>
             <li><strong>File system under <code>DATA_DIR</code></strong> (default <code>/app/data</code>): bootstrap token, JWT secret, Ansible playbook files.</li>
             <li><strong>Master PKI</strong> (volume <code>frp-pki</code>, server-only): CA key + all client keys.</li>
-            <li><strong>Shared volume <code>frp-config</code></strong> (frps mounts it <code>:ro</code> at <code>/etc/frp</code>): <code>frps.toml</code> + the published cert subset.</li>
+            <li><strong>Shared volume <code>frp-config</code></strong> (frps mounts it <code>:ro</code> at <code>/etc/frp</code>): <code>frps.toml</code> (<code>0600</code>) + the published cert subset.</li>
           </ul>
+          <p>The container starts as root only briefly to chown the mounted paths, then drops via <code>gosu</code> to a non-root user (uid <code>10001</code>) — uvicorn, Alembic, cert generation and hook subprocesses all run unprivileged.</p>
           <div class="code-header"><span>tree</span></div>
 <pre><code>/app/data/                         # DATA_DIR (server-only)
 &#9500;&#9472;&#9472; .bootstrap_token            # one-time setup-token hash (P0-6)

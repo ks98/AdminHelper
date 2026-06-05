@@ -22,7 +22,7 @@ ENV APP_VERSION=$VERSION \
 WORKDIR /app
 
 RUN apt-get update \
- && apt-get install -y --no-install-recommends openssl tzdata postgresql-client \
+ && apt-get install -y --no-install-recommends openssl tzdata postgresql-client gosu \
  && rm -rf /var/lib/apt/lists/*
 
 COPY apps/server/requirements.txt .
@@ -35,6 +35,13 @@ COPY apps/server/docker-entrypoint.sh /docker-entrypoint.sh
 
 # Vite-Dist aus Stage 1 als statisches Frontend einhaengen
 COPY --from=frontend-build /build/dist/ ./frontend/
+
+# Non-root runtime user. The container still STARTS as root so the entrypoint
+# can chown the mounted paths (bind mounts + named volumes), then drops to this
+# user via gosu before exec'ing uvicorn (see docker-entrypoint.sh).
+RUN groupadd -r app && useradd -r -g app -u 10001 -d /app app \
+ && mkdir -p /app/data /app/certs /app/frp-config /app/frp-pki \
+ && chown -R app:app /app
 
 EXPOSE 8443
 
