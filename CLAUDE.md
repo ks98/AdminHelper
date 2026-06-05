@@ -2,7 +2,7 @@
 
 ## Projekt-Überblick
 
-**AdminHelper** (GitLab-Repo `adminhelper`) ist ein Multi-Komponenten-Remote-
+**AdminHelper** (GitHub-Repo `ks98/AdminHelper`) ist ein Multi-Komponenten-Remote-
 Management-System: zentrale Verwaltung von SSH-/RDP-/Web-Verbindungen,
 Server-Inventar, Monitoring, FRP-Tunneln und Ansible-Playbooks. Fünf
 Code-Komponenten in vier Sprachen plus Extension:
@@ -29,9 +29,11 @@ STCP/HTTPS-Tunnel, eigene PKI), **VictoriaMetrics** (InfluxDB-Line-Protocol),
   unter `desktop/src/` wurde in v0.19.0 gelöscht — nicht den falschen Baum
   editieren.
 - **Release = mehrere Versions-Stellen synchron bumpen:** Desktop-Version in
-  `desktop/src-tauri/tauri.conf.json`; Agent- und FRP-Version als
-  `AGENT_VERSION` / `FRP_VERSION` in `.gitlab-ci.yml`; Server/Monitoring ziehen
-  die Version aus dem Git-Tag (Docker-Build-Arg). Stellen-Liste:
+  `desktop/src-tauri/tauri.conf.json`; die Agent-Version leitet `release.yml`
+  aus dem Git-Tag ab (Default-Fallback in `agent-go/build-deb.sh` /
+  `build-rpm.sh`), die `FRP_VERSION` ist in den GitHub-Workflows
+  (`.github/workflows/`) gepinnt; Server/Monitoring ziehen die Version aus dem
+  Git-Tag (Docker-Build-Arg). Stellen-Liste:
   `.claude/agent-memory/adminhelper-release-manager/version_locations.md`.
 
 ## 1. Arbeitsweise & Mindset
