@@ -1,0 +1,64 @@
+# SPDX-FileCopyrightText: 2026 Kevin Stenzel
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+version: 2
+updates:
+  # GitHub Actions — keep the SHA-pinned third-party actions current.
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+
+  # Python services
+  - package-ecosystem: pip
+    directory: "/apps/server"
+    schedule:
+      interval: weekly
+    groups:
+      python:
+        patterns: ["*"]
+  - package-ecosystem: pip
+    directory: "/apps/monitoring"
+    schedule:
+      interval: weekly
+    groups:
+      python:
+        patterns: ["*"]
+
+  # Frontends (Svelte/Vite)
+  - package-ecosystem: npm
+    directory: "/apps/web"
+    schedule:
+      interval: weekly
+    groups:
+      npm:
+        patterns: ["*"]
+  - package-ecosystem: npm
+    directory: "/apps/desktop/ui"
+    schedule:
+      interval: weekly
+    groups:
+      npm:
+        patterns: ["*"]
+
+  # Go agent
+  - package-ecosystem: gomod
+    directory: "/apps/agent"
+    schedule:
+      interval: weekly
+    groups:
+      go:
+        patterns: ["*"]
+
+  # Rust/Tauri desktop backend
+  - package-ecosystem: cargo
+    directory: "/apps/desktop/src-tauri"
+    schedule:
+      interval: weekly
+    groups:
+      cargo:
+        patterns: ["*"]
