@@ -71,7 +71,10 @@ services:
     restart: unless-stopped
 
   frps:
-    image: snowdreamtech/frps:latest
+    # Pinned to match the bundled frpc (FRP_VERSION in .github/workflows/*.yml).
+    # Keep both in lockstep — a floating :latest can jump the server ahead of
+    # the client and break the tunnel (e.g. wire-protocol changes).
+    image: snowdreamtech/frps:0.61.1
     ports:
       - "${FRP_BIND_PORT:-7000}:7000"
       - "${FRP_HTTPS_PORT:-7443}:443"
@@ -108,7 +111,7 @@ services:
         condition: service_healthy
 
   victoria:
-    image: victoriametrics/victoria-metrics:latest
+    image: victoriametrics/victoria-metrics:v1.144.0
     environment:
       - TZ=${TZ:-Europe/Berlin}
     volumes:
