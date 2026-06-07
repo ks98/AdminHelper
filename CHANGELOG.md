@@ -64,6 +64,14 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
   `rust-toolchain@stable` in Jobs mit ghcr-Push + `contents:write`); der
   `frpc`-Download wird vor Nutzung gegen einen gepinnten SHA-256 verifiziert;
   Dependabot (`github-actions` + pip/npm/gomod/cargo) hält die Pins aktuell.
+- **Desktop: drei aktive `rustls`-Advisories geschlossen** (`reqwest` 0.11 → 0.12).
+  `reqwest` 0.11 war der einzige Konsument des EOL-`rustls` 0.21 →
+  `rustls-webpki` 0.101.7 mit zwei Cert-Validation-Bypässen
+  (RUSTSEC-2026-0098/-0099: Name-Constraints für URI-/Wildcard-Namen fälschlich
+  akzeptiert) und einem DoS-Panic (RUSTSEC-2026-0104, CRL-Parsing). Jetzt
+  `rustls` 0.23.40 / `rustls-webpki` 0.103.13 — Krypto-Provider bleibt **`ring`**
+  (kein `aws-lc-rs`, also kein neuer NASM-Build-Zwang auf Windows), Roots bleiben
+  `webpki-roots` (unveraendertes Trust-Verhalten). Keine Code-Aenderung noetig.
 
 ### Changed
 
