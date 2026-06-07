@@ -117,6 +117,14 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
   eine `no-dom-manipulating`-Treffer waren allesamt Fehlalarme (transiente
   `Map`/`Set` in `$derived.by`, Copy-then-reassign-Pattern, uPlot-DOM-Interop) und
   sind mit begründeten `eslint-disable`-Kommentaren versehen.
+- **Ops: schwebende `:latest`-Images in `docker-compose.yml` gepinnt.**
+  `snowdreamtech/frps` → `0.61.1` (im Gleichschritt mit der gebundelten frpc-Version
+  `FRP_VERSION`, damit Server/Client nicht auseinanderlaufen) und
+  `victoriametrics/victoria-metrics` → `v1.144.0` — reproduzierbare Deployments,
+  keine ueberraschenden Versionsspruenge mehr. (Ein FRP-Bump auf 0.69.x ist bewusst
+  separat zu testen.)
+- **Server: totes `requests`-Dependency entfernt** (`apps/server/requirements.txt`);
+  der einzige HTTP-Client ist `httpx` (`monitoring_proxy.py`).
 
 - **Monitoring-Host-Port (`MONITOR_AGENT_PORT`/`8480`) aus `docker-compose.yml`
   entfernt** (nur noch `expose: 8080`).
