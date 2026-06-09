@@ -89,6 +89,15 @@ def _get_user_from_token(token: str, db: Session, expected_type: str = "access")
         iat = payload.get("iat")
         if iat is None:
             return None
+        # NOTE: sub-second watermark precision is intentional. JWT `iat` is integer
+        # seconds, so a token issued in the same second as the watermark is treated
+        # as "before" it. This is required for refresh-reuse containment
+        # (auth_router.refresh): a replay kills the family by setting the watermark,
+        # and the attacker's just-rotated tokens were issued in the same second —
+        # flooring the watermark would let them survive. The only downside is a
+        # sub-second forced-reauth window after a password reset, which is
+        # unreachable in practice (admin reset and the user's re-login are seconds
+        # apart). Do NOT floor this without re-checking refresh containment.
         watermark_ts = user.tokens_valid_after.replace(tzinfo=timezone.utc).timestamp()
         if iat < watermark_ts:
             return None
@@ -132,6 +141,20 @@ def is_token_blacklisted(token: str, db: Session) -> bool:
     if not jti:
         return False
     return db.query(TokenBlacklist).filter(TokenBlacklist.jti == jti).first() is not None
+
+
+def username_from_token_unverified(token: str) -> Optional[str]:
+    """Decode a token's subject ignoring expiry and the validity watermark.
+
+    Used for refresh-reuse containment: when an already-revoked refresh token is
+    replayed, we must identify the user (even if a watermark is already set) to
+    kill the whole token family.
+    """
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM], options={"verify_exp": False})
+    except InvalidTokenError:
+        return None
+    return payload.get("sub")
 
 
 def cleanup_expired_blacklist(db: Session) -> int:

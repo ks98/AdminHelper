@@ -70,14 +70,20 @@ class InMemoryBackend:
 class RedisBackend:
     def __init__(self, client) -> None:
         self._client = client
+        # On a Redis outage we must NOT fail open (returning 0 silently disabled
+        # the brute-force/abuse limit for the whole outage). Degrade to a local
+        # in-memory counter instead: the limit stays enforced (per-worker), just
+        # not shared across workers — acceptable, and the server is single-worker
+        # by default anyway.
+        self._fallback = InMemoryBackend()
 
     def get_count(self, key: str) -> int:
         try:
             value = self._client.get(key)
             return int(value) if value else 0
         except Exception as e:
-            logger.warning("Redis get fehlgeschlagen (%s) — Limit nicht durchgesetzt: %s", key, e)
-            return 0
+            logger.warning("Redis get fehlgeschlagen (%s) — degradiere auf In-Memory: %s", key, e)
+            return self._fallback.get_count(key)
 
     def increment(self, key: str, window_seconds: int) -> int:
         try:
@@ -87,14 +93,15 @@ class RedisBackend:
             result = pipe.execute()
             return int(result[0])
         except Exception as e:
-            logger.warning("Redis incr fehlgeschlagen (%s): %s", key, e)
-            return 0
+            logger.warning("Redis incr fehlgeschlagen (%s) — degradiere auf In-Memory: %s", key, e)
+            return self._fallback.increment(key, window_seconds)
 
     def reset(self, key: str) -> None:
         try:
             self._client.delete(key)
         except Exception as e:
             logger.warning("Redis del fehlgeschlagen (%s): %s", key, e)
+        self._fallback.reset(key)
 
 
 _backend: RateLimitBackend | None = None

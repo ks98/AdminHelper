@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import logging
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
@@ -18,6 +19,7 @@ from app.core.auth import (
     get_user_from_refresh_token,
     blacklist_token,
     is_token_blacklisted,
+    username_from_token_unverified,
 )
 from app.core.config import BOOTSTRAP_TOKEN_FILE
 from app.core.middleware import resolve_client_ip
@@ -95,6 +97,17 @@ def refresh_token(data: RefreshRequest, request: Request, db: Session = Depends(
             "Refresh-Token-Reuse erkannt von IP=%s — moeglicher Token-Diebstahl",
             resolve_client_ip(request),
         )
+        # Containment: a replayed (already-rotated) refresh token is a theft
+        # signal. Kill the WHOLE token family for this user via the validity
+        # watermark — otherwise the attacker's already-rotated chain (which they
+        # obtained by refreshing first) stays valid indefinitely; only the single
+        # replayed token would be blocked.
+        reused_username = username_from_token_unverified(data.refresh_token)
+        if reused_username:
+            reused_user = db.query(User).filter(User.username == reused_username).first()
+            if reused_user is not None:
+                reused_user.tokens_valid_after = datetime.now(timezone.utc).replace(tzinfo=None)
+                db.commit()
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Ungültiger oder abgelaufener Refresh-Token",
