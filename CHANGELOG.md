@@ -23,6 +23,13 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
   und das Webhook-Trigger-Rate-Limit nutzt jetzt das zentrale `rate_limit`-Backend
   (mit Eviction/TTL) statt eines unbegrenzt wachsenden Per-IP-Dicts (Memory-DoS bei
   gefälschten `X-Forwarded-For`).
+- **Server: Refresh-Token-Reuse invalidiert jetzt die ganze Token-Familie** (Audit).
+  Bei erkanntem Reuse (Theft-Signal) wird `tokens_valid_after` des Users gesetzt —
+  damit stirbt auch die bereits rotierte Angreifer-Kette, nicht nur das einzelne
+  Token (vorher blieb sie unbegrenzt gültig).
+- **Server: Rate-Limit fällt bei Redis-Ausfall nicht mehr „offen"** (Audit). Statt
+  bei Redis-Fehlern still `0` zu liefern (Brute-Force-Schutz aus), **degradiert**
+  das Backend auf einen lokalen In-Memory-Zähler — das Limit bleibt durchgesetzt.
 
 ## [0.26.0] - 2026-06-07
 
