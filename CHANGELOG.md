@@ -169,6 +169,10 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 - **Desktop: RDP-Fehlertoast bei extrem schnellen Verbindungen** —
   „verbunden"-Erkennung nutzt jetzt ein eigenes Flag statt des
   `connected_at_ms == 0`-Sentinels (Doppeldeutung bei <1 ms).
+- **Desktop-UI: Alert-Ladefehler sind sichtbar** (Audit). `loadAlerts`/
+  `loadAlertLog` schluckten API-Fehler still — ein toter Monitoring-Service
+  sah aus wie „keine Alerts". Jetzt `reportError` wie in `loadMonitoring`
+  (Session-Expiry weiterhin ausgenommen).
 - **Agent: Tests für SMART-Parsing, Report-Aufbau und Push-Retry** —
   smartctl-7.x-JSON-Fixtures (ATA + NVMe + Degenerat-Fälle), `BuildReport`-
   Grundstruktur, Retry-Verhalten gegen httptest-Server, `hasPrefix`/`getFloat`.

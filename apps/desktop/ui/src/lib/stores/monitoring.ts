@@ -159,8 +159,10 @@ export async function loadAlerts(): Promise<void> {
   try {
     const alerts = await monitoringApi.fetchAlerts(session);
     _state.update((s) => ({ ...s, alerts }));
-  } catch {
+  } catch (err) {
     _state.update((s) => ({ ...s, alerts: [] }));
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg !== 'SESSION_EXPIRED') reportError(tNow('error.monitoring', { message: msg }));
   }
 }
 
@@ -170,8 +172,10 @@ export async function loadAlertLog(): Promise<void> {
   try {
     const log = await monitoringApi.fetchAlertLog(session, 50);
     _state.update((s) => ({ ...s, log }));
-  } catch {
+  } catch (err) {
     _state.update((s) => ({ ...s, log: [] }));
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg !== 'SESSION_EXPIRED') reportError(tNow('error.monitoring', { message: msg }));
   }
 }
 
