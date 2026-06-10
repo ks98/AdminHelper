@@ -195,6 +195,11 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
   `parse_custom_size`, `hdpi_scale`, `resolve_connection`-Tunnel-Mapping,
   Windows-Cmdline-Quoting); Rust-Suite 24 → 49 Tests.
 
+### Removed
+
+- **Web: 5 verwaiste UI-Komponenten gelöscht** (`StatusPill`, `Badge`, `Tabs`,
+  `Spinner`, `Field` — 0 Importe im gesamten `src`, per grep verifiziert).
+
 ## [0.26.0] - 2026-06-07
 
 ### Changed
