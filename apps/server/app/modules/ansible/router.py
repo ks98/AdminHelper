@@ -12,9 +12,9 @@ import yaml
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.core.database import get_db
 from app.core.auth import get_current_admin
 from app.core.config import DATA_DIR
+from app.core.database import get_db
 from app.core.events import fire_event
 from app.modules.ansible.models import Playbook
 from app.modules.ansible.schemas import PlaybookCreate, PlaybookUpdate
@@ -41,7 +41,9 @@ def list_playbooks(db: Session = Depends(get_db), _admin=Depends(get_current_adm
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
-def create_playbook(data: PlaybookCreate, db: Session = Depends(get_db), _admin=Depends(get_current_admin)):
+def create_playbook(
+    data: PlaybookCreate, db: Session = Depends(get_db), _admin=Depends(get_current_admin)
+):
     # Validate YAML
     try:
         yaml.safe_load(data.content)
@@ -76,7 +78,9 @@ def create_playbook(data: PlaybookCreate, db: Session = Depends(get_db), _admin=
 
 
 @router.get("/{playbook_id}")
-def get_playbook(playbook_id: str, db: Session = Depends(get_db), _admin=Depends(get_current_admin)):
+def get_playbook(
+    playbook_id: str, db: Session = Depends(get_db), _admin=Depends(get_current_admin)
+):
     playbook = db.query(Playbook).filter(Playbook.id == playbook_id).first()
     if not playbook:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Playbook nicht gefunden")
@@ -84,21 +88,30 @@ def get_playbook(playbook_id: str, db: Session = Depends(get_db), _admin=Depends
 
 
 @router.get("/{playbook_id}/content")
-def get_playbook_content(playbook_id: str, db: Session = Depends(get_db), _admin=Depends(get_current_admin)):
+def get_playbook_content(
+    playbook_id: str, db: Session = Depends(get_db), _admin=Depends(get_current_admin)
+):
     playbook = db.query(Playbook).filter(Playbook.id == playbook_id).first()
     if not playbook:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Playbook nicht gefunden")
 
     path = _playbook_path(playbook.id, playbook.filename)
     if not path.exists():
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Playbook-Datei nicht gefunden")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Playbook-Datei nicht gefunden"
+        )
 
     content = path.read_text(encoding="utf-8")
     return {"content": content}
 
 
 @router.put("/{playbook_id}")
-def update_playbook(playbook_id: str, data: PlaybookUpdate, db: Session = Depends(get_db), _admin=Depends(get_current_admin)):
+def update_playbook(
+    playbook_id: str,
+    data: PlaybookUpdate,
+    db: Session = Depends(get_db),
+    _admin=Depends(get_current_admin),
+):
     playbook = db.query(Playbook).filter(Playbook.id == playbook_id).first()
     if not playbook:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Playbook nicht gefunden")
@@ -144,7 +157,9 @@ def update_playbook(playbook_id: str, data: PlaybookUpdate, db: Session = Depend
 
 
 @router.delete("/{playbook_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_playbook(playbook_id: str, db: Session = Depends(get_db), _admin=Depends(get_current_admin)):
+def delete_playbook(
+    playbook_id: str, db: Session = Depends(get_db), _admin=Depends(get_current_admin)
+):
     playbook = db.query(Playbook).filter(Playbook.id == playbook_id).first()
     if not playbook:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Playbook nicht gefunden")

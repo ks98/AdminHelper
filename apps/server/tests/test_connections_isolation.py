@@ -25,8 +25,12 @@ def _seed_two_servers(db):
         [
             Server(id="srv-a", name="A", hostname="a.local"),
             Server(id="srv-b", name="B", hostname="b.local"),
-            Connection(id="c-a", name="conn-a", kind="ssh", host="10.0.0.1", port=22, server_id="srv-a"),
-            Connection(id="c-b", name="conn-b", kind="ssh", host="10.0.0.2", port=22, server_id="srv-b"),
+            Connection(
+                id="c-a", name="conn-a", kind="ssh", host="10.0.0.1", port=22, server_id="srv-a"
+            ),
+            Connection(
+                id="c-b", name="conn-b", kind="ssh", host="10.0.0.2", port=22, server_id="srv-b"
+            ),
         ]
     )
     db.commit()
@@ -59,6 +63,16 @@ def test_nonadmin_cannot_touch_foreign_connection(test_client, db_session, norma
 
     token = _login(test_client, "viewer", "viewerpass")
     # own server: allowed
-    assert test_client.post("/api/connections/c-a/touch", headers={"Authorization": f"Bearer {token}"}).status_code == 200
+    assert (
+        test_client.post(
+            "/api/connections/c-a/touch", headers={"Authorization": f"Bearer {token}"}
+        ).status_code
+        == 200
+    )
     # foreign server: 404 (must not leak existence or set last_used)
-    assert test_client.post("/api/connections/c-b/touch", headers={"Authorization": f"Bearer {token}"}).status_code == 404
+    assert (
+        test_client.post(
+            "/api/connections/c-b/touch", headers={"Authorization": f"Bearer {token}"}
+        ).status_code
+        == 404
+    )

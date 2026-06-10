@@ -2,8 +2,9 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from pydantic import BaseModel, Field, field_validator
 from typing import Any, Literal, Optional
+
+from pydantic import BaseModel, Field, field_validator
 
 
 class Connection(BaseModel):

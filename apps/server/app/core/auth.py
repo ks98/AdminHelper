@@ -11,18 +11,23 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 import bcrypt
-from fastapi import Depends, HTTPException, Request, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import jwt
+from fastapi import Depends, HTTPException, Request, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt.exceptions import InvalidTokenError
 from sqlalchemy.orm import Session
 
-logger = logging.getLogger("adminhelper.auth")
-
-from app.core.config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_TOKEN_EXPIRE_DAYS
+from app.core.config import (
+    ACCESS_TOKEN_EXPIRE_MINUTES,
+    ALGORITHM,
+    REFRESH_TOKEN_EXPIRE_DAYS,
+    SECRET_KEY,
+)
 from app.core.database import get_db
-from app.modules.users.models import User, TokenBlacklist
 from app.modules.api_keys.models import ApiKey
+from app.modules.users.models import TokenBlacklist, User
+
+logger = logging.getLogger("adminhelper.auth")
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
@@ -151,7 +156,9 @@ def username_from_token_unverified(token: str) -> Optional[str]:
     kill the whole token family.
     """
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM], options={"verify_exp": False})
+        payload = jwt.decode(
+            token, SECRET_KEY, algorithms=[ALGORITHM], options={"verify_exp": False}
+        )
     except InvalidTokenError:
         return None
     return payload.get("sub")
@@ -201,7 +208,9 @@ def get_current_user(
 
 def get_current_admin(current_user: User = Depends(get_current_user)) -> User:
     if not current_user.is_admin:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin-Rechte erforderlich")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Admin-Rechte erforderlich"
+        )
     return current_user
 
 
@@ -238,7 +247,9 @@ class ApiKeyOrUser:
         api_key = _get_api_key(request, db)
         if api_key:
             if self.require_write and api_key.permission != "read_write":
-                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Schreibzugriff erforderlich")
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN, detail="Schreibzugriff erforderlich"
+                )
             return None, api_key
 
         # Check JWT
@@ -246,7 +257,9 @@ class ApiKeyOrUser:
             user = _get_user_from_token(credentials.credentials, db)
             if user:
                 if self.require_admin and not user.is_admin:
-                    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin-Rechte erforderlich")
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN, detail="Admin-Rechte erforderlich"
+                    )
                 return user, None
 
         raise HTTPException(

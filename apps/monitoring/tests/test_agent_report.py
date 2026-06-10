@@ -14,8 +14,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from app.core.database import get_db
 from app.core.auth import require_agent
+from app.core.database import get_db
 from app.models import Base, MonitorCheck, MonitorState
 
 
@@ -23,8 +23,8 @@ from app.models import Base, MonitorCheck, MonitorState
 def client_db(monkeypatch):
     """TestClient against the real app with sqlite, auth bypassed and
     VictoriaMetrics writes stubbed out."""
-    from app.main import app
     from app.core import victoria as victoria_mod
+    from app.main import app
 
     engine = create_engine(
         "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
@@ -42,9 +42,7 @@ def client_db(monkeypatch):
     app.dependency_overrides[get_db] = override_get_db
     app.dependency_overrides[require_agent] = lambda: "srv-1"
     monkeypatch.setattr(victoria_mod.victoria, "write", lambda lines: None)
-    monkeypatch.setattr(
-        victoria_mod.victoria, "write_check_result", lambda **kw: None
-    )
+    monkeypatch.setattr(victoria_mod.victoria, "write_check_result", lambda **kw: None)
 
     yield TestClient(app), factory
 
@@ -53,12 +51,17 @@ def client_db(monkeypatch):
 
 def _add_resources_check(factory, consecutive_fails: int) -> str:
     with factory() as db:
-        db.add(MonitorCheck(
-            id="chk-1", server_id="srv-1", name="Resources",
-            check_type="agent_resources",
-            config=json.dumps({"cpu_warn": 80, "cpu_crit": 95}),
-            enabled=True, consecutive_fails=consecutive_fails,
-        ))
+        db.add(
+            MonitorCheck(
+                id="chk-1",
+                server_id="srv-1",
+                name="Resources",
+                check_type="agent_resources",
+                config=json.dumps({"cpu_warn": 80, "cpu_crit": 95}),
+                enabled=True,
+                consecutive_fails=consecutive_fails,
+            )
+        )
         db.commit()
     return "chk-1"
 

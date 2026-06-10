@@ -7,8 +7,8 @@
 from __future__ import annotations
 
 import json
-import re
 import logging
+import re
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -19,7 +19,7 @@ from app.check_engine import effective_status, is_suppressed, next_fail_count
 from app.checkers.agent import EXCLUDED_FSTYPES
 from app.core.auth import require_agent
 from app.core.database import get_db
-from app.core.victoria import victoria, format_line
+from app.core.victoria import format_line, victoria
 from app.models import MonitorCheck, MonitorState
 
 logger = logging.getLogger(__name__)
@@ -48,14 +48,22 @@ def _num(v):
 
 
 @router.post("/agent/{server_id}/report")
-def agent_report(server_id: str, report: dict, db: Session = Depends(get_db), auth_server_id: str = Depends(require_agent)):
+def agent_report(
+    server_id: str,
+    report: dict,
+    db: Session = Depends(get_db),
+    auth_server_id: str = Depends(require_agent),
+):
     """Agent pushes metrics directly to the monitoring service."""
     if auth_server_id != "__internal__" and auth_server_id != server_id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="API-Key gehoert nicht zu diesem Server")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="API-Key gehoert nicht zu diesem Server"
+        )
 
     import time as _time
+
     from app.checkers.agent import AgentResourcesChecker, ServiceProcessChecker, record_agent_report
-    from app.checkers.plugins import ProxmoxBackupChecker, ZfsHealthChecker, DockerHealthChecker
+    from app.checkers.plugins import DockerHealthChecker, ProxmoxBackupChecker, ZfsHealthChecker
     from app.checkers.smart import SmartHealthChecker
 
     record_agent_report(server_id)
@@ -101,7 +109,9 @@ def agent_report(server_id: str, report: dict, db: Session = Depends(get_db), au
             lines.append(format_line(f"monitor_smart_temp_{safe_dev}", smart_tags, dtemp, ts))
         realloc = _num(disk.get("reallocated_sectors", 0))
         if realloc is not None:
-            lines.append(format_line(f"monitor_smart_reallocated_{safe_dev}", smart_tags, realloc, ts))
+            lines.append(
+                format_line(f"monitor_smart_reallocated_{safe_dev}", smart_tags, realloc, ts)
+            )
         pending = _num(disk.get("pending_sectors", 0))
         if pending is not None:
             lines.append(format_line(f"monitor_smart_pending_{safe_dev}", smart_tags, pending, ts))
@@ -116,9 +126,17 @@ def agent_report(server_id: str, report: dict, db: Session = Depends(get_db), au
         .filter(
             MonitorCheck.server_id == server_id,
             MonitorCheck.enabled == True,  # noqa: E712
-            MonitorCheck.check_type.in_(["agent_ping", "agent_resources", "service_process",
-                                        "proxmox_backup", "zfs_health", "docker_health",
-                                        "smart_health"]),
+            MonitorCheck.check_type.in_(
+                [
+                    "agent_ping",
+                    "agent_resources",
+                    "service_process",
+                    "proxmox_backup",
+                    "zfs_health",
+                    "docker_health",
+                    "smart_health",
+                ]
+            ),
         )
         .all()
     )
@@ -130,6 +148,7 @@ def agent_report(server_id: str, report: dict, db: Session = Depends(get_db), au
 
         if check.check_type == "agent_ping":
             from app.checkers.agent import AgentPingChecker
+
             result_status, message, metrics = AgentPingChecker().run(config)
         elif check.check_type == "agent_resources":
             result_status, message, metrics = AgentResourcesChecker().evaluate(config, report)
@@ -178,8 +197,12 @@ def agent_report(server_id: str, report: dict, db: Session = Depends(get_db), au
 
         if not state:
             state = MonitorState(
-                check_id=check.id, status=eff_status, since=now,
-                last_check=now, fail_count=new_fail_count, message=message,
+                check_id=check.id,
+                status=eff_status,
+                since=now,
+                last_check=now,
+                fail_count=new_fail_count,
+                message=message,
                 details=details_json,
             )
             db.add(state)

@@ -73,9 +73,15 @@ class TestServersPagination:
 
 
 class TestConnectionsPagination:
-    def _make_connections(self, db, n: int = 5, server_id: str | None = None, prefix: str = "conn") -> None:
+    def _make_connections(
+        self, db, n: int = 5, server_id: str | None = None, prefix: str = "conn"
+    ) -> None:
         for i in range(n):
-            db.add(Connection(id=f"{prefix}-{i}", name=f"{prefix}-{i}", kind="ssh", server_id=server_id))
+            db.add(
+                Connection(
+                    id=f"{prefix}-{i}", name=f"{prefix}-{i}", kind="ssh", server_id=server_id
+                )
+            )
         db.commit()
 
     def test_no_params_returns_full_list(self, test_client, db_session):
@@ -123,9 +129,16 @@ class TestHooksPagination:
         # created_at (server_default now()) is identical inside one transaction,
         # so the id tiebreaker determines the order.
         for i in range(n):
-            db.add(Hook(id=f"hook-{i}", name=f"hook-{i}", hook_type="event",
-                        script="result = {}", enabled=True,
-                        event_triggers='["connection.created"]'))
+            db.add(
+                Hook(
+                    id=f"hook-{i}",
+                    name=f"hook-{i}",
+                    hook_type="event",
+                    script="result = {}",
+                    enabled=True,
+                    event_triggers='["connection.created"]',
+                )
+            )
         db.commit()
 
     def test_no_params_returns_full_list(self, test_client, db_session, admin_user):

@@ -7,24 +7,24 @@ models so autogenerate sees the full Base.metadata."""
 
 from logging.config import fileConfig
 
+from alembic import context
 from sqlalchemy import engine_from_config, pool
 
-from alembic import context
+import app.modules.ansible.models  # noqa: F401
+import app.modules.api_keys.models  # noqa: F401
+import app.modules.connections.models  # noqa: F401
+import app.modules.frp.models  # noqa: F401
+import app.modules.hooks.models  # noqa: F401
+import app.modules.servers.models  # noqa: F401
+
+# Explicitly import all modules with __tablename__, otherwise they are
+# missing from Base.metadata for autogenerate.
+import app.modules.users.models  # noqa: F401
 
 # App imports — must come before target_metadata so Base.metadata
 # knows about all tables.
 from app.core.config import DATABASE_URL
 from app.core.database import Base
-
-# Explicitly import all modules with __tablename__, otherwise they are
-# missing from Base.metadata for autogenerate.
-import app.modules.users.models  # noqa: F401
-import app.modules.servers.models  # noqa: F401
-import app.modules.connections.models  # noqa: F401
-import app.modules.api_keys.models  # noqa: F401
-import app.modules.hooks.models  # noqa: F401
-import app.modules.frp.models  # noqa: F401
-import app.modules.ansible.models  # noqa: F401
 
 # Alembic config object
 config = context.config

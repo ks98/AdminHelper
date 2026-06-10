@@ -2,9 +2,9 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from pydantic import BaseModel, Field
 from typing import Optional
 
+from pydantic import BaseModel, Field
 
 # Usernames are interpolated into FRP TOML and used as PKI/cert file stems,
 # so restrict them to a safe charset (see frp/config_generator + pki.py).
@@ -35,6 +35,7 @@ class LogoutRequest(BaseModel):
 
 class BootstrapRequest(BaseModel):
     """Creates the first admin user using the bootstrap token from the server logs."""
+
     token: str
     username: str = Field(min_length=3, max_length=64, pattern=_USERNAME_PATTERN)
     password: str = Field(min_length=8, max_length=128)

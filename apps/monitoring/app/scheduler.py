@@ -40,7 +40,14 @@ scheduler = BackgroundScheduler(
 
 # Agent push checks are evaluated only by the agent report endpoint,
 # not by the scheduler. agent_ping is the exception: checks whether the agent is stale.
-PUSH_ONLY_TYPES = {"agent_resources", "service_process", "docker_health", "proxmox_backup", "zfs_health", "smart_health"}
+PUSH_ONLY_TYPES = {
+    "agent_resources",
+    "service_process",
+    "docker_health",
+    "proxmox_backup",
+    "zfs_health",
+    "smart_health",
+}
 
 _INTERVAL_MAP = {
     "1m": {"minutes": 1},
@@ -61,7 +68,9 @@ def _parse_trigger(interval: str):
     parts = interval.split()
     if len(parts) == 5:
         return CronTrigger.from_crontab(interval)
-    raise ValueError(f"Ungueltiges Intervall: {interval!r}. Erlaubt: {', '.join(_INTERVAL_MAP)} oder Cron (5 Felder)")
+    raise ValueError(
+        f"Ungueltiges Intervall: {interval!r}. Erlaubt: {', '.join(_INTERVAL_MAP)} oder Cron (5 Felder)"
+    )
 
 
 def add_check(check_id: str, interval: str, check_type: str | None = None) -> None:
@@ -143,7 +152,9 @@ def _run_alert_log_cleanup() -> None:
     from app.core.database import SessionLocal
     from app.models import MonitorAlertLog
 
-    cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=ALERT_LOG_RETENTION_DAYS)
+    cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(
+        days=ALERT_LOG_RETENTION_DAYS
+    )
     db = SessionLocal()
     try:
         removed = (
@@ -153,7 +164,11 @@ def _run_alert_log_cleanup() -> None:
         )
         db.commit()
         if removed:
-            logger.info("Alert-Log-Cleanup: %d Eintraege aelter als %d Tage entfernt", removed, ALERT_LOG_RETENTION_DAYS)
+            logger.info(
+                "Alert-Log-Cleanup: %d Eintraege aelter als %d Tage entfernt",
+                removed,
+                ALERT_LOG_RETENTION_DAYS,
+            )
     except Exception:
         db.rollback()
         logger.exception("Alert-Log-Cleanup fehlgeschlagen")

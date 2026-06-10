@@ -74,7 +74,11 @@ class VictoriaClient:
         if not metrics:
             return
         body = "\n".join(metrics)
-        logger.debug("VictoriaMetrics write: %d Zeilen, erste: %s", len(metrics), metrics[0][:200] if metrics else "-")
+        logger.debug(
+            "VictoriaMetrics write: %d Zeilen, erste: %s",
+            len(metrics),
+            metrics[0][:200] if metrics else "-",
+        )
         try:
             resp = self._client.post(f"{self.base_url}/write", content=body)
             resp.raise_for_status()

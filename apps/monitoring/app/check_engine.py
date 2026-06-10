@@ -68,6 +68,7 @@ def execute_check(check_id: str) -> None:
 
         # Do not run push-only checks from the scheduler
         from app.scheduler import PUSH_ONLY_TYPES
+
         if check.check_type in PUSH_ONLY_TYPES:
             return
 
@@ -136,7 +137,10 @@ def execute_check(check_id: str) -> None:
                 state.since = now
                 logger.info(
                     "Check '%s': %s -> %s (%s)",
-                    check.name, old_status, eff_status, message,
+                    check.name,
+                    old_status,
+                    eff_status,
+                    message,
                 )
             state.status = eff_status
             state.fail_count = new_fail_count

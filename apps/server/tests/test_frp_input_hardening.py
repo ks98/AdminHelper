@@ -16,8 +16,12 @@ from app.modules.servers.schemas import ServerCreate, ServerUpdate
 
 def _tunnel(**over):
     base = dict(
-        server_id="s", frp_config_id="c", name="ok-name",
-        tunnel_type="stcp", protocol="ssh", local_port=22,
+        server_id="s",
+        frp_config_id="c",
+        name="ok-name",
+        tunnel_type="stcp",
+        protocol="ssh",
+        local_port=22,
     )
     base.update(over)
     return FrpTunnelCreate(**base)
@@ -44,7 +48,9 @@ def test_secret_key_entropy_floor():
 
 def test_server_extra_config_rejects_breakers():
     with pytest.raises(ValidationError):
-        FrpServerConfigCreate(name="n", server_addr="a.example", extra_config={"k": 'v"\ninjected = 1'})
+        FrpServerConfigCreate(
+            name="n", server_addr="a.example", extra_config={"k": 'v"\ninjected = 1'}
+        )
 
 
 def test_extra_config_rejects_injection_inside_list_values():
@@ -73,8 +79,14 @@ def test_extra_config_rejects_non_bare_keys():
 
 
 def test_extra_config_accepts_clean_scalars():
-    t = _tunnel(extra_config={"transport.useEncryption": True, "retries": 3, "bandwidthLimit": "1MB"})
-    assert t.extra_config == {"transport.useEncryption": True, "retries": 3, "bandwidthLimit": "1MB"}
+    t = _tunnel(
+        extra_config={"transport.useEncryption": True, "retries": 3, "bandwidthLimit": "1MB"}
+    )
+    assert t.extra_config == {
+        "transport.useEncryption": True,
+        "retries": 3,
+        "bandwidthLimit": "1MB",
+    }
 
 
 def test_server_name_rejects_toml_breakers():

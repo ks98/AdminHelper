@@ -19,12 +19,12 @@ class Checker(Protocol):
 
 def get_checker(check_type: str) -> Checker:
     """Returns the matching checker for the check_type."""
-    from app.checkers.ping import PingChecker
-    from app.checkers.tcp import TcpChecker
-    from app.checkers.http import HttpChecker
     from app.checkers.agent import AgentPingChecker, AgentResourcesChecker, ServiceProcessChecker
-    from app.checkers.plugins import ProxmoxBackupChecker, ZfsHealthChecker, DockerHealthChecker
+    from app.checkers.http import HttpChecker
+    from app.checkers.ping import PingChecker
+    from app.checkers.plugins import DockerHealthChecker, ProxmoxBackupChecker, ZfsHealthChecker
     from app.checkers.smart import SmartHealthChecker
+    from app.checkers.tcp import TcpChecker
 
     _REGISTRY: dict[str, Checker] = {
         "ping": PingChecker(),

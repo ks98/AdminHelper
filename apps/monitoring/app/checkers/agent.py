@@ -12,7 +12,6 @@ The data comes from the adminhelper-agent via POST /agent/{server_id}/report.
 from __future__ import annotations
 
 import time
-from datetime import datetime, timezone
 
 # Pseudo filesystems ignored during disk evaluation
 EXCLUDED_FSTYPES = {"", "squashfs", "tmpfs", "devtmpfs", "overlay"}
@@ -179,13 +178,21 @@ class AgentResourcesChecker:
             "memory_total_mb": resources.get("memory_total_mb"),
             "memory_used_mb": resources.get("memory_used_mb"),
             "disks": [
-                {"mount": d.get("mount", "/"), "percent": d.get("percent", 0),
-                 "total_gb": d.get("total_gb"), "used_gb": d.get("used_gb")}
+                {
+                    "mount": d.get("mount", "/"),
+                    "percent": d.get("percent", 0),
+                    "total_gb": d.get("total_gb"),
+                    "used_gb": d.get("used_gb"),
+                }
                 for d in disks
             ],
             "temperatures": [
-                {"sensor": s.get("sensor", "?"), "temp_c": s.get("temp_c", 0),
-                 "high": s.get("high", 0), "critical": s.get("critical", 0)}
+                {
+                    "sensor": s.get("sensor", "?"),
+                    "temp_c": s.get("temp_c", 0),
+                    "high": s.get("high", 0),
+                    "critical": s.get("critical", 0),
+                }
                 for s in temperatures
             ],
         }
@@ -274,9 +281,9 @@ class ServiceProcessChecker:
             all_svcs = systemd["all_services"]
             failed_raw = [s["unit"] for s in all_svcs if s.get("active_state") == "failed"]
             enabled_inactive_raw = [
-                s["unit"] for s in all_svcs
-                if s.get("enabled_state") == "enabled"
-                and s.get("active_state") == "inactive"
+                s["unit"]
+                for s in all_svcs
+                if s.get("enabled_state") == "enabled" and s.get("active_state") == "inactive"
             ]
             # Also include non-service failed units (e.g. .mount, .socket)
             for u in systemd.get("failed", []):

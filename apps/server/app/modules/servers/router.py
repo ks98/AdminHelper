@@ -10,9 +10,9 @@ import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
-from app.core.database import get_db
 from app.core.auth import get_current_admin
-from app.core.config import MONITOR_SERVICE_URL, MONITOR_API_KEY
+from app.core.config import MONITOR_API_KEY, MONITOR_SERVICE_URL
+from app.core.database import get_db
 from app.core.events import fire_event
 from app.core.pagination import paginate
 from app.modules.servers.models import Server
@@ -38,7 +38,9 @@ def list_servers(
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
-def create_server(data: ServerCreate, db: Session = Depends(get_db), _admin=Depends(get_current_admin)):
+def create_server(
+    data: ServerCreate, db: Session = Depends(get_db), _admin=Depends(get_current_admin)
+):
     server = Server(
         id=str(uuid.uuid4()),
         name=data.name,
@@ -50,7 +52,9 @@ def create_server(data: ServerCreate, db: Session = Depends(get_db), _admin=Depe
     db.add(server)
     db.commit()
     db.refresh(server)
-    fire_event("server.created", {"id": server.id, "name": server.name, "hostname": server.hostname})
+    fire_event(
+        "server.created", {"id": server.id, "name": server.name, "hostname": server.hostname}
+    )
     return server.to_dict()
 
 
@@ -63,7 +67,12 @@ def get_server(server_id: str, db: Session = Depends(get_db), _admin=Depends(get
 
 
 @router.put("/{server_id}")
-def update_server(server_id: str, data: ServerUpdate, db: Session = Depends(get_db), _admin=Depends(get_current_admin)):
+def update_server(
+    server_id: str,
+    data: ServerUpdate,
+    db: Session = Depends(get_db),
+    _admin=Depends(get_current_admin),
+):
     server = db.query(Server).filter(Server.id == server_id).first()
     if not server:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Server nicht gefunden")

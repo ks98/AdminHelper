@@ -7,8 +7,7 @@ from __future__ import annotations
 import re
 import subprocess
 
-
-_VALID_TARGET = re.compile(r'^[a-zA-Z0-9._-]+$')
+_VALID_TARGET = re.compile(r"^[a-zA-Z0-9._-]+$")
 
 
 class PingChecker:
@@ -34,7 +33,11 @@ class PingChecker:
 
             if result.returncode == 0:
                 rtt = _parse_rtt(result.stdout)
-                return "ok", f"Erreichbar ({rtt:.1f} ms)" if rtt else "Erreichbar", {"ping_rtt_ms": rtt} if rtt else None
+                return (
+                    "ok",
+                    f"Erreichbar ({rtt:.1f} ms)" if rtt else "Erreichbar",
+                    {"ping_rtt_ms": rtt} if rtt else None,
+                )
             else:
                 return "critical", f"{target} nicht erreichbar", None
 

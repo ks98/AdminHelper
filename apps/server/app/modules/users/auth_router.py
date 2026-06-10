@@ -6,25 +6,26 @@ import logging
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
-from app.core.database import get_db
 from app.core.auth import (
-    verify_password,
-    hash_password,
-    hash_api_key,
+    blacklist_token,
     create_access_token,
     create_refresh_token,
     get_current_user,
     get_user_from_refresh_token,
-    blacklist_token,
+    hash_api_key,
+    hash_password,
     is_token_blacklisted,
     username_from_token_unverified,
+    verify_password,
 )
 from app.core.config import BOOTSTRAP_TOKEN_FILE, REFRESH_TOKEN_EXPIRE_DAYS
+from app.core.database import get_db
 from app.core.middleware import resolve_client_ip
 from app.core.rate_limit import get_backend as get_rate_limit_backend
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from app.modules.users.models import User
 from app.modules.users.schemas import (
     BootstrapRequest,
     LoginRequest,
@@ -33,7 +34,6 @@ from app.modules.users.schemas import (
     TokenResponse,
     UserMe,
 )
-from app.modules.users.models import User
 
 logger = logging.getLogger("adminhelper.auth_router")
 
@@ -266,7 +266,9 @@ def bootstrap(
     try:
         BOOTSTRAP_TOKEN_FILE.unlink()
     except OSError:
-        logger.warning("Bootstrap-Token-Datei konnte nicht geloescht werden: %s", BOOTSTRAP_TOKEN_FILE)
+        logger.warning(
+            "Bootstrap-Token-Datei konnte nicht geloescht werden: %s", BOOTSTRAP_TOKEN_FILE
+        )
 
     _reset_rate_limit(ip)
     logger.info("Bootstrap erfolgreich: Admin '%s' angelegt von IP=%s", user.username, ip)

@@ -59,9 +59,7 @@ class TestBootstrapEndpoint:
         # Token consumed
         assert not BOOTSTRAP_TOKEN_FILE.exists()
 
-    def test_wrong_token_fails_and_does_not_consume_file(
-        self, test_client, fresh_token
-    ):
+    def test_wrong_token_fails_and_does_not_consume_file(self, test_client, fresh_token):
         res = test_client.post(
             "/api/auth/bootstrap",
             json={"token": "definitely-wrong", "username": "anyone", "password": "abcdefgh"},
@@ -77,9 +75,7 @@ class TestBootstrapEndpoint:
         )
         assert res.status_code == 401
 
-    def test_existing_admin_blocks_bootstrap(
-        self, test_client, admin_user, fresh_token
-    ):
+    def test_existing_admin_blocks_bootstrap(self, test_client, admin_user, fresh_token):
         res = test_client.post(
             "/api/auth/bootstrap",
             json={"token": fresh_token, "username": "second", "password": "abcdefgh"},
@@ -87,9 +83,7 @@ class TestBootstrapEndpoint:
         assert res.status_code == 409
         # Token file remains — cleaned up by the next _ensure_admin
 
-    def test_idempotency_after_successful_bootstrap(
-        self, test_client, db_session, fresh_token
-    ):
+    def test_idempotency_after_successful_bootstrap(self, test_client, db_session, fresh_token):
         # First bootstrap: successful
         res1 = test_client.post(
             "/api/auth/bootstrap",

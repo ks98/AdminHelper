@@ -42,6 +42,8 @@ def test_webhook_trigger_works_after_offload(test_client, db_session, admin_user
 def test_webhook_trigger_is_rate_limited(test_client, db_session, admin_user):
     reset_backend_for_tests()
     wt = _create_webhook(test_client, _admin_token(test_client), "log('x')")
-    statuses = [test_client.post(f"/api/hooks/trigger/{wt}", json={}).status_code for _ in range(22)]
+    statuses = [
+        test_client.post(f"/api/hooks/trigger/{wt}", json={}).status_code for _ in range(22)
+    ]
     assert 429 in statuses, f"no rate limit hit: {statuses}"
     assert statuses.count(200) <= 20, statuses

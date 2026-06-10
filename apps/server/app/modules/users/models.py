@@ -2,11 +2,11 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Table
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Table
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-from app.core.database import Base
 
+from app.core.database import Base
 
 user_server_assoc = Table(
     "user_servers",
@@ -18,6 +18,7 @@ user_server_assoc = Table(
 
 class TokenBlacklist(Base):
     """Revoked JWT tokens (e.g. after logout or password change)."""
+
     __tablename__ = "token_blacklist"
 
     jti = Column(String, primary_key=True)  # JWT ID

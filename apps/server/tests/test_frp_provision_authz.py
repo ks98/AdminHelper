@@ -45,27 +45,21 @@ class TestFrpProvisionConfigIDOR:
         key_a = _api_key(db_session, server_id="srv-a")
         # Foreign server -> 403, BEFORE existence/config is checked.
         for path in ("config", "config-hash"):
-            res = test_client.get(
-                f"/api/frp/provision/srv-b/{path}", headers={"X-API-Key": key_a}
-            )
+            res = test_client.get(f"/api/frp/provision/srv-b/{path}", headers={"X-API-Key": key_a})
             assert res.status_code == 403, (path, res.status_code, res.text)
 
     def test_bound_key_passes_scope_for_own_server(self, test_client, db_session):
         _server(db_session, "srv-a", "server-a")
         key_a = _api_key(db_session, server_id="srv-a")
         # Scope ok -> NOT 403 (404 'no FRP config present' is expected here).
-        res = test_client.get(
-            "/api/frp/provision/srv-a/config", headers={"X-API-Key": key_a}
-        )
+        res = test_client.get("/api/frp/provision/srv-a/config", headers={"X-API-Key": key_a})
         assert res.status_code != 403, res.text
 
     def test_unbound_key_denied(self, test_client, db_session):
         _server(db_session, "srv-a", "server-a")
         key = _api_key(db_session, server_id=None)
         # Strict posture (option B): unbound key -> 403 at the provision endpoint.
-        res = test_client.get(
-            "/api/frp/provision/srv-a/config", headers={"X-API-Key": key}
-        )
+        res = test_client.get("/api/frp/provision/srv-a/config", headers={"X-API-Key": key})
         assert res.status_code == 403, res.text
 
     def test_admin_jwt_not_server_scoped(self, test_client, db_session, admin_user):

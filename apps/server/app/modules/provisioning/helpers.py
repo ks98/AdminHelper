@@ -23,7 +23,7 @@ from typing import Any, Optional
 import httpx
 from sqlalchemy.orm import Session
 
-from app.core.config import MONITOR_SERVICE_URL, MONITOR_API_KEY
+from app.core.config import MONITOR_API_KEY, MONITOR_SERVICE_URL
 from app.modules.frp import pki as pki_manager
 from app.modules.frp import provisioner
 from app.modules.frp._helpers import get_allow_users
@@ -84,16 +84,21 @@ def build_frp_bundle(server_id: str, db: Session) -> Optional[dict[str, Any]]:
     if not config:
         return None
 
-    tunnels = db.query(FrpTunnel).filter(
-        FrpTunnel.server_id == server_id,
-        FrpTunnel.frp_config_id == config.id,
-    ).all()
+    tunnels = (
+        db.query(FrpTunnel)
+        .filter(
+            FrpTunnel.server_id == server_id,
+            FrpTunnel.frp_config_id == config.id,
+        )
+        .all()
+    )
     if not tunnels:
         return None
 
     # Look up the server again in the helper so callers do not have to pass
     # a server instance
     from app.modules.servers.models import Server
+
     server = db.query(Server).filter(Server.id == server_id).first()
     if not server:
         return None

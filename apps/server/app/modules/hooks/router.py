@@ -13,18 +13,18 @@ from starlette.concurrency import run_in_threadpool
 from app.core.auth import generate_api_key, get_current_admin, hash_api_key
 from app.core.database import get_db
 from app.core.pagination import paginate
+from app.modules.hooks.models import Hook
+from app.modules.hooks.scheduler import _INTERVAL_MAP, add_hook, get_next_run, remove_hook
 from app.modules.hooks.schemas import (
+    VALID_EVENTS,
+    VALID_INTERVALS,
     HookCreate,
     HookCreatedResponse,
     HookDetailResponse,
     HookResponse,
     HookUpdate,
-    VALID_EVENTS,
-    VALID_INTERVALS,
 )
 from app.modules.hooks.script_runner import run_hook_script
-from app.modules.hooks.scheduler import add_hook, remove_hook, get_next_run, _INTERVAL_MAP
-from app.modules.hooks.models import Hook
 
 router = APIRouter(prefix="/api/hooks", tags=["hooks"])
 
@@ -71,13 +71,19 @@ def _validate_create(data: HookCreate) -> None:
         pass  # token is generated server-side
     elif data.hook_type == "event":
         if not data.event_triggers:
-            raise HTTPException(status_code=422, detail="event_triggers erforderlich für Event-Hooks")
+            raise HTTPException(
+                status_code=422, detail="event_triggers erforderlich für Event-Hooks"
+            )
         for evt in data.event_triggers:
             if evt not in VALID_EVENTS:
-                raise HTTPException(status_code=422, detail=f"Unbekanntes Event: {evt!r}. Erlaubt: {VALID_EVENTS}")
+                raise HTTPException(
+                    status_code=422, detail=f"Unbekanntes Event: {evt!r}. Erlaubt: {VALID_EVENTS}"
+                )
     elif data.hook_type == "schedule":
         if not data.schedule_interval:
-            raise HTTPException(status_code=422, detail="schedule_interval erforderlich für Scheduled Hooks")
+            raise HTTPException(
+                status_code=422, detail="schedule_interval erforderlich für Scheduled Hooks"
+            )
         parts = data.schedule_interval.split()
         if data.schedule_interval not in _INTERVAL_MAP and len(parts) != 5:
             raise HTTPException(
@@ -153,9 +159,9 @@ async def trigger_webhook(token: str, request: Request, db: Session = Depends(ge
     await run_in_threadpool(_check_trigger_rate_limit, request)
     hashed = hash_api_key(token)
     hook = await run_in_threadpool(
-        lambda: db.query(Hook)
-        .filter(Hook.hashed_token == hashed, Hook.hook_type == "webhook")
-        .first()
+        lambda: (
+            db.query(Hook).filter(Hook.hashed_token == hashed, Hook.hook_type == "webhook").first()
+        )
     )
     if not hook:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Hook nicht gefunden")
@@ -276,12 +282,16 @@ def toggle_hook(hook_id: str, db: Session = Depends(get_db), _admin=Depends(get_
 
 
 @router.post("/{hook_id}/rotate")
-def rotate_hook_token(hook_id: str, db: Session = Depends(get_db), _admin=Depends(get_current_admin)):
+def rotate_hook_token(
+    hook_id: str, db: Session = Depends(get_db), _admin=Depends(get_current_admin)
+):
     hook = db.query(Hook).filter(Hook.id == hook_id).first()
     if not hook:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Hook nicht gefunden")
     if hook.hook_type != "webhook":
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Nur Webhook-Hooks haben Token")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Nur Webhook-Hooks haben Token"
+        )
     raw_token = generate_api_key()
     hook.hashed_token = hash_api_key(raw_token)
     db.commit()
@@ -289,7 +299,9 @@ def rotate_hook_token(hook_id: str, db: Session = Depends(get_db), _admin=Depend
 
 
 @router.post("/{hook_id}/run")
-def run_hook_manually(hook_id: str, db: Session = Depends(get_db), _admin=Depends(get_current_admin)):
+def run_hook_manually(
+    hook_id: str, db: Session = Depends(get_db), _admin=Depends(get_current_admin)
+):
     hook = db.query(Hook).filter(Hook.id == hook_id).first()
     if not hook:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Hook nicht gefunden")

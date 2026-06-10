@@ -23,7 +23,9 @@ def require_internal(request: Request) -> None:
     """Validates the internal API key (AdminHelper proxy -> Monitoring)."""
     key = request.headers.get("X-Internal-Key", "")
     if not _key_matches(key, INTERNAL_API_KEY):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Ungültiger interner API-Key")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Ungültiger interner API-Key"
+        )
 
 
 def require_agent(request: Request, db: Session = Depends(get_db)) -> str:

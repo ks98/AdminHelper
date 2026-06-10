@@ -27,7 +27,6 @@ from app.modules.provisioning import helpers as prov_helpers
 from app.modules.provisioning.models import ProvisionToken
 from app.modules.servers.models import Server
 
-
 # ---------------------------------------------------------------------------
 # Fixtures & Helpers
 # ---------------------------------------------------------------------------
@@ -138,9 +137,7 @@ class TestProvisionActivate:
         assert body["monitorApiKey"] is None
         assert body["frp"] is None
 
-    def test_activate_with_monitor(
-        self, test_client, db_session, monitor_key_set, httpx_mock
-    ):
+    def test_activate_with_monitor(self, test_client, db_session, monitor_key_set, httpx_mock):
         srv = _make_server(db_session, sid="srv-with-mon", name="with-mon")
         raw = _make_token(db_session, server_id=srv.id)
 
@@ -218,11 +215,7 @@ class TestProvisionActivateConcurrency:
     def test_conditional_consume_is_atomic(self, test_client, db_session):
         srv = _make_server(db_session, sid="srv-toctou", name="toctou")
         _make_token(db_session, server_id=srv.id)
-        token = (
-            db_session.query(ProvisionToken)
-            .filter(ProvisionToken.server_id == srv.id)
-            .first()
-        )
+        token = db_session.query(ProvisionToken).filter(ProvisionToken.server_id == srv.id).first()
 
         def consume() -> int:
             return (
@@ -238,19 +231,13 @@ class TestProvisionActivateConcurrency:
         assert consume() == 1
         assert consume() == 0
 
-    def test_activate_loses_race_returns_409_and_no_key(
-        self, test_client, db_session, monkeypatch
-    ):
+    def test_activate_loses_race_returns_409_and_no_key(self, test_client, db_session, monkeypatch):
         srv = _make_server(db_session, sid="srv-race", name="race")
         raw = _make_token(db_session, server_id=srv.id)
 
         # Simulate: a concurrent request has already consumed the token while
         # this request still saw used_at=None in is_valid().
-        token = (
-            db_session.query(ProvisionToken)
-            .filter(ProvisionToken.server_id == srv.id)
-            .first()
-        )
+        token = db_session.query(ProvisionToken).filter(ProvisionToken.server_id == srv.id).first()
         token.used_at = datetime.datetime.now(datetime.timezone.utc)
         db_session.commit()
         monkeypatch.setattr(ProvisionToken, "is_valid", lambda self: True)

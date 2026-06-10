@@ -26,7 +26,9 @@ def _resolve_secret_key() -> str:
             return stored
 
     if env_key == "change-me-in-production":
-        logger.warning("SECRET_KEY ist der unsichere Default! Generiere automatisch einen sicheren Key.")
+        logger.warning(
+            "SECRET_KEY ist der unsichere Default! Generiere automatisch einen sicheren Key."
+        )
     generated = secrets.token_urlsafe(64)
     key_file.write_text(generated)
     key_file.chmod(0o600)

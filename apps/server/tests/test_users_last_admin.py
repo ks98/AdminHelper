@@ -27,7 +27,9 @@ def test_cannot_demote_last_admin(test_client, db_session, admin_user):
 
 
 def test_can_demote_admin_when_another_exists(test_client, db_session, admin_user):
-    db_session.add(User(username="admin2", hashed_password=hash_password("x2pass99"), is_admin=True))
+    db_session.add(
+        User(username="admin2", hashed_password=hash_password("x2pass99"), is_admin=True)
+    )
     db_session.commit()
     token = _login(test_client, "admin", "adminpass")
     r = test_client.put(

@@ -88,11 +88,15 @@ class ProxmoxBackupChecker:
             elif (now - last_ts) > max_age_seconds:
                 vm_status = "outdated"
                 age_hours = round((now - last_ts) / 3600)
-            vm_details.append({
-                "vmid": vmid, "name": vm.get("name", "?"),
-                "type": vm.get("type", "vm"), "backupStatus": vm_status,
-                "ageHours": age_hours,
-            })
+            vm_details.append(
+                {
+                    "vmid": vmid,
+                    "name": vm.get("name", "?"),
+                    "type": vm.get("type", "vm"),
+                    "backupStatus": vm_status,
+                    "ageHours": age_hours,
+                }
+            )
         metrics["_details"] = {"vms": vm_details}
 
         if no_backup:
@@ -156,8 +160,11 @@ class ZfsHealthChecker:
 
         metrics["_details"] = {
             "pools": [
-                {"name": p.get("name", "?"), "health": p.get("health", "UNKNOWN"),
-                 "capacityPercent": p.get("capacity_percent", 0)}
+                {
+                    "name": p.get("name", "?"),
+                    "health": p.get("health", "UNKNOWN"),
+                    "capacityPercent": p.get("capacity_percent", 0),
+                }
                 for p in pools
             ]
         }
@@ -221,10 +228,14 @@ class DockerHealthChecker:
             elif state == "running":
                 ok_count += 1
 
-            container_details.append({
-                "name": name, "state": state, "category": category,
-                "image": c.get("image", ""),
-            })
+            container_details.append(
+                {
+                    "name": name,
+                    "state": state,
+                    "category": category,
+                    "image": c.get("image", ""),
+                }
+            )
 
         metrics = {
             "docker_ok": ok_count,

@@ -7,16 +7,15 @@ models so autogenerate sees the full Base.metadata."""
 
 from logging.config import fileConfig
 
+from alembic import context
 from sqlalchemy import engine_from_config, pool
 
-from alembic import context
+# All tables are defined in app/models.py — a single import is enough.
+import app.models  # noqa: F401
 
 # App imports — must come before target_metadata.
 from app.core.config import DATABASE_URL
 from app.core.database import Base
-
-# All tables are defined in app/models.py — a single import is enough.
-import app.models  # noqa: F401
 
 config = context.config
 

@@ -6,8 +6,8 @@ import httpx
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.core.database import get_db
 from app.core.auth import get_current_admin
+from app.core.database import get_db
 from app.modules.frp.models import FrpServerConfig, FrpTunnel
 
 router = APIRouter(prefix="/api/frp", tags=["frp"])
@@ -45,17 +45,19 @@ def frps_status(db: Session = Depends(get_db), _admin=Depends(get_current_admin)
                         reachable = True
                         data = resp.json()
                         for p in data.get("proxies", []):
-                            proxies.append({
-                                "name": p.get("name", ""),
-                                "type": proxy_type,
-                                "status": p.get("status", "unknown"),
-                                "curConns": p.get("curConns", 0),
-                                "clientVersion": p.get("clientVersion", ""),
-                                "todayTrafficIn": p.get("todayTrafficIn", 0),
-                                "todayTrafficOut": p.get("todayTrafficOut", 0),
-                                "lastStartTime": p.get("lastStartTime", ""),
-                                "lastCloseTime": p.get("lastCloseTime", ""),
-                            })
+                            proxies.append(
+                                {
+                                    "name": p.get("name", ""),
+                                    "type": proxy_type,
+                                    "status": p.get("status", "unknown"),
+                                    "curConns": p.get("curConns", 0),
+                                    "clientVersion": p.get("clientVersion", ""),
+                                    "todayTrafficIn": p.get("todayTrafficIn", 0),
+                                    "todayTrafficOut": p.get("todayTrafficOut", 0),
+                                    "lastStartTime": p.get("lastStartTime", ""),
+                                    "lastCloseTime": p.get("lastCloseTime", ""),
+                                }
+                            )
                         break
                 except Exception:
                     continue
@@ -70,9 +72,11 @@ def frps_status(db: Session = Depends(get_db), _admin=Depends(get_current_admin)
     for p in proxies:
         proxy_name = p["name"].split(".")[-1] if "." in p["name"] else p["name"]
         tunnel = tunnel_map.get(proxy_name)
-        result.append({
-            **p,
-            "tunnel": tunnel,
-        })
+        result.append(
+            {
+                **p,
+                "tunnel": tunnel,
+            }
+        )
 
     return {"proxies": result, "total": len(result)}

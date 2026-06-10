@@ -9,14 +9,18 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import PlainTextResponse, StreamingResponse
 from sqlalchemy.orm import Session
 
-from app.core.database import get_db
 from app.core.auth import get_current_admin, get_current_user
-from app.modules.frp.models import FrpServerConfig, FrpTunnel
-from app.modules.frp._helpers import get_allow_users
-from app.modules.frp.config_generator import generate_frps_toml, generate_frpc_toml, generate_visitor_toml
+from app.core.database import get_db
 from app.modules.frp import pki as pki_manager
-from app.modules.users.models import User
+from app.modules.frp._helpers import get_allow_users
+from app.modules.frp.config_generator import (
+    generate_frpc_toml,
+    generate_frps_toml,
+    generate_visitor_toml,
+)
+from app.modules.frp.models import FrpServerConfig, FrpTunnel
 from app.modules.servers.models import Server
+from app.modules.users.models import User
 
 router = APIRouter(prefix="/api/frp", tags=["frp"])
 
@@ -43,14 +47,20 @@ def gen_frpc_toml(server_id: str, db: Session = Depends(get_db), _admin=Depends(
     if not server:
         raise HTTPException(status_code=404, detail="Server nicht gefunden")
 
-    tunnels = db.query(FrpTunnel).filter(
-        FrpTunnel.server_id == server_id,
-        FrpTunnel.enabled.is_(True),
-    ).all()
+    tunnels = (
+        db.query(FrpTunnel)
+        .filter(
+            FrpTunnel.server_id == server_id,
+            FrpTunnel.enabled.is_(True),
+        )
+        .all()
+    )
     if not tunnels:
         raise HTTPException(status_code=404, detail="Keine aktiven Tunnel fuer diesen Server")
 
-    config = db.query(FrpServerConfig).filter(FrpServerConfig.id == tunnels[0].frp_config_id).first()
+    config = (
+        db.query(FrpServerConfig).filter(FrpServerConfig.id == tunnels[0].frp_config_id).first()
+    )
     if not config:
         raise HTTPException(status_code=404, detail="FRP-Config nicht gefunden")
 
@@ -168,10 +178,14 @@ def gen_bulk_zip(
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
         zf.writestr("frps.toml", generate_frps_toml(config))
 
-        all_tunnels = db.query(FrpTunnel).filter(
-            FrpTunnel.frp_config_id == config.id,
-            FrpTunnel.enabled.is_(True),
-        ).all()
+        all_tunnels = (
+            db.query(FrpTunnel)
+            .filter(
+                FrpTunnel.frp_config_id == config.id,
+                FrpTunnel.enabled.is_(True),
+            )
+            .all()
+        )
 
         by_server = {}
         for t in all_tunnels:
@@ -192,7 +206,10 @@ def gen_bulk_zip(
                 u_server_ids = {s.id for s in user.servers}
                 u_tunnels = [t for t in stcp_tunnels if t.server_id in u_server_ids]
                 if u_tunnels:
-                    zf.writestr(f"visitors/{user.username}.toml", generate_visitor_toml(config, u_tunnels, user.username))
+                    zf.writestr(
+                        f"visitors/{user.username}.toml",
+                        generate_visitor_toml(config, u_tunnels, user.username),
+                    )
         else:
             zf.writestr("visitor.toml", generate_visitor_toml(config, stcp_tunnels))
 

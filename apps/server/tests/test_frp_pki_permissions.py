@@ -43,13 +43,19 @@ def test_frps_toml_written_owner_only(tmp_path, monkeypatch):
     """frps.toml holds the global auth.token + dashboard password and lives in
     the volume shared with the internet-facing frps -> must be 0600."""
     from types import SimpleNamespace
+
     from app.modules.frp import docker_manager
 
     monkeypatch.setattr(docker_manager, "FRP_CONFIG_DIR", tmp_path)
     cfg = SimpleNamespace(
-        bind_port=7000, vhost_https_port=None, subdomain_host=None,
-        max_ports_per_client=None, dashboard_port=None, dashboard_user=None,
-        dashboard_password=None, auth_token="secret-frps-token",
+        bind_port=7000,
+        vhost_https_port=None,
+        subdomain_host=None,
+        max_ports_per_client=None,
+        dashboard_port=None,
+        dashboard_user=None,
+        dashboard_password=None,
+        auth_token="secret-frps-token",
     )
     old_umask = os.umask(0o022)  # loose umask -> proves umask robustness
     try:

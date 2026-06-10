@@ -8,9 +8,7 @@ names, so it must be restricted)."""
 
 
 def _admin_headers(test_client) -> dict:
-    login = test_client.post(
-        "/api/auth/login", json={"username": "admin", "password": "adminpass"}
-    )
+    login = test_client.post("/api/auth/login", json={"username": "admin", "password": "adminpass"})
     return {"Authorization": f"Bearer {login.json()['access_token']}"}
 
 

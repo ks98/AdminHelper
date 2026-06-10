@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import json
 
-from sqlalchemy import Boolean, Column, DateTime, Integer, String, ForeignKey, func
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, func
 
 from app.core.database import Base
 
@@ -109,8 +109,12 @@ class MonitorAlertLog(Base):
     __tablename__ = "monitor_alert_log"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    alert_rule_id = Column(String, ForeignKey("monitor_alert_rules.id", ondelete="CASCADE"), nullable=False, index=True)
-    check_id = Column(String, ForeignKey("monitor_checks.id", ondelete="CASCADE"), nullable=False, index=True)
+    alert_rule_id = Column(
+        String, ForeignKey("monitor_alert_rules.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    check_id = Column(
+        String, ForeignKey("monitor_checks.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     old_status = Column(String, nullable=False)
     new_status = Column(String, nullable=False)
     sent_at = Column(DateTime, nullable=False, server_default=func.now())
@@ -146,8 +150,12 @@ class MonitorTemplate(Base):
             "id": self.id,
             "name": self.name,
             "description": self.description,
-            "checkDefinitions": json.loads(self.check_definitions) if self.check_definitions else [],
-            "alertDefinitions": json.loads(self.alert_definitions) if self.alert_definitions else [],
+            "checkDefinitions": json.loads(self.check_definitions)
+            if self.check_definitions
+            else [],
+            "alertDefinitions": json.loads(self.alert_definitions)
+            if self.alert_definitions
+            else [],
             "createdAt": self.created_at.isoformat() if self.created_at else None,
             "updatedAt": self.updated_at.isoformat() if self.updated_at else None,
         }
@@ -160,7 +168,9 @@ class MonitorTemplateAssignment(Base):
     __tablename__ = "monitor_template_assignments"
 
     id = Column(String, primary_key=True)
-    template_id = Column(String, ForeignKey("monitor_templates.id", ondelete="CASCADE"), nullable=False, index=True)
+    template_id = Column(
+        String, ForeignKey("monitor_templates.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     server_id = Column(String, nullable=False, index=True)
     server_hostname = Column(String, nullable=False)
     server_name = Column(String, nullable=False)
@@ -186,6 +196,7 @@ class MonitorAgentKey(Base):
     @staticmethod
     def hash_key(raw_key: str) -> str:
         import hashlib
+
         return hashlib.sha256(raw_key.encode()).hexdigest()
 
     def to_dict(self) -> dict:

@@ -15,12 +15,12 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import PlainTextResponse
 from sqlalchemy.orm import Session
 
-from app.core.database import get_db
 from app.core.auth import ApiKeyOrUser
-from app.modules.frp.models import FrpServerConfig, FrpTunnel
+from app.core.database import get_db
+from app.modules.frp import provisioner
 from app.modules.frp._helpers import get_allow_users
 from app.modules.frp.config_generator import generate_frpc_toml
-from app.modules.frp import provisioner
+from app.modules.frp.models import FrpServerConfig, FrpTunnel
 from app.modules.servers.models import Server
 
 router = APIRouter(prefix="/api/frp", tags=["frp"])
@@ -56,10 +56,14 @@ def get_provision_config(
     if not config:
         raise HTTPException(status_code=404, detail="Keine FRP-Config vorhanden")
 
-    tunnels = db.query(FrpTunnel).filter(
-        FrpTunnel.server_id == server_id,
-        FrpTunnel.frp_config_id == config.id,
-    ).all()
+    tunnels = (
+        db.query(FrpTunnel)
+        .filter(
+            FrpTunnel.server_id == server_id,
+            FrpTunnel.frp_config_id == config.id,
+        )
+        .all()
+    )
 
     allow_users = get_allow_users(db, server_id)
     toml_content = generate_frpc_toml(config, tunnels, server.name, allow_users)
@@ -82,10 +86,14 @@ def get_provision_config_hash(
     if not config:
         raise HTTPException(status_code=404, detail="Keine FRP-Config vorhanden")
 
-    tunnels = db.query(FrpTunnel).filter(
-        FrpTunnel.server_id == server_id,
-        FrpTunnel.frp_config_id == config.id,
-    ).all()
+    tunnels = (
+        db.query(FrpTunnel)
+        .filter(
+            FrpTunnel.server_id == server_id,
+            FrpTunnel.frp_config_id == config.id,
+        )
+        .all()
+    )
 
     allow_users = get_allow_users(db, server_id)
     config_hash = provisioner.get_config_hash(config, tunnels, server.name, allow_users=allow_users)

@@ -82,7 +82,9 @@ def test_migration_moves_legacy_secrets_out_of_shared(tmp_path, monkeypatch):
     assert not (published / "k01-lnx1.crt").exists()
     # frps subset still present and the CA was preserved (not regenerated).
     assert {f.name for f in published.iterdir() if f.is_file()} == {
-        "ca.crt", "frps.crt", "frps.key",
+        "ca.crt",
+        "frps.crt",
+        "frps.key",
     }
     assert (master / "ca.crt").read_bytes() == ca_crt_before
 
@@ -96,5 +98,7 @@ def test_migration_is_idempotent_and_noop_without_legacy(tmp_path, monkeypatch):
     # Master still intact, published still the subset.
     assert (master / "ca.key").exists()
     assert {f.name for f in published.iterdir() if f.is_file()} == {
-        "ca.crt", "frps.crt", "frps.key",
+        "ca.crt",
+        "frps.crt",
+        "frps.key",
     }

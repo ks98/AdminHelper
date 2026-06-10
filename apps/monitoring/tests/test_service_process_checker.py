@@ -86,8 +86,8 @@ def test_list_mode_unaffected_by_throttling():
 def client_db(monkeypatch):
     """TestClient against the real app with sqlite, auth bypassed and
     VictoriaMetrics writes stubbed out (same pattern as test_agent_report)."""
-    from app.main import app
     from app.core import victoria as victoria_mod
+    from app.main import app
 
     engine = create_engine(
         "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
@@ -105,9 +105,7 @@ def client_db(monkeypatch):
     app.dependency_overrides[get_db] = override_get_db
     app.dependency_overrides[require_agent] = lambda: "srv-1"
     monkeypatch.setattr(victoria_mod.victoria, "write", lambda lines: None)
-    monkeypatch.setattr(
-        victoria_mod.victoria, "write_check_result", lambda **kw: None
-    )
+    monkeypatch.setattr(victoria_mod.victoria, "write_check_result", lambda **kw: None)
 
     yield TestClient(app), factory
 
@@ -117,12 +115,17 @@ def client_db(monkeypatch):
 def test_throttled_push_keeps_stored_state(client_db):
     client, factory = client_db
     with factory() as db:
-        db.add(MonitorCheck(
-            id="chk-svc", server_id="srv-1", name="Services",
-            check_type="service_process",
-            config=json.dumps({"mode": "auto"}),
-            enabled=True, consecutive_fails=1,
-        ))
+        db.add(
+            MonitorCheck(
+                id="chk-svc",
+                server_id="srv-1",
+                name="Services",
+                check_type="service_process",
+                config=json.dumps({"mode": "auto"}),
+                enabled=True,
+                consecutive_fails=1,
+            )
+        )
         db.commit()
 
     # Full push establishes the stored state.

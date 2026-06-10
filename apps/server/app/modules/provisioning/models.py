@@ -13,7 +13,7 @@ from __future__ import annotations
 import datetime
 from typing import Any
 
-from sqlalchemy import Column, String, DateTime, ForeignKey
+from sqlalchemy import Column, DateTime, ForeignKey, String
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy.sql import func
 
@@ -24,7 +24,9 @@ class ProvisionToken(Base):
     __tablename__ = "provision_tokens"
 
     id = Column(String, primary_key=True)
-    server_id = Column(String, ForeignKey("servers.id", ondelete="CASCADE"), nullable=False, index=True)
+    server_id = Column(
+        String, ForeignKey("servers.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     hashed_token = Column(String, unique=True, nullable=False)
     expires_at = Column(DateTime, nullable=False)
     used_at = Column(DateTime, nullable=True)

@@ -17,8 +17,8 @@ from sqlalchemy.pool import StaticPool
 from app import scheduler as sched
 from app.models import Base, MonitorAlertLog
 
-
 # --- _parse_trigger -----------------------------------------------------------
+
 
 def test_parse_trigger_interval_map():
     trigger = sched._parse_trigger("5m")
@@ -46,6 +46,7 @@ def test_parse_trigger_invalid_raises():
 
 # --- add_check push-only skip -------------------------------------------------
 
+
 def test_add_check_skips_push_only_types():
     try:
         for push_type in sched.PUSH_ONLY_TYPES:
@@ -66,6 +67,7 @@ def test_add_check_registers_scheduled_type():
 
 # --- alert-log cleanup ----------------------------------------------------------
 
+
 def test_alert_log_cleanup_removes_only_old_entries(monkeypatch):
     engine = create_engine(
         "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
@@ -76,26 +78,38 @@ def test_alert_log_cleanup_removes_only_old_entries(monkeypatch):
     now = datetime.now(timezone.utc).replace(tzinfo=None)
     with factory() as db:
         # SQLite does not enforce FKs by default, so no parent rows needed.
-        db.add_all([
-            MonitorAlertLog(
-                alert_rule_id="r1", check_id="c1", old_status="ok",
-                new_status="critical", success=True,
-                sent_at=now - timedelta(days=sched.ALERT_LOG_RETENTION_DAYS + 5),
-            ),
-            MonitorAlertLog(
-                alert_rule_id="r1", check_id="c1", old_status="critical",
-                new_status="ok", success=True,
-                sent_at=now - timedelta(days=sched.ALERT_LOG_RETENTION_DAYS + 1),
-            ),
-            MonitorAlertLog(
-                alert_rule_id="r1", check_id="c1", old_status="ok",
-                new_status="warning", success=False,
-                sent_at=now - timedelta(days=1),
-            ),
-        ])
+        db.add_all(
+            [
+                MonitorAlertLog(
+                    alert_rule_id="r1",
+                    check_id="c1",
+                    old_status="ok",
+                    new_status="critical",
+                    success=True,
+                    sent_at=now - timedelta(days=sched.ALERT_LOG_RETENTION_DAYS + 5),
+                ),
+                MonitorAlertLog(
+                    alert_rule_id="r1",
+                    check_id="c1",
+                    old_status="critical",
+                    new_status="ok",
+                    success=True,
+                    sent_at=now - timedelta(days=sched.ALERT_LOG_RETENTION_DAYS + 1),
+                ),
+                MonitorAlertLog(
+                    alert_rule_id="r1",
+                    check_id="c1",
+                    old_status="ok",
+                    new_status="warning",
+                    success=False,
+                    sent_at=now - timedelta(days=1),
+                ),
+            ]
+        )
         db.commit()
 
     import app.core.database as database
+
     monkeypatch.setattr(database, "SessionLocal", factory)
 
     sched._run_alert_log_cleanup()

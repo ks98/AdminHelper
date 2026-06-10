@@ -103,17 +103,17 @@ Rust, TypeScript, Python, Go, verteilten Systemen und Cross-Platform-Desktop-App
   ständiges Nachfragen.
 - **Vor "fertig" melden, alle Checks tatsächlich ausführen** — nicht nur
   behaupten, und nur das ausführen, was es real gibt:
-  - **Python (`apps/server/`, `apps/monitoring/`):** `cd apps/server && pytest -q`
-    (`apps/monitoring/` hat derzeit keine Tests). Linter/Formatter/Typechecker
-    sind **nicht** konfiguriert — nichts behaupten, was nicht existiert.
-  - **Go (`apps/agent/`):** `gofmt -l .`, `go vet ./...`, `go test ./...`
-    (derzeit keine Tests). Build: `make build-linux` / `make build-windows`.
+  - **Python (`apps/server/`, `apps/monitoring/`):** in beiden Verzeichnissen
+    `pytest -q`; dazu `ruff check` + `ruff format --check` (Config in
+    `ruff.toml` im Root, CI-Gate vorhanden). Kein Typechecker konfiguriert.
+  - **Go (`apps/agent/`):** `gofmt -l .`, `go vet ./...`, `go test ./...`.
+    Build: `make build-linux` / `make build-windows`.
   - **Rust/Tauri (`apps/desktop/src-tauri/`):** `cargo fmt`,
     `cargo clippy -- -D warnings`, `cargo test`.
   - **Svelte/TS (`apps/desktop/ui/`):** `npm run check` (svelte-check),
     `npm run lint` (eslint + prettier), `npm run test` (vitest).
   - **Svelte/TS (`apps/web/`):** `npm run check`, `npm run lint`,
-    `npm run test:e2e` (Playwright).
+    `npm run test:unit` (vitest), `npm run test:e2e` (Playwright).
   - Doku & README auf den Änderungs-Stand gebracht (siehe "Doku-Pflege").
 - **Plattform-spezifisches Verhalten wird manuell verifiziert.** Bei
   Änderungen an Plattform-Code (Linux / macOS / Windows) in der Antwort
@@ -147,7 +147,7 @@ Rust, TypeScript, Python, Go, verteilten Systemen und Cross-Platform-Desktop-App
 - **TypeScript:** Strict Mode, kein `any`, ESLint + Prettier sauber.
 - **Go:** `gofmt` + `go vet` sauber.
 - **Python:** FastAPI-Stil des jeweiligen Moduls matchen; Logik mit
-  `pytest` absichern. (Kein Formatter/Linter erzwungen.)
+  `pytest` absichern; `ruff check` + `ruff format` müssen sauber sein.
 - **SPDX-Header & Lizenz:** Das Projekt ist **GPL-3.0-or-later** lizenziert
   (`LICENSE`, `LICENSES/`, Drittanbieter in `THIRD_PARTY_LICENSES.md`). **Jede
   neue Quelldatei** (`.py` `.go` `.rs` `.ts` `.svelte` `.js`/`.mjs`) bekommt

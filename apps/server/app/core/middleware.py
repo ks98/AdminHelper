@@ -4,6 +4,7 @@
 
 import ipaddress
 import logging
+
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
@@ -36,7 +37,9 @@ def _in_networks(ip_str: str, networks: list) -> bool:
 
 
 _ALLOWED_NETWORKS = _parse_networks(ALLOWED_IPS_RAW, "ALLOWED_IPS") if ALLOWED_IPS_RAW else []
-_TRUSTED_PROXIES  = _parse_networks(TRUSTED_PROXIES_RAW, "TRUSTED_PROXIES") if TRUSTED_PROXIES_RAW else []
+_TRUSTED_PROXIES = (
+    _parse_networks(TRUSTED_PROXIES_RAW, "TRUSTED_PROXIES") if TRUSTED_PROXIES_RAW else []
+)
 
 
 def resolve_client_ip(request: Request) -> str:

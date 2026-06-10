@@ -70,6 +70,16 @@ verträgt keine Mischung aus gehashten und ungehashten Zeilen.
 in der `.in` anheben bzw. `pip-compile --upgrade` fahren, Lock regenerieren,
 Tests grün, committen. Für npm/cargo/go analog über die jeweiligen Update-Befehle.
 
+### Python-Lint/Format (ruff)
+
+Beide Python-Komponenten nutzen [ruff](https://docs.astral.sh/ruff/) (Lint +
+Formatter, Config in `ruff.toml` im Repo-Root; CI erzwingt beides):
+
+```bash
+ruff check apps/server apps/monitoring          # Lint (mit --fix zum Beheben)
+ruff format apps/server apps/monitoring         # Formatieren
+```
+
 ### Go Toolchain (Agent)
 
 ```bash

@@ -31,8 +31,8 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
+from app.core.auth import generate_api_key, get_current_admin, hash_api_key
 from app.core.database import get_db
-from app.core.auth import get_current_admin, hash_api_key, generate_api_key
 from app.modules.api_keys.models import ApiKey
 from app.modules.provisioning.helpers import build_frp_bundle, fetch_or_skip_monitor_key
 from app.modules.provisioning.models import ProvisionToken
@@ -80,9 +80,12 @@ def list_provision_tokens(
     _admin=Depends(get_current_admin),
 ):
     """Lists all provision tokens for a server."""
-    tokens = db.query(ProvisionToken).filter(
-        ProvisionToken.server_id == server_id
-    ).order_by(ProvisionToken.created_at.desc()).all()
+    tokens = (
+        db.query(ProvisionToken)
+        .filter(ProvisionToken.server_id == server_id)
+        .order_by(ProvisionToken.created_at.desc())
+        .all()
+    )
     return [t.to_dict() for t in tokens]
 
 

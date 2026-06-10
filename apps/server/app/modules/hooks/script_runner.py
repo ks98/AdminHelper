@@ -76,10 +76,13 @@ def run_hook_script(
     timeout: int = SCRIPT_TIMEOUT_SECONDS,
 ) -> dict:
     """Run the script in an isolated subprocess and return the result."""
-    payload = json.dumps({
-        "script": script,
-        "context": context,
-    }, default=str)
+    payload = json.dumps(
+        {
+            "script": script,
+            "context": context,
+        },
+        default=str,
+    )
 
     # Minimized environment: removes ADMIN_PASSWORD, MONITOR_API_KEY and REDIS_URL
     # from the hook process. NOT complete isolation — DATABASE_URL (DB creds) is

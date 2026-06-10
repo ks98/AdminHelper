@@ -7,14 +7,14 @@
 from datetime import timedelta
 
 from app.core.auth import (
+    _get_user_from_token,
     create_access_token,
     create_refresh_token,
+    generate_api_key,
+    get_user_from_refresh_token,
+    hash_api_key,
     hash_password,
     verify_password,
-    hash_api_key,
-    generate_api_key,
-    _get_user_from_token,
-    get_user_from_refresh_token,
 )
 
 
@@ -56,7 +56,8 @@ class TestApiKeyUtils:
 class TestTokenCreation:
     def test_access_token_decodes(self):
         import jwt
-        from app.core.config import SECRET_KEY, ALGORITHM
+
+        from app.core.config import ALGORITHM, SECRET_KEY
 
         token = create_access_token({"sub": "admin"})
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
@@ -66,7 +67,8 @@ class TestTokenCreation:
 
     def test_refresh_token_type(self):
         import jwt
-        from app.core.config import SECRET_KEY, ALGORITHM
+
+        from app.core.config import ALGORITHM, SECRET_KEY
 
         token = create_refresh_token({"sub": "admin"})
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
@@ -74,7 +76,8 @@ class TestTokenCreation:
 
     def test_custom_expiration(self):
         import jwt
-        from app.core.config import SECRET_KEY, ALGORITHM
+
+        from app.core.config import ALGORITHM, SECRET_KEY
 
         token = create_access_token({"sub": "user1"}, expires_delta=timedelta(minutes=1))
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
@@ -128,7 +131,8 @@ class TestPasswordResetRevocation:
 
     def test_access_token_has_iat(self):
         import jwt
-        from app.core.config import SECRET_KEY, ALGORITHM
+
+        from app.core.config import ALGORITHM, SECRET_KEY
 
         payload = jwt.decode(
             create_access_token({"sub": "admin"}), SECRET_KEY, algorithms=[ALGORITHM]
@@ -157,9 +161,11 @@ class TestPasswordResetRevocation:
         assert user is not None and user.username == "admin"
 
     def test_token_without_iat_rejected_when_watermark_set(self, db_session, admin_user):
-        import jwt
         from datetime import datetime, timedelta, timezone
-        from app.core.config import SECRET_KEY, ALGORITHM
+
+        import jwt
+
+        from app.core.config import ALGORITHM, SECRET_KEY
 
         admin_user.tokens_valid_after = datetime.now(timezone.utc).replace(tzinfo=None)
         db_session.commit()
@@ -181,9 +187,12 @@ class TestPasswordResetRevocation:
             "/api/auth/login", json={"username": "admin", "password": "adminpass"}
         )
         access = login.json()["access_token"]
-        assert test_client.get(
-            "/api/auth/me", headers={"Authorization": f"Bearer {access}"}
-        ).status_code == 200
+        assert (
+            test_client.get(
+                "/api/auth/me", headers={"Authorization": f"Bearer {access}"}
+            ).status_code
+            == 200
+        )
 
         upd = test_client.put(
             f"/api/users/{admin_user.id}",
@@ -193,9 +202,7 @@ class TestPasswordResetRevocation:
         assert upd.status_code == 200
 
         # The pre-reset token must no longer authenticate.
-        me2 = test_client.get(
-            "/api/auth/me", headers={"Authorization": f"Bearer {access}"}
-        )
+        me2 = test_client.get("/api/auth/me", headers={"Authorization": f"Bearer {access}"})
         assert me2.status_code == 401
 
 
@@ -301,9 +308,7 @@ class TestRefreshCookie:
         access = login.json()["access_token"]
         refresh_before = test_client.cookies.get("refresh_token")
 
-        out = test_client.post(
-            "/api/auth/logout", headers={"Authorization": f"Bearer {access}"}
-        )
+        out = test_client.post("/api/auth/logout", headers={"Authorization": f"Bearer {access}"})
         assert out.status_code == 200
         # The response instructs the browser to delete the cookie.
         assert "refresh_token=" in out.headers.get("set-cookie", "")

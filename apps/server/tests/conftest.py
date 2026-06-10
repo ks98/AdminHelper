@@ -16,17 +16,17 @@ import pytest
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 
-from app.core.database import Base, get_db
-from app.core.auth import hash_password
-from app.modules.users.models import User
+import app.modules.ansible.models  # noqa: F401
+import app.modules.api_keys.models  # noqa: F401
+import app.modules.connections.models  # noqa: F401
+import app.modules.frp.models  # noqa: F401
+import app.modules.hooks.models  # noqa: F401
 
 # Explicitly import all models — otherwise Base.metadata does not know about them.
 import app.modules.servers.models  # noqa: F401
-import app.modules.connections.models  # noqa: F401
-import app.modules.api_keys.models  # noqa: F401
-import app.modules.hooks.models  # noqa: F401
-import app.modules.frp.models  # noqa: F401
-import app.modules.ansible.models  # noqa: F401
+from app.core.auth import hash_password
+from app.core.database import Base, get_db
+from app.modules.users.models import User
 
 
 def _normalize_postgres_url(raw_url: str) -> str:
@@ -36,7 +36,7 @@ def _normalize_postgres_url(raw_url: str) -> str:
     not try to import the non-installed psycopg2."""
     for old in ("postgresql+psycopg2://", "postgresql+asyncpg://", "postgresql://"):
         if raw_url.startswith(old):
-            return "postgresql+psycopg://" + raw_url[len(old):]
+            return "postgresql+psycopg://" + raw_url[len(old) :]
     return raw_url
 
 
@@ -139,6 +139,7 @@ def normal_user(db_session):
 def test_client(db_session):
     """FastAPI TestClient with an overridden DB dependency."""
     from fastapi.testclient import TestClient
+
     from app.main import app
 
     def _override_db():

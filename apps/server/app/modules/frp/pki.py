@@ -7,12 +7,13 @@
 import datetime
 import logging
 import os
+import re as _re
 from pathlib import Path
 
 from cryptography import x509
-from cryptography.x509.oid import NameOID
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.x509.oid import NameOID
 
 from app.core.config import FRP_CONFIG_DIR, FRP_PKI_DIR
 
@@ -74,7 +75,9 @@ def _prune_shared_secrets() -> None:
             try:
                 f.unlink()
             except OSError as exc:
-                logger.warning("Konnte Alt-Secret nicht aus Shared-Volume loeschen (%s): %s", f, exc)
+                logger.warning(
+                    "Konnte Alt-Secret nicht aus Shared-Volume loeschen (%s): %s", f, exc
+                )
 
 
 def migrate_master_pki_out_of_shared() -> bool:
@@ -123,7 +126,8 @@ def migrate_master_pki_out_of_shared() -> bool:
     _publish_frps_materials()
     logger.warning(
         "FRP-PKI migriert: Master-Secrets nach %s verschoben, frps-Volume (%s) bereinigt",
-        PKI_DIR, PUBLISHED_PKI_DIR,
+        PKI_DIR,
+        PUBLISHED_PKI_DIR,
     )
     return True
 
@@ -199,10 +203,12 @@ def get_pki_status() -> dict:
             continue
         name = f.stem
         cert = x509.load_pem_x509_certificate(f.read_bytes())
-        status["clientCerts"].append({
-            "name": name,
-            "expiry": cert.not_valid_after_utc.isoformat(),
-        })
+        status["clientCerts"].append(
+            {
+                "name": name,
+                "expiry": cert.not_valid_after_utc.isoformat(),
+            }
+        )
 
     return status
 
@@ -213,10 +219,12 @@ def generate_ca(common_name: str = "AdminHelper FRP CA") -> dict:
     key = _generate_key()
     now = datetime.datetime.now(datetime.timezone.utc)
 
-    subject = issuer = x509.Name([
-        x509.NameAttribute(NameOID.COMMON_NAME, common_name),
-        x509.NameAttribute(NameOID.ORGANIZATION_NAME, "AdminHelper"),
-    ])
+    subject = issuer = x509.Name(
+        [
+            x509.NameAttribute(NameOID.COMMON_NAME, common_name),
+            x509.NameAttribute(NameOID.ORGANIZATION_NAME, "AdminHelper"),
+        ]
+    )
 
     cert = (
         x509.CertificateBuilder()
@@ -227,12 +235,20 @@ def generate_ca(common_name: str = "AdminHelper FRP CA") -> dict:
         .not_valid_before(now)
         .not_valid_after(now + datetime.timedelta(days=VALIDITY_DAYS_CA))
         .add_extension(x509.BasicConstraints(ca=True, path_length=None), critical=True)
-        .add_extension(x509.KeyUsage(
-            digital_signature=True, key_cert_sign=True, crl_sign=True,
-            content_commitment=False, key_encipherment=False,
-            data_encipherment=False, key_agreement=False,
-            encipher_only=False, decipher_only=False,
-        ), critical=True)
+        .add_extension(
+            x509.KeyUsage(
+                digital_signature=True,
+                key_cert_sign=True,
+                crl_sign=True,
+                content_commitment=False,
+                key_encipherment=False,
+                data_encipherment=False,
+                key_agreement=False,
+                encipher_only=False,
+                decipher_only=False,
+            ),
+            critical=True,
+        )
         .sign(key, hashes.SHA256())
     )
 
@@ -265,10 +281,12 @@ def generate_server_cert(server_addr: str) -> dict:
     key = _generate_key()
     now = datetime.datetime.now(datetime.timezone.utc)
 
-    subject = x509.Name([
-        x509.NameAttribute(NameOID.COMMON_NAME, server_addr),
-        x509.NameAttribute(NameOID.ORGANIZATION_NAME, "AdminHelper"),
-    ])
+    subject = x509.Name(
+        [
+            x509.NameAttribute(NameOID.COMMON_NAME, server_addr),
+            x509.NameAttribute(NameOID.ORGANIZATION_NAME, "AdminHelper"),
+        ]
+    )
 
     # IP addresses must be added as an IPAddress SAN, not as a DNSName
     san_entries: list[x509.GeneralName] = []
@@ -287,9 +305,14 @@ def generate_server_cert(server_addr: str) -> dict:
         .not_valid_after(now + datetime.timedelta(days=VALIDITY_DAYS_CERT))
         .add_extension(x509.BasicConstraints(ca=False, path_length=None), critical=True)
         .add_extension(x509.SubjectAlternativeName(san_entries), critical=False)
-        .add_extension(x509.ExtendedKeyUsage([
-            x509.oid.ExtendedKeyUsageOID.SERVER_AUTH,
-        ]), critical=False)
+        .add_extension(
+            x509.ExtendedKeyUsage(
+                [
+                    x509.oid.ExtendedKeyUsageOID.SERVER_AUTH,
+                ]
+            ),
+            critical=False,
+        )
     )
 
     cert = builder.sign(ca_key, hashes.SHA256())
@@ -307,9 +330,7 @@ def generate_server_cert(server_addr: str) -> dict:
     }
 
 
-import re as _re
-
-_VALID_CLIENT_NAME = _re.compile(r'^[a-zA-Z0-9._-]+$')
+_VALID_CLIENT_NAME = _re.compile(r"^[a-zA-Z0-9._-]+$")
 
 
 def generate_client_cert(client_name: str) -> dict:
@@ -318,7 +339,7 @@ def generate_client_cert(client_name: str) -> dict:
     if (
         not safe_name
         or safe_name != client_name
-        or '..' in client_name
+        or ".." in client_name
         or not _VALID_CLIENT_NAME.match(client_name)
         or len(client_name) > 64
     ):
@@ -329,10 +350,12 @@ def generate_client_cert(client_name: str) -> dict:
     key = _generate_key()
     now = datetime.datetime.now(datetime.timezone.utc)
 
-    subject = x509.Name([
-        x509.NameAttribute(NameOID.COMMON_NAME, client_name),
-        x509.NameAttribute(NameOID.ORGANIZATION_NAME, "AdminHelper"),
-    ])
+    subject = x509.Name(
+        [
+            x509.NameAttribute(NameOID.COMMON_NAME, client_name),
+            x509.NameAttribute(NameOID.ORGANIZATION_NAME, "AdminHelper"),
+        ]
+    )
 
     cert = (
         x509.CertificateBuilder()
@@ -343,9 +366,14 @@ def generate_client_cert(client_name: str) -> dict:
         .not_valid_before(now)
         .not_valid_after(now + datetime.timedelta(days=VALIDITY_DAYS_CERT))
         .add_extension(x509.BasicConstraints(ca=False, path_length=None), critical=True)
-        .add_extension(x509.ExtendedKeyUsage([
-            x509.oid.ExtendedKeyUsageOID.CLIENT_AUTH,
-        ]), critical=False)
+        .add_extension(
+            x509.ExtendedKeyUsage(
+                [
+                    x509.oid.ExtendedKeyUsageOID.CLIENT_AUTH,
+                ]
+            ),
+            critical=False,
+        )
     )
 
     cert = cert.sign(ca_key, hashes.SHA256())

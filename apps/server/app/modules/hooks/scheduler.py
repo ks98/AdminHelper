@@ -12,10 +12,10 @@ import logging
 from datetime import datetime, timezone
 
 from apscheduler.schedulers.background import BackgroundScheduler
-
-logger = logging.getLogger(__name__)
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
+
+logger = logging.getLogger(__name__)
 
 # misfire_grace_time explicit (audit): the APScheduler default of 1s silently
 # drops a run that starts late (busy pool) — 30s executes it instead.
@@ -30,12 +30,12 @@ scheduler = BackgroundScheduler(
 )
 
 _INTERVAL_MAP = {
-    "1m":  {"minutes": 1},
-    "5m":  {"minutes": 5},
+    "1m": {"minutes": 1},
+    "5m": {"minutes": 5},
     "15m": {"minutes": 15},
     "30m": {"minutes": 30},
-    "1h":  {"hours": 1},
-    "6h":  {"hours": 6},
+    "1h": {"hours": 1},
+    "6h": {"hours": 6},
     "12h": {"hours": 12},
     "24h": {"hours": 24},
 }
@@ -48,7 +48,9 @@ def _parse_trigger(interval: str):
     parts = interval.split()
     if len(parts) == 5:
         return CronTrigger.from_crontab(interval)
-    raise ValueError(f"Ungültiges Intervall: {interval!r}. Erlaubt: {', '.join(_INTERVAL_MAP)} oder Cron (5 Felder)")
+    raise ValueError(
+        f"Ungültiges Intervall: {interval!r}. Erlaubt: {', '.join(_INTERVAL_MAP)} oder Cron (5 Felder)"
+    )
 
 
 def _execute_scheduled_hook(hook_id: str) -> None:
@@ -153,8 +155,8 @@ _BLACKLIST_CLEANUP_JOB_ID = "system:blacklist-cleanup"
 def _run_blacklist_cleanup() -> None:
     """Remove expired JWT blacklist entries so the token_blacklist table does
     not grow without bound."""
-    from app.core.database import SessionLocal
     from app.core.auth import cleanup_expired_blacklist
+    from app.core.database import SessionLocal
 
     db = SessionLocal()
     try:

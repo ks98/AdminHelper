@@ -51,10 +51,16 @@ def client_db():
 def _seed_checks(factory, n: int = 5) -> None:
     with factory() as db:
         for i in range(n):
-            db.add(MonitorCheck(
-                id=f"chk-{i}", server_id="srv-1", name=f"check-{i}",
-                check_type="ping", config="{}", enabled=True,
-            ))
+            db.add(
+                MonitorCheck(
+                    id=f"chk-{i}",
+                    server_id="srv-1",
+                    name=f"check-{i}",
+                    check_type="ping",
+                    config="{}",
+                    enabled=True,
+                )
+            )
             db.add(MonitorState(check_id=f"chk-{i}", status="ok"))
         db.commit()
 
@@ -62,10 +68,15 @@ def _seed_checks(factory, n: int = 5) -> None:
 def _seed_rules(factory, n: int = 5) -> None:
     with factory() as db:
         for i in range(n):
-            db.add(MonitorAlertRule(
-                id=f"rule-{i}", name=f"rule-{i}", channel="webhook",
-                channel_config="{}", enabled=True,
-            ))
+            db.add(
+                MonitorAlertRule(
+                    id=f"rule-{i}",
+                    name=f"rule-{i}",
+                    channel="webhook",
+                    channel_config="{}",
+                    enabled=True,
+                )
+            )
         db.commit()
 
 
@@ -93,8 +104,16 @@ class TestChecksPagination:
         client, factory = client_db
         _seed_checks(factory)
         with factory() as db:
-            db.add(MonitorCheck(id="chk-x", server_id="srv-2", name="other",
-                                check_type="ping", config="{}", enabled=True))
+            db.add(
+                MonitorCheck(
+                    id="chk-x",
+                    server_id="srv-2",
+                    name="other",
+                    check_type="ping",
+                    config="{}",
+                    enabled=True,
+                )
+            )
             db.commit()
         r = client.get("/checks?server_id=srv-1&limit=2")
         assert r.status_code == 200, r.text

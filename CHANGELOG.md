@@ -220,6 +220,11 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
   das automatische CVE-Signal zwischen den agent-getriebenen Update-Runden.
 - **Coverage-Reporting in CI** (Audit C4, report-only): pytest-cov für
   Server/Monitoring, `go test -cover`, vitest `--coverage` in beiden UIs.
+- **ruff für die Python-Komponenten** (Audit C8). Server und Monitoring waren
+  als einzige Komponenten ohne Lint-/Format-Gate — jetzt `ruff check`
+  (+ Import-Sortierung) und `ruff format` mit CI-Job; einmaliger
+  Format-Lauf über den Bestand (96 Auto-Fixes + 77 reformatierte Dateien,
+  rein mechanisch, Suiten grün).
 - **Release: Extension als versioniertes Zip-Artefakt** (Audit C5) — bisher
   wurde die MV3-Extension getestet, aber nie ausgeliefert („Load unpacked"
   aus dem Clone); jetzt hängt sie als `adminhelper-extension-X.Y.Z.zip` am

@@ -15,7 +15,7 @@ import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
 from app.core.auth import get_current_admin
-from app.core.config import MONITOR_SERVICE_URL, MONITOR_API_KEY
+from app.core.config import MONITOR_API_KEY, MONITOR_SERVICE_URL
 from app.core.middleware import resolve_client_ip
 from app.core.rate_limit import get_backend
 
@@ -34,8 +34,13 @@ _MONITOR_BASE = MONITOR_SERVICE_URL.rstrip("/")
 
 # Allowed path prefixes for the monitoring proxy (SSRF protection)
 _ALLOWED_PATH_PREFIXES = (
-    "checks", "alerts", "log", "metrics", "status",
-    "templates", "agent",
+    "checks",
+    "alerts",
+    "log",
+    "metrics",
+    "status",
+    "templates",
+    "agent",
 )
 
 

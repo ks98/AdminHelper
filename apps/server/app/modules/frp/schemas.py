@@ -3,9 +3,9 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import re
+from typing import Optional
 
 from pydantic import BaseModel, field_validator
-from typing import Optional
 
 # These string fields are interpolated verbatim into the generated frps/frpc/
 # visitor TOML (config_generator.py). Reject the characters that could break out
@@ -58,9 +58,7 @@ def _check_extra_config(v: Optional[dict]) -> Optional[dict]:
         if isinstance(value, str):
             _reject_toml_breakers(value)
         elif not isinstance(value, (bool, int, float)):
-            raise ValueError(
-                f"extra_config-Wert für '{key}' muss str, bool, int oder float sein"
-            )
+            raise ValueError(f"extra_config-Wert für '{key}' muss str, bool, int oder float sein")
     return v
 
 
@@ -79,6 +77,7 @@ def _validate_tags(tags: list[str] | None) -> list[str] | None:
 
 # --- FRP Server Config ---
 
+
 class FrpServerConfigCreate(BaseModel):
     name: str
     server_addr: str  # e.g. "frps.example.net"
@@ -92,7 +91,9 @@ class FrpServerConfigCreate(BaseModel):
     dashboard_password: Optional[str] = None
     extra_config: Optional[dict] = None
 
-    _v_str = field_validator("name", "server_addr", "subdomain_host", "dashboard_user", "dashboard_password")(_reject_toml_breakers)
+    _v_str = field_validator(
+        "name", "server_addr", "subdomain_host", "dashboard_user", "dashboard_password"
+    )(_reject_toml_breakers)
     _v_token = field_validator("auth_token")(_check_secret)
     _v_extra = field_validator("extra_config")(_check_extra_config)
 
@@ -110,12 +111,15 @@ class FrpServerConfigUpdate(BaseModel):
     dashboard_password: Optional[str] = None
     extra_config: Optional[dict] = None
 
-    _v_str = field_validator("name", "server_addr", "subdomain_host", "dashboard_user", "dashboard_password")(_reject_toml_breakers)
+    _v_str = field_validator(
+        "name", "server_addr", "subdomain_host", "dashboard_user", "dashboard_password"
+    )(_reject_toml_breakers)
     _v_token = field_validator("auth_token")(_check_secret)
     _v_extra = field_validator("extra_config")(_check_extra_config)
 
 
 # --- FRP Tunnel ---
+
 
 class FrpTunnelCreate(BaseModel):
     server_id: str
@@ -136,7 +140,9 @@ class FrpTunnelCreate(BaseModel):
     auto_connection_username: Optional[str] = None  # username for the auto-created connection
 
     _clean_tags = field_validator("tags", mode="before")(_validate_tags)
-    _v_str = field_validator("name", "custom_domains", "local_ip", "auto_connection_username")(_reject_toml_breakers)
+    _v_str = field_validator("name", "custom_domains", "local_ip", "auto_connection_username")(
+        _reject_toml_breakers
+    )
     _v_secret = field_validator("secret_key")(_check_secret)
     _v_extra = field_validator("extra_config")(_check_extra_config)
 
@@ -158,6 +164,8 @@ class FrpTunnelUpdate(BaseModel):
     auto_connection_username: Optional[str] = None
 
     _clean_tags = field_validator("tags", mode="before")(_validate_tags)
-    _v_str = field_validator("name", "custom_domains", "local_ip", "auto_connection_username")(_reject_toml_breakers)
+    _v_str = field_validator("name", "custom_domains", "local_ip", "auto_connection_username")(
+        _reject_toml_breakers
+    )
     _v_secret = field_validator("secret_key")(_check_secret)
     _v_extra = field_validator("extra_config")(_check_extra_config)

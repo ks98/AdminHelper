@@ -23,7 +23,9 @@ def _no_line_break(s: str):
 class TestTagInjection:
     def test_newline_in_tag_value_neutralised(self):
         evil = "/\nmonitor_agent_cpu_percent,server_id=victim value=999"
-        line = format_line("monitor_agent_disk_percent", {"server_id": "me", "mount": evil}, 1.0, 100)
+        line = format_line(
+            "monitor_agent_disk_percent", {"server_id": "me", "mount": evil}, 1.0, 100
+        )
         _no_line_break(line)  # exactly one line — no injected second series
 
     def test_backslash_in_tag_value_escaped(self):
@@ -44,7 +46,9 @@ class TestFieldInjection:
     def test_string_field_value_rejected(self):
         # A non-numeric value would be written verbatim into the field position.
         with pytest.raises(TypeError):
-            format_line("m", {"server_id": "me"}, "0 100\nmonitor_evil,server_id=victim value=1", 100)
+            format_line(
+                "m", {"server_id": "me"}, "0 100\nmonitor_evil,server_id=victim value=1", 100
+            )
 
     def test_bool_value_rejected(self):
         with pytest.raises(TypeError):

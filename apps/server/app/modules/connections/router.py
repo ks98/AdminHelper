@@ -62,7 +62,9 @@ def get_connections(
 
 
 @router.post("", response_model=dict[str, Any], status_code=status.HTTP_201_CREATED)
-def create_connection(connection: ConnectionCreate, db: Session = Depends(get_db), _auth=Depends(write_dep)):
+def create_connection(
+    connection: ConnectionCreate, db: Session = Depends(get_db), _auth=Depends(write_dep)
+):
     data = connection.model_dump()
     data["id"] = str(uuid.uuid4())
     conn = Connection.from_dict(data)
@@ -75,10 +77,17 @@ def create_connection(connection: ConnectionCreate, db: Session = Depends(get_db
 
 
 @router.put("/{conn_id}", response_model=dict[str, Any])
-def update_connection(conn_id: str, connection: ConnectionUpdate, db: Session = Depends(get_db), _auth=Depends(write_dep)):
+def update_connection(
+    conn_id: str,
+    connection: ConnectionUpdate,
+    db: Session = Depends(get_db),
+    _auth=Depends(write_dep),
+):
     conn = db.query(Connection).filter(Connection.id == conn_id).first()
     if not conn:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Verbindung nicht gefunden")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Verbindung nicht gefunden"
+        )
     conn.update_from_dict(connection.model_dump(exclude_unset=True))
     db.commit()
     db.refresh(conn)
@@ -93,7 +102,9 @@ def touch_connection(conn_id: str, db: Session = Depends(get_db), auth=Depends(r
     aber per-User/Key-Scope wie bei der Liste (kein Touch fremder Connections)."""
     conn = _scope_connections(db.query(Connection), auth).filter(Connection.id == conn_id).first()
     if not conn:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Verbindung nicht gefunden")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Verbindung nicht gefunden"
+        )
     conn.last_used = datetime.now(timezone.utc).isoformat()
     db.commit()
     db.refresh(conn)
@@ -101,10 +112,14 @@ def touch_connection(conn_id: str, db: Session = Depends(get_db), auth=Depends(r
 
 
 @router.delete("/{conn_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_connection(conn_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_admin)):
+def delete_connection(
+    conn_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_admin)
+):
     conn = db.query(Connection).filter(Connection.id == conn_id).first()
     if not conn:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Verbindung nicht gefunden")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Verbindung nicht gefunden"
+        )
     result = conn.to_dict()
     db.delete(conn)
     db.commit()
@@ -112,7 +127,9 @@ def delete_connection(conn_id: str, db: Session = Depends(get_db), current_user:
 
 
 @router.get("/export", response_class=Response)
-def export_connections(db: Session = Depends(get_db), current_user: User = Depends(get_current_admin)):
+def export_connections(
+    db: Session = Depends(get_db), current_user: User = Depends(get_current_admin)
+):
     connections = db.query(Connection).all()
     data = json.dumps([c.to_dict() for c in connections], ensure_ascii=False, indent=2)
     return Response(
@@ -123,7 +140,11 @@ def export_connections(db: Session = Depends(get_db), current_user: User = Depen
 
 
 @router.post("/import")
-def import_connections(req: ImportRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_admin)):
+def import_connections(
+    req: ImportRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin),
+):
     if req.mode == "replace":
         db.query(Connection).delete()
 

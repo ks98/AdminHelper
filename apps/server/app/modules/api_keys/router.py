@@ -5,10 +5,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.core.auth import generate_api_key, get_current_admin, hash_api_key
 from app.core.database import get_db
-from app.core.auth import get_current_admin, generate_api_key, hash_api_key
-from app.modules.api_keys.schemas import ApiKeyCreate, ApiKeyResponse, ApiKeyCreatedResponse
 from app.modules.api_keys.models import ApiKey
+from app.modules.api_keys.schemas import ApiKeyCreate, ApiKeyCreatedResponse, ApiKeyResponse
 
 router = APIRouter(prefix="/api/api-keys", tags=["api-keys"])
 
@@ -19,9 +19,14 @@ def list_api_keys(db: Session = Depends(get_db), _admin=Depends(get_current_admi
 
 
 @router.post("", response_model=ApiKeyCreatedResponse, status_code=status.HTTP_201_CREATED)
-def create_api_key(data: ApiKeyCreate, db: Session = Depends(get_db), _admin=Depends(get_current_admin)):
+def create_api_key(
+    data: ApiKeyCreate, db: Session = Depends(get_db), _admin=Depends(get_current_admin)
+):
     if data.permission not in ("read", "read_write"):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Permission muss 'read' oder 'read_write' sein")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Permission muss 'read' oder 'read_write' sein",
+        )
     raw_key = generate_api_key()
     api_key = ApiKey(
         name=data.name,

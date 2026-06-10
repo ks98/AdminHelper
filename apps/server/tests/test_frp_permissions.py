@@ -61,8 +61,8 @@ def _make_tunnel(db, *, tid: str, server_id: str, config_id: str, name: str):
 @pytest.fixture()
 def two_servers_with_tunnels(db_session):
     cfg = _make_config(db_session)
-    srv_a = _make_server(db_session, sid="srv-a", name="serverA")
-    srv_b = _make_server(db_session, sid="srv-b", name="serverB")
+    _make_server(db_session, sid="srv-a", name="serverA")
+    _make_server(db_session, sid="srv-b", name="serverB")
     _make_tunnel(db_session, tid="t-a", server_id="srv-a", config_id=cfg.id, name="a-ssh")
     _make_tunnel(db_session, tid="t-b", server_id="srv-b", config_id=cfg.id, name="b-ssh")
     return cfg
@@ -74,9 +74,7 @@ class TestVisitorBundlePermissions:
     def test_non_admin_without_assignments_sees_no_tunnels(
         self, db_session, normal_user, two_servers_with_tunnels
     ):
-        result = gen_visitor_bundle(
-            config_id=None, db=db_session, current_user=normal_user
-        )
+        result = gen_visitor_bundle(config_id=None, db=db_session, current_user=normal_user)
         assert "secret-key" not in result["toml"], (
             "Visitor-TOML enthaelt geheimen Key obwohl User keine Server-Zuweisung hat"
         )
@@ -90,18 +88,12 @@ class TestVisitorBundlePermissions:
         normal_user.servers.append(srv_a)
         db_session.commit()
 
-        result = gen_visitor_bundle(
-            config_id=None, db=db_session, current_user=normal_user
-        )
+        result = gen_visitor_bundle(config_id=None, db=db_session, current_user=normal_user)
         assert "a-ssh" in result["toml"]
         assert "b-ssh" not in result["toml"], "User sollte Tunnel B nicht sehen"
 
-    def test_admin_sees_all_tunnels(
-        self, db_session, admin_user, two_servers_with_tunnels
-    ):
-        result = gen_visitor_bundle(
-            config_id=None, db=db_session, current_user=admin_user
-        )
+    def test_admin_sees_all_tunnels(self, db_session, admin_user, two_servers_with_tunnels):
+        result = gen_visitor_bundle(config_id=None, db=db_session, current_user=admin_user)
         assert "a-ssh" in result["toml"]
         assert "b-ssh" in result["toml"]
 
@@ -120,9 +112,7 @@ class TestVisitorTomlPermissions:
         assert "b-ssh" not in body
         assert "super-secret-do-not-leak" not in body
 
-    def test_admin_sees_all_in_visitor_toml(
-        self, db_session, admin_user, two_servers_with_tunnels
-    ):
+    def test_admin_sees_all_in_visitor_toml(self, db_session, admin_user, two_servers_with_tunnels):
         response = gen_visitor_toml(
             config_id=None, user_id=None, db=db_session, current_user=admin_user
         )

@@ -20,14 +20,20 @@ def test_refresh_reuse_kills_whole_token_family(test_client, db_session, admin_u
     rot = test_client.post("/api/auth/refresh", json={"refresh_token": r0})
     assert rot.status_code == 200, rot.text
     a1, r1 = rot.json()["access_token"], rot.json()["refresh_token"]
-    assert test_client.get("/api/auth/me", headers={"Authorization": f"Bearer {a1}"}).status_code == 200
+    assert (
+        test_client.get("/api/auth/me", headers={"Authorization": f"Bearer {a1}"}).status_code
+        == 200
+    )
 
     # Victim later replays R0 -> reuse detected -> 401 AND the whole family dies.
     replay = test_client.post("/api/auth/refresh", json={"refresh_token": r0})
     assert replay.status_code == 401, replay.text
 
     # The attacker's rotated access token is now rejected...
-    assert test_client.get("/api/auth/me", headers={"Authorization": f"Bearer {a1}"}).status_code == 401
+    assert (
+        test_client.get("/api/auth/me", headers={"Authorization": f"Bearer {a1}"}).status_code
+        == 401
+    )
     # ...and their rotated refresh token can no longer mint new tokens.
     assert test_client.post("/api/auth/refresh", json={"refresh_token": r1}).status_code == 401
 

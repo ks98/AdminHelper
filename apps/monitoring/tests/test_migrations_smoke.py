@@ -28,7 +28,7 @@ MONITORING_DIR = Path(__file__).resolve().parents[1]
 def _normalize(url: str) -> str:
     for old in ("postgresql+psycopg2://", "postgresql://"):
         if url.startswith(old):
-            return "postgresql+psycopg://" + url[len(old):]
+            return "postgresql+psycopg://" + url[len(old) :]
     return url
 
 

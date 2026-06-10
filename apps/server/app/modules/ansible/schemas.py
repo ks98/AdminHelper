@@ -3,9 +3,9 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import re
+from typing import Optional
 
 from pydantic import BaseModel, field_validator
-from typing import Optional
 
 from app.modules.frp.schemas import _validate_tags
 
@@ -24,7 +24,9 @@ class PlaybookCreate(BaseModel):
     def validate_filename(cls, v: str) -> str:
         v = v.strip()
         if not re.match(r"^[\w\-. ]+\.(yml|yaml)$", v):
-            raise ValueError("Dateiname muss auf .yml oder .yaml enden und darf keine Pfad-Separatoren enthalten")
+            raise ValueError(
+                "Dateiname muss auf .yml oder .yaml enden und darf keine Pfad-Separatoren enthalten"
+            )
         return v
 
 
@@ -44,5 +46,7 @@ class PlaybookUpdate(BaseModel):
             return v
         v = v.strip()
         if not re.match(r"^[\w\-. ]+\.(yml|yaml)$", v):
-            raise ValueError("Dateiname muss auf .yml oder .yaml enden und darf keine Pfad-Separatoren enthalten")
+            raise ValueError(
+                "Dateiname muss auf .yml oder .yaml enden und darf keine Pfad-Separatoren enthalten"
+            )
         return v

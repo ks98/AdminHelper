@@ -168,7 +168,9 @@ class TestRecoveryBypassesCooldown:
 
         dispatched = {"n": 0}
         monkeypatch.setattr(
-            alerter, "_dispatch", lambda *a, **k: dispatched.__setitem__("n", dispatched["n"] + 1) or (True, None)
+            alerter,
+            "_dispatch",
+            lambda *a, **k: dispatched.__setitem__("n", dispatched["n"] + 1) or (True, None),
         )
 
         # Status degradation during cooldown -> no dispatch, no log.

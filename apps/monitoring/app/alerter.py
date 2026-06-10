@@ -13,16 +13,16 @@ from __future__ import annotations
 
 import json
 import logging
-import smtplib
 import os
+import smtplib
 from datetime import datetime, timedelta, timezone
-from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 
 import httpx
 from sqlalchemy.orm import Session
 
-from app.models import MonitorAlertRule, MonitorAlertLog, MonitorCheck, MonitorState
+from app.models import MonitorAlertLog, MonitorAlertRule, MonitorCheck, MonitorState
 
 logger = logging.getLogger("monitor.alerter")
 
@@ -120,7 +120,10 @@ def _dispatch(
 def _build_message(check: MonitorCheck, old_status: str, new_status: str) -> dict:
     """Builds the alert message as a dict."""
     status_icons = {
-        "ok": "\u2705", "warning": "\u26a0\ufe0f", "critical": "\U0001f534", "unknown": "\u2753",
+        "ok": "\u2705",
+        "warning": "\u26a0\ufe0f",
+        "critical": "\U0001f534",
+        "unknown": "\u2753",
     }
     is_recovery = new_status == "ok"
 
@@ -145,6 +148,7 @@ def _build_message(check: MonitorCheck, old_status: str, new_status: str) -> dic
     # Append check-state message (e.g. "Port 22: Connection refused")
     try:
         from app.core.database import SessionLocal
+
         # Context manager: without it, an exception between open and close
         # leaked the connection (pool exhaustion under repeated failures).
         with SessionLocal() as db:
@@ -152,7 +156,9 @@ def _build_message(check: MonitorCheck, old_status: str, new_status: str) -> dic
             if state and state.message:
                 text += f"\nDetails: {state.message}"
     except Exception:
-        logger.warning("State-Message fuer Check '%s' konnte nicht geladen werden", check.name, exc_info=True)
+        logger.warning(
+            "State-Message fuer Check '%s' konnte nicht geladen werden", check.name, exc_info=True
+        )
 
     return {
         "check_name": check.name,

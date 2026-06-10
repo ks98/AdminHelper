@@ -5,8 +5,9 @@
 import json
 from typing import Any
 
-from sqlalchemy import Column, String, DateTime
+from sqlalchemy import Column, DateTime, String
 from sqlalchemy.sql import func
+
 from app.core.database import Base
 
 

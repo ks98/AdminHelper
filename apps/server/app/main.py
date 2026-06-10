@@ -5,40 +5,42 @@
 import logging
 import secrets
 from contextlib import asynccontextmanager
-
-from fastapi import FastAPI, HTTPException
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
 from pathlib import Path
 
-from app.core.database import SessionLocal
-from app.core.config import ADMIN_PASSWORD, BOOTSTRAP_TOKEN_FILE
-from app.core.auth import hash_api_key, hash_password
-from app.core.middleware import IPFilterMiddleware
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
-# Import models so Base.metadata knows about them (even though schema creation
-# is now handled by Alembic — important for ORM queries in the lifespan).
-from app.modules.users.models import User  # noqa: F401
-from app.modules.api_keys.models import ApiKey  # noqa: F401
-from app.modules.hooks.models import Hook  # noqa: F401
-from app.modules.connections.models import Connection  # noqa: F401
-from app.modules.servers.models import Server  # noqa: F401
-from app.modules.frp.models import FrpServerConfig, FrpTunnel  # noqa: F401
-from app.modules.provisioning.models import ProvisionToken  # noqa: F401
-from app.modules.users.models import user_server_assoc  # noqa: F401
+from app.core.auth import hash_api_key, hash_password
+from app.core.config import ADMIN_PASSWORD, BOOTSTRAP_TOKEN_FILE
+from app.core.database import SessionLocal
+from app.core.middleware import IPFilterMiddleware
 from app.modules.ansible.models import Playbook  # noqa: F401
+from app.modules.ansible.router import router as ansible_router
+from app.modules.api_keys.models import ApiKey  # noqa: F401
+from app.modules.api_keys.router import router as api_keys_router
+from app.modules.connections.models import Connection  # noqa: F401
+from app.modules.connections.router import router as connections_router
+from app.modules.frp.models import FrpServerConfig, FrpTunnel  # noqa: F401
+from app.modules.frp.router import router as frp_router
+from app.modules.hooks.models import Hook  # noqa: F401
+from app.modules.hooks.router import router as hooks_router
+from app.modules.monitoring_proxy import router as monitoring_proxy_router
+from app.modules.provisioning.models import ProvisionToken  # noqa: F401
+from app.modules.provisioning.router import router as provisioning_router
+from app.modules.servers.models import Server  # noqa: F401
+from app.modules.servers.router import router as servers_router
 
 # Import routers
 from app.modules.users.auth_router import router as auth_router
+
+# Import models so Base.metadata knows about them (even though schema creation
+# is now handled by Alembic — important for ORM queries in the lifespan).
+from app.modules.users.models import (
+    User,  # noqa: F401
+    user_server_assoc,  # noqa: F401
+)
 from app.modules.users.router import router as users_router
-from app.modules.connections.router import router as connections_router
-from app.modules.api_keys.router import router as api_keys_router
-from app.modules.hooks.router import router as hooks_router
-from app.modules.servers.router import router as servers_router
-from app.modules.frp.router import router as frp_router
-from app.modules.provisioning.router import router as provisioning_router
-from app.modules.monitoring_proxy import router as monitoring_proxy_router
-from app.modules.ansible.router import router as ansible_router
 
 logger = logging.getLogger(__name__)
 
@@ -96,7 +98,7 @@ def _emit_bootstrap_token():
     logger.warning("    curl -k -X POST https://<host>/api/auth/bootstrap \\")
     logger.warning("         -H 'Content-Type: application/json' \\")
     logger.warning(
-        "         -d '{\"token\":\"%s\",\"username\":\"<dein-name>\",\"password\":\"<dein-pw>\"}'",
+        '         -d \'{"token":"%s","username":"<dein-name>","password":"<dein-pw>"}\'',
         token,
     )
     logger.warning("")
@@ -107,6 +109,7 @@ def _emit_bootstrap_token():
 def _server_cert_needs_regen(pki_dir, server_addr: str) -> bool:
     """Checks whether the server cert must be regenerated (missing/wrong SANs)."""
     import ipaddress
+
     from cryptography import x509 as cx509
 
     cert_path = pki_dir / "frps.crt"
@@ -175,12 +178,12 @@ def _run_startup_tasks():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    from app.core.events import fire_event
     from app.modules.hooks.scheduler import (
-        scheduler,
         load_all_scheduled_hooks,
         schedule_blacklist_cleanup,
+        scheduler,
     )
-    from app.core.events import fire_event
 
     _run_startup_tasks()
 
@@ -223,6 +226,7 @@ async def security_headers(request, call_next):
         )
     return response
 
+
 # Mount routers
 app.include_router(auth_router)
 app.include_router(connections_router)
@@ -251,6 +255,10 @@ def spa_fallback(full_path: str):
     if full_path.startswith("api/"):
         raise HTTPException(status_code=404, detail="Not found")
     candidate = static_dir / full_path
-    if full_path and candidate.is_file() and candidate.resolve().is_relative_to(static_dir.resolve()):
+    if (
+        full_path
+        and candidate.is_file()
+        and candidate.resolve().is_relative_to(static_dir.resolve())
+    ):
         return FileResponse(candidate)
     return FileResponse(static_dir / "index.html")

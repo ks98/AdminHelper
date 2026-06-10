@@ -14,7 +14,13 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from app.models import MonitorCheck, MonitorState, MonitorTemplate, MonitorTemplateAssignment, MonitorAgentKey  # noqa: F401
+from app.models import (  # noqa: F401
+    MonitorAgentKey,
+    MonitorCheck,
+    MonitorState,
+    MonitorTemplate,
+    MonitorTemplateAssignment,
+)
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 logger = logging.getLogger("monitor")
@@ -26,7 +32,7 @@ async def lifespan(app: FastAPI):
     (see monitoring/alembic/), no longer by Base.metadata.create_all().
     Historical SQLite PRAGMA migrations have been removed without replacement —
     pre-release, no existing data."""
-    from app.scheduler import scheduler, load_all_checks, schedule_alert_log_cleanup
+    from app.scheduler import load_all_checks, schedule_alert_log_cleanup, scheduler
 
     load_all_checks()
     schedule_alert_log_cleanup()

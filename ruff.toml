@@ -1,0 +1,20 @@
+# SPDX-FileCopyrightText: 2026 Kevin Stenzel
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+# Lint + Format für die Python-Komponenten (apps/server, apps/monitoring).
+# CI: eigener python-lint-Job (ruff check + ruff format --check).
+# Lokal: `ruff check apps/server apps/monitoring` bzw. `ruff format ...`.
+
+line-length = 100
+target-version = "py312"
+
+# docs/examples sind annotierte Beispiel-Skripte, data/ ist Laufzeit.
+extend-exclude = ["docs", "data"]
+
+[lint]
+# Pyflakes + pycodestyle-Kern (ruff-Default) plus Import-Sortierung.
+extend-select = ["I"]
+
+[lint.isort]
+known-first-party = ["app"]

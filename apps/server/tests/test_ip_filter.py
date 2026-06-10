@@ -4,7 +4,7 @@
 
 """Tests for the IP filter middleware: network parsing and resolve_client_ip."""
 
-from app.core.middleware import _parse_networks, _in_networks, resolve_client_ip
+from app.core.middleware import _in_networks, _parse_networks, resolve_client_ip
 
 
 class TestParseNetworks:

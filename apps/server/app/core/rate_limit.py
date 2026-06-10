@@ -17,7 +17,6 @@ block state by sustained fire.
 
 import logging
 import time
-from collections import defaultdict
 from typing import Protocol
 
 logger = logging.getLogger("adminhelper.rate_limit")

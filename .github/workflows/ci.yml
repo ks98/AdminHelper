@@ -70,6 +70,21 @@ jobs:
         # Coverage is report-only (no threshold) — visibility, not a gate.
         run: pytest -q --cov=app --cov-report=term
 
+  python-lint:
+    name: Python (ruff check + format)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - name: Install ruff
+        run: pip install ruff
+      - name: ruff check
+        run: ruff check apps/server apps/monitoring
+      - name: ruff format --check
+        run: ruff format --check apps/server apps/monitoring
+
   monitoring:
     name: Monitoring (pytest)
     runs-on: ubuntu-latest

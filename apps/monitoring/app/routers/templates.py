@@ -15,8 +15,8 @@ from sqlalchemy.orm import Session
 from app.core.auth import require_internal
 from app.core.database import get_db
 from app.models import MonitorAlertRule, MonitorCheck, MonitorTemplate, MonitorTemplateAssignment
-from app.schemas import TemplateAssign, TemplateCreate, TemplateUpdate
 from app.scheduler import remove_check
+from app.schemas import TemplateAssign, TemplateCreate, TemplateUpdate
 from app.template_sync import apply_template, remove_template, sync_template
 
 router = APIRouter()
@@ -26,15 +26,18 @@ router = APIRouter()
 # Template CRUD
 # ---------------------------------------------------------------------------
 
+
 @router.get("/templates", dependencies=[Depends(require_internal)])
 def list_templates(db: Session = Depends(get_db)):
     """Lists all templates with assignment counts."""
     templates = db.query(MonitorTemplate).order_by(MonitorTemplate.name).all()
     result = []
     for t in templates:
-        assignments = db.query(MonitorTemplateAssignment).filter(
-            MonitorTemplateAssignment.template_id == t.id
-        ).all()
+        assignments = (
+            db.query(MonitorTemplateAssignment)
+            .filter(MonitorTemplateAssignment.template_id == t.id)
+            .all()
+        )
         result.append(t.to_dict(assignments=assignments))
     return result
 
@@ -50,14 +53,18 @@ def get_server_assignments(server_id: str, db: Session = Depends(get_db)):
     result = []
     for a in assignments:
         template = db.query(MonitorTemplate).filter(MonitorTemplate.id == a.template_id).first()
-        result.append({
-            **a.to_dict(),
-            "templateName": template.name if template else None,
-        })
+        result.append(
+            {
+                **a.to_dict(),
+                "templateName": template.name if template else None,
+            }
+        )
     return result
 
 
-@router.post("/templates", status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_internal)])
+@router.post(
+    "/templates", status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_internal)]
+)
 def create_template(data: TemplateCreate, db: Session = Depends(get_db)):
     """Creates a new template."""
     check_defs = []
@@ -93,9 +100,11 @@ def get_template(template_id: str, db: Session = Depends(get_db)):
     template = db.query(MonitorTemplate).filter(MonitorTemplate.id == template_id).first()
     if not template:
         raise HTTPException(404, "Template nicht gefunden")
-    assignments = db.query(MonitorTemplateAssignment).filter(
-        MonitorTemplateAssignment.template_id == template_id
-    ).all()
+    assignments = (
+        db.query(MonitorTemplateAssignment)
+        .filter(MonitorTemplateAssignment.template_id == template_id)
+        .all()
+    )
     return template.to_dict(assignments=assignments)
 
 
@@ -138,7 +147,11 @@ def update_template(template_id: str, data: TemplateUpdate, db: Session = Depend
     return result
 
 
-@router.delete("/templates/{template_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_internal)])
+@router.delete(
+    "/templates/{template_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_internal)],
+)
 def delete_template(template_id: str, db: Session = Depends(get_db)):
     """Deletes a template — removes all generated checks/alerts on all servers."""
     template = db.query(MonitorTemplate).filter(MonitorTemplate.id == template_id).first()
@@ -160,6 +173,7 @@ def delete_template(template_id: str, db: Session = Depends(get_db)):
 # Template Assignment
 # ---------------------------------------------------------------------------
 
+
 @router.post("/templates/{template_id}/assign", dependencies=[Depends(require_internal)])
 def assign_template(template_id: str, data: TemplateAssign, db: Session = Depends(get_db)):
     """Assigns a template to a server — creates all checks/alerts."""
@@ -167,10 +181,14 @@ def assign_template(template_id: str, data: TemplateAssign, db: Session = Depend
     if not template:
         raise HTTPException(404, "Template nicht gefunden")
 
-    existing = db.query(MonitorTemplateAssignment).filter(
-        MonitorTemplateAssignment.template_id == template_id,
-        MonitorTemplateAssignment.server_id == data.server_id,
-    ).first()
+    existing = (
+        db.query(MonitorTemplateAssignment)
+        .filter(
+            MonitorTemplateAssignment.template_id == template_id,
+            MonitorTemplateAssignment.server_id == data.server_id,
+        )
+        .first()
+    )
     if existing:
         raise HTTPException(409, "Template bereits diesem Server zugewiesen")
 
@@ -178,13 +196,21 @@ def assign_template(template_id: str, data: TemplateAssign, db: Session = Depend
     return result
 
 
-@router.delete("/templates/{template_id}/assign/{server_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_internal)])
+@router.delete(
+    "/templates/{template_id}/assign/{server_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_internal)],
+)
 def unassign_template(template_id: str, server_id: str, db: Session = Depends(get_db)):
     """Removes a template assignment — deletes all associated checks/alerts."""
-    assignment = db.query(MonitorTemplateAssignment).filter(
-        MonitorTemplateAssignment.template_id == template_id,
-        MonitorTemplateAssignment.server_id == server_id,
-    ).first()
+    assignment = (
+        db.query(MonitorTemplateAssignment)
+        .filter(
+            MonitorTemplateAssignment.template_id == template_id,
+            MonitorTemplateAssignment.server_id == server_id,
+        )
+        .first()
+    )
     if not assignment:
         raise HTTPException(404, "Zuweisung nicht gefunden")
 

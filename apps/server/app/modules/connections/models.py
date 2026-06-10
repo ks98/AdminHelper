@@ -5,8 +5,9 @@
 import json
 from typing import Any
 
-from sqlalchemy import Column, String, Integer, Boolean, DateTime, ForeignKey
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String
 from sqlalchemy.sql import func
+
 from app.core.database import Base
 
 # Fields mapped between camelCase (API) and snake_case (DB)
@@ -21,9 +22,21 @@ _SNAKE_TO_CAMEL = {v: k for k, v in _CAMEL_TO_SNAKE.items()}
 
 # All known fields (API-side, camelCase)
 _KNOWN_FIELDS = {
-    "id", "name", "kind", "host", "port", "username", "domain",
-    "keyPath", "url", "notes", "tags", "trustCert", "lastUsed",
-    "scalingMode", "serverId",
+    "id",
+    "name",
+    "kind",
+    "host",
+    "port",
+    "username",
+    "domain",
+    "keyPath",
+    "url",
+    "notes",
+    "tags",
+    "trustCert",
+    "lastUsed",
+    "scalingMode",
+    "serverId",
 }
 
 
@@ -45,7 +58,9 @@ class Connection(Base):
     last_used = Column(String, nullable=True)
     scaling_mode = Column(String, nullable=True)
     extra_data = Column(String, nullable=True)  # JSON for unknown extra fields
-    server_id = Column(String, ForeignKey("servers.id", ondelete="SET NULL"), nullable=True, index=True)
+    server_id = Column(
+        String, ForeignKey("servers.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     created_at = Column(DateTime, server_default=func.now())
 
     def to_dict(self) -> dict[str, Any]:

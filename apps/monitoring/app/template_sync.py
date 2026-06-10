@@ -21,8 +21,12 @@ import uuid
 from sqlalchemy.orm import Session
 
 from app.models import (
-    MonitorAgentKey, MonitorAlertRule, MonitorCheck, MonitorState,
-    MonitorTemplate, MonitorTemplateAssignment,
+    MonitorAgentKey,
+    MonitorAlertRule,
+    MonitorCheck,
+    MonitorState,
+    MonitorTemplate,
+    MonitorTemplateAssignment,
 )
 from app.scheduler import add_check, remove_check
 
@@ -32,6 +36,7 @@ logger = logging.getLogger("monitor.template_sync")
 # ---------------------------------------------------------------------------
 # Variable Substitution
 # ---------------------------------------------------------------------------
+
 
 def substitute_variables(obj, variables: dict):
     """Recursively replaces {{key}} placeholders in strings."""
@@ -59,6 +64,7 @@ def _build_variables(assignment: MonitorTemplateAssignment) -> dict:
 # Sync: template changed → update all assignments
 # ---------------------------------------------------------------------------
 
+
 def sync_template(db: Session, template: MonitorTemplate) -> dict:
     """Synchronizes all checks/alerts for all servers that use this template."""
     assignments = (
@@ -76,12 +82,16 @@ def sync_template(db: Session, template: MonitorTemplate) -> dict:
 
     for assignment in assignments:
         variables = _build_variables(assignment)
-        c, u, d = _sync_checks_for_server(db, template.id, assignment.server_id, check_defs, variables)
+        c, u, d = _sync_checks_for_server(
+            db, template.id, assignment.server_id, check_defs, variables
+        )
         total_created += c
         total_updated += u
         total_deleted += d
 
-        ca, ua, da = _sync_alerts_for_server(db, template.id, assignment.server_id, alert_defs, variables)
+        ca, ua, da = _sync_alerts_for_server(
+            db, template.id, assignment.server_id, alert_defs, variables
+        )
         total_created += ca
         total_updated += ua
         total_deleted += da
@@ -90,14 +100,26 @@ def sync_template(db: Session, template: MonitorTemplate) -> dict:
 
     logger.info(
         "Template '%s' sync: %d erstellt, %d aktualisiert, %d geloescht (ueber %d Server)",
-        template.name, total_created, total_updated, total_deleted, len(assignments),
+        template.name,
+        total_created,
+        total_updated,
+        total_deleted,
+        len(assignments),
     )
-    return {"created": total_created, "updated": total_updated, "deleted": total_deleted, "servers": len(assignments)}
+    return {
+        "created": total_created,
+        "updated": total_updated,
+        "deleted": total_deleted,
+        "servers": len(assignments),
+    }
 
 
 def _sync_checks_for_server(
-    db: Session, template_id: str, server_id: str,
-    check_defs: list[dict], variables: dict,
+    db: Session,
+    template_id: str,
+    server_id: str,
+    check_defs: list[dict],
+    variables: dict,
 ) -> tuple[int, int, int]:
     """Syncs check definitions for a single server."""
     existing = (
@@ -172,13 +194,19 @@ def _sync_checks_for_server(
 
 
 def _sync_alerts_for_server(
-    db: Session, template_id: str, server_id: str,
-    alert_defs: list[dict], variables: dict,
+    db: Session,
+    template_id: str,
+    server_id: str,
+    alert_defs: list[dict],
+    variables: dict,
 ) -> tuple[int, int, int]:
     """Syncs alert definitions for a single server."""
     existing = (
         db.query(MonitorAlertRule)
-        .filter(MonitorAlertRule.template_id == template_id, MonitorAlertRule.match_server_id == server_id)
+        .filter(
+            MonitorAlertRule.template_id == template_id,
+            MonitorAlertRule.match_server_id == server_id,
+        )
         .all()
     )
     existing_by_def_id = {a.template_def_id: a for a in existing if a.template_def_id}
@@ -233,9 +261,13 @@ def _sync_alerts_for_server(
 # Apply: assign a template to a server
 # ---------------------------------------------------------------------------
 
+
 def apply_template(
-    db: Session, template: MonitorTemplate,
-    server_id: str, hostname: str, server_name: str,
+    db: Session,
+    template: MonitorTemplate,
+    server_id: str,
+    hostname: str,
+    server_name: str,
 ) -> dict:
     """Assigns a template to a server and creates all checks/alerts."""
     # Create assignment
@@ -302,13 +334,20 @@ def apply_template(
         alert_ids.append(alert_id)
 
     db.commit()
-    logger.info("Template '%s' applied to server %s: %d checks, %d alerts", template.name, server_id, len(check_ids), len(alert_ids))
+    logger.info(
+        "Template '%s' applied to server %s: %d checks, %d alerts",
+        template.name,
+        server_id,
+        len(check_ids),
+        len(alert_ids),
+    )
     return {"checksCreated": check_ids, "alertsCreated": alert_ids}
 
 
 # ---------------------------------------------------------------------------
 # Remove: remove a template assignment
 # ---------------------------------------------------------------------------
+
 
 def remove_template(db: Session, template_id: str, server_id: str) -> dict:
     """Removes the template assignment and deletes all associated checks/alerts."""
@@ -325,7 +364,10 @@ def remove_template(db: Session, template_id: str, server_id: str) -> dict:
     # Delete alerts
     alerts = (
         db.query(MonitorAlertRule)
-        .filter(MonitorAlertRule.template_id == template_id, MonitorAlertRule.match_server_id == server_id)
+        .filter(
+            MonitorAlertRule.template_id == template_id,
+            MonitorAlertRule.match_server_id == server_id,
+        )
         .all()
     )
     for alert in alerts:
@@ -338,13 +380,20 @@ def remove_template(db: Session, template_id: str, server_id: str) -> dict:
     ).delete()
 
     db.commit()
-    logger.info("Template %s removed from server %s: %d checks, %d alerts deleted", template_id, server_id, len(checks), len(alerts))
+    logger.info(
+        "Template %s removed from server %s: %d checks, %d alerts deleted",
+        template_id,
+        server_id,
+        len(checks),
+        len(alerts),
+    )
     return {"checksDeleted": len(checks), "alertsDeleted": len(alerts)}
 
 
 # ---------------------------------------------------------------------------
 # Cleanup: completely clean up a server
 # ---------------------------------------------------------------------------
+
 
 def cleanup_server(db: Session, server_id: str) -> dict:
     """Deletes all monitoring data of a server (on server deletion)."""
@@ -368,5 +417,7 @@ def cleanup_server(db: Session, server_id: str) -> dict:
     db.query(MonitorAgentKey).filter(MonitorAgentKey.server_id == server_id).delete()
 
     db.commit()
-    logger.info("Server %s cleanup: %d checks, %d alerts deleted", server_id, len(checks), len(alerts))
+    logger.info(
+        "Server %s cleanup: %d checks, %d alerts deleted", server_id, len(checks), len(alerts)
+    )
     return {"checksDeleted": len(checks), "alertsDeleted": len(alerts)}

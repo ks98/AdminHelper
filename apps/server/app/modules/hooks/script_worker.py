@@ -34,8 +34,12 @@ def _safe_http_get(url: str, headers: dict | None = None, timeout: int = 10) -> 
     return {"status": resp.status_code, "body": resp.text, "json": j}
 
 
-def _safe_http_post(url: str, json_data: Any = None, headers: dict | None = None, timeout: int = 10) -> dict:
-    resp = httpx.post(url, json=json_data, headers=headers or {}, timeout=timeout, follow_redirects=True)
+def _safe_http_post(
+    url: str, json_data: Any = None, headers: dict | None = None, timeout: int = 10
+) -> dict:
+    resp = httpx.post(
+        url, json=json_data, headers=headers or {}, timeout=timeout, follow_redirects=True
+    )
     try:
         j = resp.json()
     except Exception:

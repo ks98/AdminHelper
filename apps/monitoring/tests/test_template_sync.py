@@ -16,16 +16,24 @@ from sqlalchemy.pool import StaticPool
 
 from app import template_sync
 from app.models import (
-    Base, MonitorAgentKey, MonitorAlertRule, MonitorCheck, MonitorState,
-    MonitorTemplate, MonitorTemplateAssignment,
+    Base,
+    MonitorAgentKey,
+    MonitorAlertRule,
+    MonitorCheck,
+    MonitorState,
+    MonitorTemplate,
+    MonitorTemplateAssignment,
 )
 from app.template_sync import (
-    apply_template, cleanup_server, remove_template, substitute_variables,
+    apply_template,
+    cleanup_server,
+    remove_template,
+    substitute_variables,
     sync_template,
 )
 
-
 # --- substitute_variables -------------------------------------------------------
+
 
 def test_substitute_string_and_nested_structures():
     variables = {"hostname": "web01.example", "server_name": "Web 01"}
@@ -51,6 +59,7 @@ def test_substitute_unknown_placeholder_stays():
 
 # --- DB-backed fixtures ---------------------------------------------------------
 
+
 @pytest.fixture()
 def db(monkeypatch):
     engine = create_engine(
@@ -73,7 +82,8 @@ def db(monkeypatch):
 
 def _template(db, check_defs, alert_defs=None):
     tpl = MonitorTemplate(
-        id=str(uuid.uuid4()), name="Linux Base",
+        id=str(uuid.uuid4()),
+        name="Linux Base",
         check_definitions=json.dumps(check_defs),
         alert_definitions=json.dumps(alert_defs or []),
     )
@@ -83,18 +93,30 @@ def _template(db, check_defs, alert_defs=None):
 
 
 PING_DEF = {
-    "def_id": "ping", "name": "Ping {{server_name}}", "check_type": "ping",
-    "config": {"host": "{{hostname}}"}, "interval": "5m", "severity": "critical",
+    "def_id": "ping",
+    "name": "Ping {{server_name}}",
+    "check_type": "ping",
+    "config": {"host": "{{hostname}}"},
+    "interval": "5m",
+    "severity": "critical",
 }
 
 
 # --- apply_template -------------------------------------------------------------
 
+
 def test_apply_creates_checks_states_and_alerts(db):
     tpl = _template(
-        db, [PING_DEF],
-        [{"def_id": "mail", "name": "Mail {{server_name}}", "channel": "email",
-          "channel_config": {"to": "ops@example"}}],
+        db,
+        [PING_DEF],
+        [
+            {
+                "def_id": "mail",
+                "name": "Mail {{server_name}}",
+                "channel": "email",
+                "channel_config": {"to": "ops@example"},
+            }
+        ],
     )
 
     result = apply_template(db, tpl, "srv-1", "web01.example", "Web 01")
@@ -116,17 +138,24 @@ def test_apply_creates_checks_states_and_alerts(db):
 
 # --- sync_template diffing ------------------------------------------------------
 
+
 def test_sync_updates_existing_creates_new_deletes_removed(db):
     tpl = _template(db, [PING_DEF])
     apply_template(db, tpl, "srv-1", "web01.example", "Web 01")
     original_check_id = db.query(MonitorCheck).one().id
 
     # Template evolves: ping gets a new interval, an http check is added.
-    tpl.check_definitions = json.dumps([
-        {**PING_DEF, "interval": "1m"},
-        {"def_id": "http", "name": "HTTP {{server_name}}", "check_type": "http",
-         "config": {"url": "https://{{hostname}}"}},
-    ])
+    tpl.check_definitions = json.dumps(
+        [
+            {**PING_DEF, "interval": "1m"},
+            {
+                "def_id": "http",
+                "name": "HTTP {{server_name}}",
+                "check_type": "http",
+                "config": {"url": "https://{{hostname}}"},
+            },
+        ]
+    )
     db.commit()
 
     result = sync_template(db, tpl)
@@ -140,10 +169,16 @@ def test_sync_updates_existing_creates_new_deletes_removed(db):
     assert json.loads(http.config)["url"] == "https://web01.example"
 
     # Template drops the ping definition -> its check is deleted.
-    tpl.check_definitions = json.dumps([
-        {"def_id": "http", "name": "HTTP {{server_name}}", "check_type": "http",
-         "config": {"url": "https://{{hostname}}"}},
-    ])
+    tpl.check_definitions = json.dumps(
+        [
+            {
+                "def_id": "http",
+                "name": "HTTP {{server_name}}",
+                "check_type": "http",
+                "config": {"url": "https://{{hostname}}"},
+            },
+        ]
+    )
     db.commit()
     result = sync_template(db, tpl)
     assert result["deleted"] == 1
@@ -169,8 +204,11 @@ def test_sync_ignores_defs_without_def_id_and_manual_checks(db):
     apply_template(db, tpl, "srv-1", "web01.example", "Web 01")
 
     # A manually created check on the same server must survive every sync.
-    db.add(MonitorCheck(id="manual-1", server_id="srv-1", name="Manuell",
-                        check_type="ping", config="{}"))
+    db.add(
+        MonitorCheck(
+            id="manual-1", server_id="srv-1", name="Manuell", check_type="ping", config="{}"
+        )
+    )
     # Defs without def_id are skipped (not created, nothing deleted for them).
     tpl.check_definitions = json.dumps([PING_DEF, {"name": "kaputt, ohne def_id"}])
     db.commit()
@@ -199,6 +237,7 @@ def test_sync_covers_all_assigned_servers(db):
 
 # --- remove_template / cleanup_server -------------------------------------------
 
+
 def test_remove_template_deletes_only_this_assignment(db):
     tpl = _template(db, [PING_DEF], [{"def_id": "a1", "name": "A", "channel": "webhook"}])
     apply_template(db, tpl, "srv-1", "web01.example", "Web 01")
@@ -216,8 +255,11 @@ def test_cleanup_server_removes_everything_for_server(db):
     tpl = _template(db, [PING_DEF], [{"def_id": "a1", "name": "A", "channel": "webhook"}])
     apply_template(db, tpl, "srv-1", "web01.example", "Web 01")
     db.add(MonitorAgentKey(id="k1", server_id="srv-1", hashed_key="h1"))
-    db.add(MonitorCheck(id="manual-1", server_id="srv-1", name="Manuell",
-                        check_type="ping", config="{}"))
+    db.add(
+        MonitorCheck(
+            id="manual-1", server_id="srv-1", name="Manuell", check_type="ping", config="{}"
+        )
+    )
     db.commit()
 
     result = cleanup_server(db, "srv-1")

@@ -17,8 +17,14 @@ from app.core.database import get_db
 from app.core.pagination import paginate
 from app.core.victoria import victoria
 from app.models import MonitorCheck, MonitorState
-from app.schemas import CheckCreate, CheckUpdate, VALID_CHECK_TYPES, VALID_INTERVALS, VALID_SEVERITIES
 from app.scheduler import add_check, remove_check
+from app.schemas import (
+    VALID_CHECK_TYPES,
+    VALID_INTERVALS,
+    VALID_SEVERITIES,
+    CheckCreate,
+    CheckUpdate,
+)
 
 
 def _escape_label(value) -> str:
@@ -31,6 +37,7 @@ def _escape_label(value) -> str:
     """
     return str(value).replace("\\", "\\\\").replace('"', '\\"')
 
+
 router = APIRouter()
 
 # Type-specific metrics written to VictoriaMetrics.
@@ -39,20 +46,35 @@ router = APIRouter()
 CHECK_TYPE_METRICS: dict[str, list[str]] = {
     "ping": ["monitor_check_duration_ms_value", "monitor_ping_rtt_ms_value"],
     "tcp": ["monitor_check_duration_ms_value", "monitor_tcp_connect_ms_value"],
-    "http": ["monitor_check_duration_ms_value", "monitor_http_response_ms_value", "monitor_http_status_code_value"],
+    "http": [
+        "monitor_check_duration_ms_value",
+        "monitor_http_response_ms_value",
+        "monitor_http_status_code_value",
+    ],
     "agent_ping": ["monitor_agent_last_seen_seconds_value"],
     "agent_resources": ["monitor_agent_cpu_percent_value", "monitor_agent_memory_percent_value"],
     "service_process": [
-        "monitor_services_failed_value", "monitor_services_enabled_inactive_value",
-        "monitor_services_down_value", "monitor_services_up_value",
+        "monitor_services_failed_value",
+        "monitor_services_enabled_inactive_value",
+        "monitor_services_down_value",
+        "monitor_services_up_value",
     ],
     "proxmox_backup": [
-        "monitor_proxmox_backup_ok_value", "monitor_proxmox_backup_missing_value",
+        "monitor_proxmox_backup_ok_value",
+        "monitor_proxmox_backup_missing_value",
         "monitor_proxmox_backup_outdated_value",
     ],
     "zfs_health": [],  # dynamic: monitor_zfs_capacity_{pool}_value
-    "docker_health": ["monitor_docker_ok_value", "monitor_docker_critical_value", "monitor_docker_warning_value"],
-    "smart_health": ["monitor_smart_disks_ok_value", "monitor_smart_disks_warning_value", "monitor_smart_disks_critical_value"],
+    "docker_health": [
+        "monitor_docker_ok_value",
+        "monitor_docker_critical_value",
+        "monitor_docker_warning_value",
+    ],
+    "smart_health": [
+        "monitor_smart_disks_ok_value",
+        "monitor_smart_disks_warning_value",
+        "monitor_smart_disks_critical_value",
+    ],
 }
 
 # Check types with dynamic metric names (regex query)
@@ -66,6 +88,7 @@ _DYNAMIC_METRIC_PATTERNS: dict[str, str] = {
 # ---------------------------------------------------------------------------
 # Check CRUD
 # ---------------------------------------------------------------------------
+
 
 @router.get("/checks", dependencies=[Depends(require_internal)])
 def list_checks(
@@ -82,20 +105,35 @@ def list_checks(
     checks = paginate(q.order_by(MonitorCheck.name, MonitorCheck.id), response, limit, offset).all()
 
     check_ids = [c.id for c in checks]
-    states = {s.check_id: s for s in db.query(MonitorState).filter(MonitorState.check_id.in_(check_ids)).all()} if check_ids else {}
+    states = (
+        {
+            s.check_id: s
+            for s in db.query(MonitorState).filter(MonitorState.check_id.in_(check_ids)).all()
+        }
+        if check_ids
+        else {}
+    )
 
     return [c.to_dict(state=states.get(c.id)) for c in checks]
 
 
-@router.post("/checks", status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_internal)])
+@router.post(
+    "/checks", status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_internal)]
+)
 def create_check(data: CheckCreate, db: Session = Depends(get_db)):
     """Creates a new check and registers it in the scheduler."""
     if data.check_type not in VALID_CHECK_TYPES:
-        raise HTTPException(400, f"Ungueltiger check_type. Erlaubt: {', '.join(sorted(VALID_CHECK_TYPES))}")
+        raise HTTPException(
+            400, f"Ungueltiger check_type. Erlaubt: {', '.join(sorted(VALID_CHECK_TYPES))}"
+        )
     if data.interval not in VALID_INTERVALS:
-        raise HTTPException(400, f"Ungueltiges Intervall. Erlaubt: {', '.join(sorted(VALID_INTERVALS))}")
+        raise HTTPException(
+            400, f"Ungueltiges Intervall. Erlaubt: {', '.join(sorted(VALID_INTERVALS))}"
+        )
     if data.severity not in VALID_SEVERITIES:
-        raise HTTPException(400, f"Ungueltige Severity. Erlaubt: {', '.join(sorted(VALID_SEVERITIES))}")
+        raise HTTPException(
+            400, f"Ungueltige Severity. Erlaubt: {', '.join(sorted(VALID_SEVERITIES))}"
+        )
 
     check = MonitorCheck(
         id=str(uuid.uuid4()),
@@ -142,13 +180,22 @@ def update_check(check_id: str, data: CheckUpdate, db: Session = Depends(get_db)
 
     sent = data.model_fields_set
     if "check_type" in sent and data.check_type not in VALID_CHECK_TYPES:
-        raise HTTPException(400, f"Ungueltiger check_type")
+        raise HTTPException(400, "Ungueltiger check_type")
     if "interval" in sent and data.interval not in VALID_INTERVALS:
-        raise HTTPException(400, f"Ungueltiges Intervall")
+        raise HTTPException(400, "Ungueltiges Intervall")
     if "severity" in sent and data.severity not in VALID_SEVERITIES:
-        raise HTTPException(400, f"Ungueltige Severity")
+        raise HTTPException(400, "Ungueltige Severity")
 
-    for field in ["server_id", "name", "description", "check_type", "enabled", "interval", "severity", "consecutive_fails"]:
+    for field in [
+        "server_id",
+        "name",
+        "description",
+        "check_type",
+        "enabled",
+        "interval",
+        "severity",
+        "consecutive_fails",
+    ]:
         if field in sent:
             setattr(check, field, getattr(data, field))
     if "config" in sent:
@@ -166,7 +213,11 @@ def update_check(check_id: str, data: CheckUpdate, db: Session = Depends(get_db)
     return check.to_dict(state=state)
 
 
-@router.delete("/checks/{check_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_internal)])
+@router.delete(
+    "/checks/{check_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_internal)],
+)
 def delete_check(check_id: str, db: Session = Depends(get_db)):
     """Deletes a check."""
     check = db.query(MonitorCheck).filter(MonitorCheck.id == check_id).first()
@@ -205,6 +256,7 @@ def run_check_now(check_id: str, db: Session = Depends(get_db)):
         raise HTTPException(404, "Check nicht gefunden")
 
     from app.check_engine import execute_check
+
     execute_check(check_id)
 
     db.expire_all()
@@ -215,6 +267,7 @@ def run_check_now(check_id: str, db: Session = Depends(get_db)):
 # ---------------------------------------------------------------------------
 # Status / Dashboard
 # ---------------------------------------------------------------------------
+
 
 @router.get("/status", dependencies=[Depends(require_internal)])
 def get_all_status(
@@ -227,16 +280,35 @@ def get_all_status(
     query = db.query(MonitorCheck).order_by(MonitorCheck.name, MonitorCheck.id)
     checks = paginate(query, response, limit, offset).all()
     check_ids = [c.id for c in checks]
-    states = {s.check_id: s for s in db.query(MonitorState).filter(MonitorState.check_id.in_(check_ids)).all()} if check_ids else {}
+    states = (
+        {
+            s.check_id: s
+            for s in db.query(MonitorState).filter(MonitorState.check_id.in_(check_ids)).all()
+        }
+        if check_ids
+        else {}
+    )
     return [c.to_dict(state=states.get(c.id)) for c in checks]
 
 
 @router.get("/status/server/{server_id}", dependencies=[Depends(require_internal)])
 def get_server_status(server_id: str, db: Session = Depends(get_db)):
     """Returns check states for a specific server."""
-    checks = db.query(MonitorCheck).filter(MonitorCheck.server_id == server_id).order_by(MonitorCheck.name).all()
+    checks = (
+        db.query(MonitorCheck)
+        .filter(MonitorCheck.server_id == server_id)
+        .order_by(MonitorCheck.name)
+        .all()
+    )
     check_ids = [c.id for c in checks]
-    states = {s.check_id: s for s in db.query(MonitorState).filter(MonitorState.check_id.in_(check_ids)).all()} if check_ids else {}
+    states = (
+        {
+            s.check_id: s
+            for s in db.query(MonitorState).filter(MonitorState.check_id.in_(check_ids)).all()
+        }
+        if check_ids
+        else {}
+    )
     return [c.to_dict(state=states.get(c.id)) for c in checks]
 
 
@@ -245,7 +317,14 @@ def get_status_summary(db: Session = Depends(get_db)):
     """Summary: count per status. Dict response (aggregate, not a list) —
     deliberately unpaginated."""
     states = db.query(MonitorState).all()
-    summary = {"total": len(states), "ok": 0, "warning": 0, "critical": 0, "unknown": 0, "pending": 0}
+    summary = {
+        "total": len(states),
+        "ok": 0,
+        "warning": 0,
+        "critical": 0,
+        "unknown": 0,
+        "pending": 0,
+    }
     for s in states:
         if s.status in summary:
             summary[s.status] += 1
@@ -255,6 +334,7 @@ def get_status_summary(db: Session = Depends(get_db)):
 # ---------------------------------------------------------------------------
 # Metriken (VictoriaMetrics)
 # ---------------------------------------------------------------------------
+
 
 @router.get("/checks/{check_id}/metrics", dependencies=[Depends(require_internal)])
 def get_check_metrics(
@@ -274,8 +354,14 @@ def get_check_metrics(
 
     # Agent-based checks: query raw metrics by server_id
     # (written by the agent router without check_id)
-    agent_types = {"agent_ping", "agent_resources", "service_process",
-                   "docker_health", "proxmox_backup", "zfs_health"}
+    agent_types = {
+        "agent_ping",
+        "agent_resources",
+        "service_process",
+        "docker_health",
+        "proxmox_backup",
+        "zfs_health",
+    }
     use_server_id = check.check_type in agent_types and check.server_id
     filter_label = (
         f'server_id="{_escape_label(check.server_id)}"'
@@ -286,7 +372,7 @@ def get_check_metrics(
     # Query type-specific metrics
     metric_names = CHECK_TYPE_METRICS.get(check.check_type, ["monitor_check_duration_ms"])
     for metric in metric_names:
-        query = f'{metric}{{{filter_label}}}'
+        query = f"{metric}{{{filter_label}}}"
         result = victoria.query_range(query=query, start=f"now-{duration}", end="now", step=step)
         all_results.extend(result.get("data", {}).get("result", []))
 
@@ -299,7 +385,9 @@ def get_check_metrics(
 
     # Status timeline (always, with _value suffix)
     status_query = f'monitor_check_status_value{{check_id="{_escape_label(check_id)}"}}'
-    status_result = victoria.query_range(query=status_query, start=f"now-{duration}", end="now", step=step)
+    status_result = victoria.query_range(
+        query=status_query, start=f"now-{duration}", end="now", step=step
+    )
 
     return {
         "checkId": check_id,

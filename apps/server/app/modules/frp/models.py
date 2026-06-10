@@ -6,9 +6,10 @@ import json
 import secrets
 from typing import Any
 
-from sqlalchemy import Column, String, Integer, Boolean, DateTime, ForeignKey
-from sqlalchemy.orm import backref, relationship
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
+
 from app.core.database import Base
 
 
@@ -63,8 +64,12 @@ class FrpTunnel(Base):
     __tablename__ = "frp_tunnels"
 
     id = Column(String, primary_key=True)
-    server_id = Column(String, ForeignKey("servers.id", ondelete="CASCADE"), nullable=False, index=True)
-    frp_config_id = Column(String, ForeignKey("frp_server_config.id", ondelete="CASCADE"), nullable=False, index=True)
+    server_id = Column(
+        String, ForeignKey("servers.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    frp_config_id = Column(
+        String, ForeignKey("frp_server_config.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     name = Column(String, unique=True, nullable=False)  # proxy name, e.g. "k01-lnx1-ssh"
     tunnel_type = Column(String, nullable=False)  # "stcp" or "https"
     protocol = Column(String, nullable=False)  # "ssh", "rdp", "web"
@@ -73,7 +78,9 @@ class FrpTunnel(Base):
     secret_key = Column(String, nullable=True)  # STCP only
     custom_domains = Column(String, nullable=True)  # HTTPS only, comma-separated
     visitor_port = Column(Integer, nullable=True)  # local port on the admin PC (STCP)
-    connection_id = Column(String, ForeignKey("connections.id", ondelete="SET NULL"), nullable=True, index=True)
+    connection_id = Column(
+        String, ForeignKey("connections.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     enabled = Column(Boolean, default=True)
     extra_config = Column(String, nullable=True)  # JSON
     tags = Column(String, nullable=True)  # JSON array
@@ -106,4 +113,4 @@ class FrpTunnel(Base):
 
 # ProvisionToken moved to app.modules.provisioning.models since v0.23.0.
 # Re-export for backwards compatibility (e.g. test-fixture imports).
-from app.modules.provisioning.models import ProvisionToken  # noqa: F401
+from app.modules.provisioning.models import ProvisionToken  # noqa: E402,F401
