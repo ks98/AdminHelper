@@ -181,6 +181,11 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
   250–500 Servern pollen Hintergrund-Tabs damit nicht. Dezente „zuletzt
   aktualisiert"-Anzeige im Seitenkopf; Run-now-Button hat jetzt ein
   `aria-label`.
+- **Frontend: Tests für Token-Refresh und i18n-Parität** (Audit T3/T5).
+  `client.ts` (401→Refresh→Retry, Refresh-Fehlschlag→Logout, parallele
+  Requests teilen einen Refresh, 204→null) war als sicherheitskritischste
+  Web-Logik ungetestet; dazu DE≡EN-Schlüssel-Paritäts-Tests in beiden
+  Frontends — die heutige 100-%-Parität ist damit gegen Drift geschützt.
 - **Agent: Tests für SMART-Parsing, Report-Aufbau und Push-Retry** —
   smartctl-7.x-JSON-Fixtures (ATA + NVMe + Degenerat-Fälle), `BuildReport`-
   Grundstruktur, Retry-Verhalten gegen httptest-Server, `hasPrefix`/`getFloat`.

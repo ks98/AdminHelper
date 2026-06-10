@@ -5,6 +5,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { get } from 'svelte/store';
 import { t, language, setLanguage, tNow } from './index';
+import { translations } from './dictionaries';
 
 describe('i18n engine', () => {
   beforeEach(() => {
@@ -50,5 +51,16 @@ describe('i18n engine', () => {
     expect(tNow('nav.dashboard')).toBe('Dashboard');
     setLanguage('en');
     expect(tNow('nav.dashboard')).toBe('Dashboard');
+  });
+});
+
+describe('dictionary parity', () => {
+  it('de and en dictionaries have exactly the same keys', () => {
+    const deKeys = new Set(Object.keys(translations.de));
+    const enKeys = new Set(Object.keys(translations.en));
+    const missingInEn = [...deKeys].filter((k) => !enKeys.has(k)).sort();
+    const missingInDe = [...enKeys].filter((k) => !deKeys.has(k)).sort();
+    expect(missingInEn).toEqual([]);
+    expect(missingInDe).toEqual([]);
   });
 });
