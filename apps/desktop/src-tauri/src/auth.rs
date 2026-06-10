@@ -235,6 +235,14 @@ async fn notify_server_logout(
 
 // ── Keyring helpers ──────────────────────────────────────────────────
 
+/// The server URL persisted for the active session at login, if any. Used to
+/// pin `api_proxy`'s token destination: the JWT must only ever be sent to the
+/// server the user actually logged into, never to a URL a (compromised) frontend
+/// passes instead.
+pub fn stored_server_url() -> Option<String> {
+    load_session_from_keyring().ok().map(|(url, _, _)| url)
+}
+
 fn save_session_to_keyring(session: &AuthSession) -> Result<(), AppError> {
     #[cfg(unix)]
     {

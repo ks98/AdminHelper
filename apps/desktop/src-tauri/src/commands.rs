@@ -64,6 +64,17 @@ pub async fn api_proxy(
             .map(|s| s.allow_self_signed_certs)
             .unwrap_or(false)
     });
+    // Token-destination pin: the session JWT must only be sent to the server the
+    // user logged into. A (compromised) frontend that passes a foreign server_url
+    // alongside the real token would otherwise leak it — TOFU would happily pin
+    // the attacker's cert on first use for that new host.
+    if let Some(stored) = auth::stored_server_url() {
+        if !validation::same_server_destination(&server_url, &stored) {
+            return Err(AppError::Validation(
+                "Anfrage-Ziel weicht von der angemeldeten Server-URL ab".to_string(),
+            ));
+        }
+    }
     let client = auth::build_client(&server_url, self_signed)?;
     let url = format!("{}{}", server_url.trim_end_matches('/'), path);
 

@@ -136,6 +136,24 @@ pub fn validate_pki_filename(name: &str) -> Result<(), AppError> {
     }
 }
 
+/// True if two URLs point at the same server origin (scheme + host + port),
+/// ignoring path, trailing slash and host case. Used to pin `api_proxy`'s token
+/// destination to the logged-in server: a request URL that differs from the
+/// session's server origin must not receive the JWT. Falls back to a
+/// trailing-slash-insensitive exact match if either URL fails to parse.
+pub fn same_server_destination(requested: &str, stored: &str) -> bool {
+    fn origin(raw: &str) -> Option<(String, String, u16)> {
+        let url = Url::parse(raw).ok()?;
+        let host = url.host_str()?.to_ascii_lowercase();
+        let port = url.port_or_known_default()?;
+        Some((url.scheme().to_string(), host, port))
+    }
+    match (origin(requested), origin(stored)) {
+        (Some(a), Some(b)) => a == b,
+        _ => requested.trim_end_matches('/') == stored.trim_end_matches('/'),
+    }
+}
+
 /// Sanitizes a connection name for safe use as an RDP window title
 /// (xfreerdp `/title:`). Defense-in-depth: passing via argv already prevents
 /// argument splitting, but sanitization guards against control characters,
@@ -285,6 +303,43 @@ mod tests {
             assert!(
                 validate_server_url_secure(url).is_err(),
                 "{url} must be rejected"
+            );
+        }
+    }
+
+    #[test]
+    fn same_server_destination_matches_same_origin_ignoring_path_and_slash() {
+        let stored = "https://adminhelper.example:8443";
+        for requested in [
+            "https://adminhelper.example:8443",
+            "https://adminhelper.example:8443/",
+            "https://adminhelper.example:8443/api/connections",
+            "https://ADMINHELPER.example:8443/api", // host case-insensitive
+        ] {
+            assert!(
+                same_server_destination(requested, stored),
+                "{requested} must match {stored}"
+            );
+        }
+        // Implicit vs explicit default port are the same origin.
+        assert!(same_server_destination(
+            "https://adminhelper.example/api",
+            "https://adminhelper.example:443"
+        ));
+    }
+
+    #[test]
+    fn same_server_destination_rejects_foreign_origin() {
+        let stored = "https://adminhelper.example:8443";
+        for requested in [
+            "https://attacker.example:8443/api",         // different host
+            "https://adminhelper.example:9443/api",      // different port
+            "http://adminhelper.example:8443/api",       // different scheme
+            "https://adminhelper.example.evil.com:8443", // suffix trick
+        ] {
+            assert!(
+                !same_server_destination(requested, stored),
+                "{requested} must NOT match {stored}"
             );
         }
     }

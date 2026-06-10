@@ -112,6 +112,7 @@ async fn connect_rdp(
             <li>The handshake signature is still verified against the presented public key (delegated to the ring provider), so a captured certificate cannot be replayed without its private key.</li>
             <li><strong>Recovery</strong> after a legitimate certificate rotation: <code>reset_server_cert_pin</code> clears the pin (keyring + cache) &ndash; UI button <em>&ldquo;Reset pinned certificate&rdquo;</em> in settings.</li>
             <li><strong>Verification</strong>: a real-handshake test in <code>tofu.rs</code> (tokio-rustls server, two distinct certificates) proves first-use pinning, reconnect with the same cert, and rejection on a cert change.</li>
+            <li><strong>Accompanying hardening</strong>: <code>api_proxy</code> only sends the JWT to the logged-in server URL (token-destination pin, <code>auth::stored_server_url</code>); <code>launch_ansible</code> only accepts paths under the app temp dir (<code>adminhelper_ansible</code> prefix, canonicalized &ndash; blocks <code>..</code>/symlink escape); the webview CSP <code>connect-src</code> is narrowed to <code>'self' ipc: http://ipc.localhost</code> (no <code>https:</code> exfiltration channel, since all server traffic goes through <code>api_proxy</code>).</li>
           </ul>
 
           <h2>FRP Sidecar</h2>

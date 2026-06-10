@@ -65,6 +65,19 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
   nach legitimer Cert-Rotation den First-Use wieder her. `check_server_cert`
   prüft zusätzlich das URL-Schema (kein Cleartext-Probe). Verifiziert per
   Echt-Handshake-Test (tokio-rustls-Server, Cert-Wechsel → reject).
+- **Desktop: drei Defense-in-Depth-Härtungen rund um den gepinnten TLS-Pfad**
+  (Audit, Rest des Desktop-Bündels — schließt #6 vollständig). (1) **Token-
+  Destination-Pin**: `api_proxy` sendet den Session-JWT nur noch an die
+  angemeldete Server-URL (`auth::stored_server_url`), ein abweichendes Ziel wird
+  abgelehnt — ein kompromittiertes Frontend kann den Token nicht mehr an einen
+  Fremd-Host umleiten. (2) **`ansible`-Pfad-Confinement**: `launch_ansible`
+  akzeptiert nur noch Pfade unter dem App-Temp-Verzeichnis mit Präfix
+  `adminhelper_ansible` (canonicalisiert, blockt `..`/Symlink-Ausbruch) — ein
+  manipuliertes Frontend kann `ansible-playbook` nicht mehr auf ein fremdes YAML
+  zeigen (RCE-Schutz). (3) **CSP**: `connect-src` von `'self' https:` auf
+  `'self' ipc: http://ipc.localhost` verengt — schließt den XSS-Exfiltrations-
+  Kanal; sämtlicher Server-Verkehr läuft ohnehin über den Rust-`api_proxy`, nie
+  über Webview-`fetch`. (CSP-Änderung auf Windows manuell zu verifizieren.)
 - **`SECURITY.md`: Trust-Modell + Audit-Residuen dokumentiert** — FRP-`secretKey`
   als eigentliche Authz-Grenze (nicht `allowUsers`), globaler `auth.token` als
   akzeptiertes SPOF mit Rotations-Empfehlung, Single-Worker-Verfügbarkeitsprofil,
