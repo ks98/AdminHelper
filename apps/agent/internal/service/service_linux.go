@@ -22,7 +22,11 @@ func Install() error {
 		return fmt.Errorf("eigenen Pfad ermitteln: %w", err)
 	}
 
-	// Write the service unit
+	// Write the service unit.
+	// Twin of the packaged units in apps/agent/systemd/ (adminhelper-agent.service
+	// + .timer, shipped via deb/rpm): both install paths must share the
+	// `run --once` + timer semantics — keep them in sync. Only ExecStart differs
+	// (dynamic exe path instead of /usr/bin).
 	serviceUnit := fmt.Sprintf(`[Unit]
 Description=AdminHelper Agent — FRPC Sync + Monitoring
 After=network-online.target
@@ -30,19 +34,18 @@ Wants=network-online.target
 
 [Service]
 Type=oneshot
-ExecStart=%s run
-
-[Install]
-WantedBy=multi-user.target
+ExecStart=%s run --once
+TimeoutStartSec=60
 `, exePath)
 
 	// Write the timer unit
 	timerUnit := `[Unit]
-Description=AdminHelper Agent Timer (alle 5 Minuten)
+Description=AdminHelper Agent Timer (FRPC Sync + Monitoring alle 5 Minuten)
 
 [Timer]
 OnBootSec=60
 OnUnitActiveSec=300
+RandomizedDelaySec=30
 Persistent=true
 
 [Install]

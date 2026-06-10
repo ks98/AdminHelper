@@ -5,11 +5,17 @@
 package monitor
 
 import (
+	"context"
 	"encoding/json"
 	"os/exec"
 	"strconv"
 	"strings"
+	"time"
 )
+
+// dockerTimeout caps every docker CLI call: a hanging daemon must not stall
+// the whole 5-minute report cycle.
+const dockerTimeout = 10 * time.Second
 
 // collectDocker collects Docker container status (cross-platform).
 func collectDocker() map[string]any {
@@ -17,16 +23,21 @@ func collectDocker() map[string]any {
 		return nil
 	}
 	// Is the daemon reachable?
-	if err := exec.Command("docker", "info").Run(); err != nil {
+	ctxInfo, cancelInfo := context.WithTimeout(context.Background(), dockerTimeout)
+	defer cancelInfo()
+	if err := exec.CommandContext(ctxInfo, "docker", "info").Run(); err != nil {
 		return nil
 	}
 
-	out, err := exec.Command("docker", "ps", "-a", "--format", "{{json .}}").Output()
+	ctxPs, cancelPs := context.WithTimeout(context.Background(), dockerTimeout)
+	defer cancelPs()
+	out, err := exec.CommandContext(ctxPs, "docker", "ps", "-a", "--format", "{{json .}}").Output()
 	if err != nil {
 		return nil
 	}
 
 	var containers []map[string]string
+	var ids []string
 	for _, line := range strings.Split(strings.TrimSpace(string(out)), "\n") {
 		if line == "" {
 			continue
@@ -35,25 +46,51 @@ func collectDocker() map[string]any {
 		if err := json.Unmarshal([]byte(line), &c); err != nil {
 			continue
 		}
-		container := map[string]string{
+		containers = append(containers, map[string]string{
 			"id":     c["ID"],
 			"name":   c["Names"],
 			"image":  c["Image"],
 			"state":  c["State"],
 			"status": c["Status"],
-		}
-		// Restart policy via docker inspect
-		inspOut, err := exec.Command("docker", "inspect", "--format",
-			"{{.HostConfig.RestartPolicy.Name}}", c["ID"]).Output()
-		if err == nil {
-			container["restart_policy"] = strings.TrimSpace(string(inspOut))
-		}
-		containers = append(containers, container)
+		})
+		ids = append(ids, c["ID"])
 	}
 	if len(containers) == 0 {
 		return nil
 	}
+
+	// Restart policies via ONE batch inspect instead of one call per container.
+	policies := inspectRestartPolicies(ids)
+	for _, container := range containers {
+		if policy, ok := policies[container["id"]]; ok {
+			container["restart_policy"] = policy
+		}
+	}
 	return map[string]any{"containers": containers}
+}
+
+// inspectRestartPolicies fetches the restart policy of all given containers in
+// a single `docker inspect` call. Returns a map keyed by the short (12-char)
+// container ID as printed by `docker ps`.
+func inspectRestartPolicies(ids []string) map[string]string {
+	ctx, cancel := context.WithTimeout(context.Background(), dockerTimeout)
+	defer cancel()
+	args := append([]string{"inspect", "--format",
+		"{{.Id}} {{.HostConfig.RestartPolicy.Name}}"}, ids...)
+	// Output() returns the partial stdout alongside the error (e.g. when a
+	// container vanished between ps and inspect) — parse what we got, the
+	// missing IDs simply keep no restart_policy.
+	out, _ := exec.CommandContext(ctx, "docker", args...).Output()
+
+	policies := make(map[string]string, len(ids))
+	for _, line := range strings.Split(strings.TrimSpace(string(out)), "\n") {
+		fullID, policy, _ := strings.Cut(line, " ")
+		if len(fullID) < 12 {
+			continue
+		}
+		policies[fullID[:12]] = policy
+	}
+	return policies
 }
 
 // collectProxmox collects Proxmox metrics (Linux with pvesh only).

@@ -5,40 +5,10 @@
 package frpc
 
 import (
-	"crypto/tls"
-	"crypto/x509"
 	"fmt"
 	"io"
 	"net/http"
-	"os"
-	"time"
 )
-
-// httpClient creates an HTTP client with optional TLS settings.
-func httpClient(cacert string, insecure bool) (*http.Client, error) {
-	tlsCfg := &tls.Config{}
-
-	if insecure {
-		tlsCfg.InsecureSkipVerify = true
-	} else if cacert != "" {
-		pem, err := os.ReadFile(cacert)
-		if err != nil {
-			return nil, fmt.Errorf("CA-Zertifikat lesen: %w", err)
-		}
-		pool := x509.NewCertPool()
-		if !pool.AppendCertsFromPEM(pem) {
-			return nil, fmt.Errorf("CA-Zertifikat ungueltig")
-		}
-		tlsCfg.RootCAs = pool
-	}
-
-	return &http.Client{
-		Timeout: 30 * time.Second,
-		Transport: &http.Transport{
-			TLSClientConfig: tlsCfg,
-		},
-	}, nil
-}
 
 // httpGet performs a GET request with an API-Key header.
 func httpGet(client *http.Client, url, apiKey string) ([]byte, error) {

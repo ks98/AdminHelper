@@ -132,6 +132,20 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
   liefen als einzige sync-I/O-Reste direkt im Event-Loop des async-Handlers —
   jetzt via `run_in_threadpool`, konsistent zum bereits ausgelagerten
   Hook-Subprozess.
+- **Agent: `service install` erzeugt jetzt dieselbe Unit-Semantik wie deb/rpm**
+  (Audit). Die generierte systemd-Unit nutzte `run` (Dauerläufer) unter
+  `Type=oneshot` + Timer — `systemctl start` hing bis zum Timeout und der Timer
+  feuerte eine zweite, parallele Instanz (doppelte Pushes). Jetzt `run --once`
+  + Timer wie im Paket, inkl. `RandomizedDelaySec`.
+- **Agent: Metrik-Push mit 1 Retry (10 s Backoff)** — ein transienter
+  Server-Neustart reißt kein 5-Minuten-Loch mehr in die Zeitreihen.
+- **Agent: Docker-Collection mit Timeout + Batch-Inspect** — `docker info`/
+  `ps`/`inspect` laufen mit 10-s-Timeout (hängender Daemon blockierte vorher
+  den ganzen Push-Cycle unbegrenzt); Restart-Policies kommen aus EINEM
+  Batch-`docker inspect` statt einem Subprozess pro Container.
+- **Agent: TLS-HTTP-Client dedupliziert** (`internal/httpclient`) — die
+  dreifach kopierte CA-Pinning-Logik (monitor/frpc/provision) hat jetzt eine
+  Quelle; Timeout ist der einzige Parameter.
 - **Desktop: TOFU-Pin-Cache übersteht Thread-Panics** — alle vier
   `.lock().unwrap()`-Stellen auf dem Pin-Cache-Mutex nutzen jetzt das
   Poison-tolerante Muster aus `frpc.rs`; vorher hätte ein einzelner Panic

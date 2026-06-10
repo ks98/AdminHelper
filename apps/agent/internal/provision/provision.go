@@ -16,8 +16,6 @@
 package provision
 
 import (
-	"crypto/tls"
-	"crypto/x509"
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
@@ -28,6 +26,7 @@ import (
 	"time"
 
 	"adminhelper-agent/internal/frpc"
+	"adminhelper-agent/internal/httpclient"
 	"adminhelper-agent/internal/monitor"
 )
 
@@ -116,7 +115,7 @@ func Run(adminHelperURL, token, serverID, cacert string, insecure bool) error {
 }
 
 func callActivate(adminHelperURL, token, serverID, cacert string, insecure bool) (*activateResponse, []byte, error) {
-	client, err := buildHTTPClient(cacert, insecure)
+	client, err := httpclient.New(cacert, insecure, 30*time.Second)
 	if err != nil {
 		return nil, nil, fmt.Errorf("HTTP-Client: %w", err)
 	}
@@ -174,25 +173,4 @@ func writePinnedCert(pemBytes []byte) (string, error) {
 		return "", err
 	}
 	return f.Name(), nil
-}
-
-func buildHTTPClient(cacert string, insecure bool) (*http.Client, error) {
-	tlsCfg := &tls.Config{}
-	if insecure {
-		tlsCfg.InsecureSkipVerify = true
-	} else if cacert != "" {
-		pem, err := os.ReadFile(cacert)
-		if err != nil {
-			return nil, fmt.Errorf("CA-Zertifikat lesen: %w", err)
-		}
-		pool := x509.NewCertPool()
-		if !pool.AppendCertsFromPEM(pem) {
-			return nil, fmt.Errorf("CA-Zertifikat ungueltig")
-		}
-		tlsCfg.RootCAs = pool
-	}
-	return &http.Client{
-		Timeout:   30 * time.Second,
-		Transport: &http.Transport{TLSClientConfig: tlsCfg},
-	}, nil
 }

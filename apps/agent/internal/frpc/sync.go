@@ -10,8 +10,10 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"adminhelper-agent/internal/config"
+	"adminhelper-agent/internal/httpclient"
 )
 
 // Sync checks for config changes and updates frpc (port of do_sync).
@@ -29,7 +31,7 @@ func Sync() error {
 		return fmt.Errorf("adminhelper.conf unvollstaendig")
 	}
 
-	client, err := httpClient(cfg.CACert, cfg.Insecure)
+	client, err := httpclient.New(cfg.CACert, cfg.Insecure, 30*time.Second)
 	if err != nil {
 		return fmt.Errorf("HTTP-Client: %w", err)
 	}

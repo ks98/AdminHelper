@@ -6,14 +6,13 @@ package monitor
 
 import (
 	"bytes"
-	"crypto/tls"
-	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"time"
+
+	"adminhelper-agent/internal/httpclient"
 )
 
 const logTag = "adminhelper-agent-monitor"
@@ -80,7 +79,12 @@ func BuildReport(serviceNames []string) map[string]any {
 	return report
 }
 
-// PushReport sends the report to the monitoring service.
+// pushRetryDelay is a variable so tests can shorten the backoff.
+var pushRetryDelay = 10 * time.Second
+
+// PushReport sends the report to the monitoring service. A lost push wastes a
+// full 5-minute slot, so a transient failure (server restart, network blip)
+// gets one retry after a short backoff.
 func PushReport(url, apiKey, serverID string, report map[string]any, cacert string, insecure bool) error {
 	endpoint := fmt.Sprintf("%s/agent/%s/report", url, serverID)
 
@@ -89,11 +93,20 @@ func PushReport(url, apiKey, serverID string, report map[string]any, cacert stri
 		return fmt.Errorf("JSON-Encoding: %w", err)
 	}
 
-	client, err := buildHTTPClient(cacert, insecure)
+	client, err := httpclient.New(cacert, insecure, 15*time.Second)
 	if err != nil {
 		return err
 	}
 
+	if err := pushOnce(client, endpoint, apiKey, data); err != nil {
+		logMsg("Push fehlgeschlagen (%v), Retry in %s...", err, pushRetryDelay)
+		time.Sleep(pushRetryDelay)
+		return pushOnce(client, endpoint, apiKey, data)
+	}
+	return nil
+}
+
+func pushOnce(client *http.Client, endpoint, apiKey string, data []byte) error {
 	req, err := http.NewRequest("POST", endpoint, bytes.NewReader(data))
 	if err != nil {
 		return err
@@ -106,31 +119,11 @@ func PushReport(url, apiKey, serverID string, report map[string]any, cacert stri
 		return fmt.Errorf("Verbindungsfehler: %w", err)
 	}
 	defer resp.Body.Close()
-	io.ReadAll(resp.Body)
+	// Body leeren, damit die Verbindung wiederverwendet werden kann.
+	_, _ = io.ReadAll(resp.Body)
 
 	if resp.StatusCode >= 300 {
 		return fmt.Errorf("HTTP-Fehler: %d", resp.StatusCode)
 	}
 	return nil
-}
-
-func buildHTTPClient(cacert string, insecure bool) (*http.Client, error) {
-	tlsCfg := &tls.Config{}
-	if insecure {
-		tlsCfg.InsecureSkipVerify = true
-	} else if cacert != "" {
-		pem, err := os.ReadFile(cacert)
-		if err != nil {
-			return nil, fmt.Errorf("CA-Zertifikat lesen: %w", err)
-		}
-		pool := x509.NewCertPool()
-		if !pool.AppendCertsFromPEM(pem) {
-			return nil, fmt.Errorf("CA-Zertifikat ungueltig")
-		}
-		tlsCfg.RootCAs = pool
-	}
-	return &http.Client{
-		Timeout:   15 * time.Second,
-		Transport: &http.Transport{TLSClientConfig: tlsCfg},
-	}, nil
 }
