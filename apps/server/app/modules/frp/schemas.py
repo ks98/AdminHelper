@@ -2,6 +2,8 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import re
+
 from pydantic import BaseModel, field_validator
 from typing import Optional
 
@@ -32,14 +34,33 @@ def _check_secret(v: Optional[str]) -> Optional[str]:
     return v
 
 
+# The generator emits extra_config keys unquoted (`{key} = ...`), so they must
+# be TOML bare keys (dotted keys allowed). Anything else would break — or worse,
+# extend — the generated config.
+_TOML_BARE_KEY = re.compile(r"^[A-Za-z0-9_.-]+$")
+
+
 def _check_extra_config(v: Optional[dict]) -> Optional[dict]:
-    """extra_config keys/values are emitted as TOML — same injection guard."""
+    """extra_config keys/values are emitted as TOML — same injection guard.
+
+    Values are limited to scalars the generator can emit safely (str/bool/
+    int/float): lists and dicts would land as raw Python repr in the TOML,
+    which is neither valid TOML nor covered by the string guard (their inner
+    strings bypass _reject_toml_breakers)."""
     if v is None:
         return v
     for key, value in v.items():
-        _reject_toml_breakers(str(key))
+        if not _TOML_BARE_KEY.match(str(key)):
+            raise ValueError(
+                f"extra_config-Schlüssel '{key}' ist kein gültiger TOML-Key "
+                "(erlaubt: A-Z a-z 0-9 _ . -)"
+            )
         if isinstance(value, str):
             _reject_toml_breakers(value)
+        elif not isinstance(value, (bool, int, float)):
+            raise ValueError(
+                f"extra_config-Wert für '{key}' muss str, bool, int oder float sein"
+            )
     return v
 
 

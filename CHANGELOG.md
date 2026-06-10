@@ -9,6 +9,15 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Security
 
+- **Server: Server-Name in die TOML-/Pfad-Boundary aufgenommen** (Audit-Residuum).
+  `ServerCreate`/`ServerUpdate.name` lehnt jetzt TOML-Breaker und Pfad-Zeichen
+  (`/`, `.`, `..`) ab — der Name fließt als FRP-Identifier (`user`/`serverUser`)
+  in generierte Agent-Configs und als Pfad-Komponente ins Bulk-ZIP
+  (`clients/{name}/frpc.toml`), war aber als einzige Eingangstür unvalidiert.
+- **Server/FRP: `extra_config` lehnt Nicht-Skalar-Werte ab** (Audit-Residuum).
+  Listen/Dicts umgingen den String-Breaker-Check und landeten als rohes
+  Python-`repr` in der TOML (Injection über innere Strings möglich); Keys
+  müssen jetzt TOML-Bare-Keys sein, Werte `str`/`bool`/`int`/`float`.
 - **Server: Per-User-Isolation auf `/api/connections` durchgesetzt** (Audit-Fund).
   Non-Admins (und server-gebundene API-Keys) sehen und „touchen" nur noch
   Connections ihrer zugewiesenen Server — vorher lieferte die Liste **jedem**
