@@ -19,8 +19,9 @@ concurrency:
 
 env:
   FRP_VERSION: "0.69.1"
-  # Pinned SHA-256 of the official frp release artifact (verified before use).
+  # Pinned SHA-256 of the official frp release artifacts (verified before use).
   FRP_SHA256_LINUX_AMD64: "7be257b72dbbc60bcb3e0e25a5afd1dfac7b63f897084864d3c956dd3d5674e1"
+  FRP_SHA256_WINDOWS_AMD64: "829ac915f8655d4d4e021b8db61b46c3445205ed80d32b04cda7fa89d87c46e0"
 
 jobs:
   server:
@@ -66,7 +67,8 @@ jobs:
         run: pip install -r requirements-dev.txt
       - name: Run pytest
         working-directory: apps/server
-        run: pytest -q
+        # Coverage is report-only (no threshold) — visibility, not a gate.
+        run: pytest -q --cov=app --cov-report=term
 
   monitoring:
     name: Monitoring (pytest)
@@ -100,10 +102,11 @@ jobs:
         working-directory: apps/monitoring
         # requirements.in is the loose, unhashed source; the hashed requirements.txt
         # lock is for the Docker image.
-        run: pip install -r requirements.in pytest
+        run: pip install -r requirements.in pytest pytest-cov
       - name: Run pytest
         working-directory: apps/monitoring
-        run: python -m pytest -q
+        # Coverage is report-only (no threshold) — visibility, not a gate.
+        run: python -m pytest -q --cov=app --cov-report=term
 
   agent:
     name: Go Agent (gofmt + vet + test)
@@ -126,7 +129,8 @@ jobs:
         run: go vet ./...
       - name: go test
         working-directory: apps/agent
-        run: go test ./...
+        # Coverage is report-only (no threshold) — visibility, not a gate.
+        run: go test -cover ./...
       - name: Cross-compile (linux + windows)
         working-directory: apps/agent
         run: |
@@ -154,7 +158,8 @@ jobs:
         run: npm run lint
       - name: vitest
         working-directory: apps/desktop/ui
-        run: npm run test
+        # Coverage is report-only (no threshold) — visibility, not a gate.
+        run: npm run test -- --coverage
 
   frontend:
     name: Web-Frontend (check + lint + unit)
@@ -177,7 +182,8 @@ jobs:
         run: npm run lint
       - name: vitest
         working-directory: apps/web
-        run: npm run test:unit
+        # Coverage is report-only (no threshold) — visibility, not a gate.
+        run: npm run test:unit -- --coverage
 
   frontend-e2e:
     name: Web-Frontend (Playwright E2E)
@@ -255,3 +261,121 @@ jobs:
       - name: cargo test
         working-directory: apps/desktop/src-tauri
         run: cargo test
+
+  # Audit C1: the windows = "0.61" code paths were never compiled in CI —
+  # "green but broken" releases were possible. cargo check is the cheap gate;
+  # the full MSI build stays in release.yml.
+  rust-windows:
+    name: Desktop-Backend (cargo check, Windows)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
+      - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
+        with:
+          workspaces: apps/desktop/src-tauri
+      - name: frpc sidecar (externalBin must resolve for tauri-build)
+        shell: bash
+        run: |
+          curl -fsSL -o frpc.zip \
+            "https://github.com/fatedier/frp/releases/download/v${FRP_VERSION}/frp_${FRP_VERSION}_windows_amd64.zip"
+          echo "${FRP_SHA256_WINDOWS_AMD64}  frpc.zip" | sha256sum -c -
+          unzip -o frpc.zip
+          mkdir -p apps/desktop/src-tauri/binaries
+          cp "frp_${FRP_VERSION}_windows_amd64/frpc.exe" \
+            apps/desktop/src-tauri/binaries/frpc-x86_64-pc-windows-msvc.exe
+      - name: cargo check
+        working-directory: apps/desktop/src-tauri
+        run: cargo check --locked
+
+  # Audit C2: cargo tauri build (beforeBuildCommand, UI embedding, deb
+  # bundling) only ran on tags — exactly the failure class of
+  # fix/tauri-beforebuild-path surfaced at release time. Debug profile +
+  # deb-only keeps it affordable as a PR gate.
+  tauri-build-smoke:
+    name: Desktop (tauri build smoke, Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Tauri system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libgtk-3-dev libwebkit2gtk-4.1-dev librsvg2-dev libxdo-dev \
+            libayatana-appindicator3-dev libssl-dev patchelf file
+      - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
+      - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
+        with:
+          workspaces: apps/desktop/src-tauri
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/desktop/ui/package-lock.json
+      - name: Install Tauri CLI
+        # Keep this pin in lockstep with release.yml.
+        run: cargo install tauri-cli --locked --version "2.11.2"
+      - name: frpc sidecar
+        run: |
+          curl -fsSL -o frpc.tar.gz \
+            "https://github.com/fatedier/frp/releases/download/v${FRP_VERSION}/frp_${FRP_VERSION}_linux_amd64.tar.gz"
+          echo "${FRP_SHA256_LINUX_AMD64}  frpc.tar.gz" | sha256sum -c -
+          tar xzf frpc.tar.gz
+          mkdir -p apps/desktop/src-tauri/binaries
+          cp "frp_${FRP_VERSION}_linux_amd64/frpc" \
+            apps/desktop/src-tauri/binaries/frpc-x86_64-unknown-linux-gnu
+          chmod +x apps/desktop/src-tauri/binaries/frpc-x86_64-unknown-linux-gnu
+      - name: npm ci
+        working-directory: apps/desktop/ui
+        run: npm ci --no-audit --no-fund
+      - name: cargo tauri build (debug, deb only)
+        working-directory: apps/desktop/src-tauri
+        run: cargo tauri build --debug --bundles deb
+
+  # Audit C3: docker images were only built on pushes to main — a Dockerfile
+  # break (e.g. hash mismatch under --require-hashes) landed on main first.
+  docker-build:
+    name: ${{ matrix.image }} image (build only)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: server
+            context: .
+            dockerfile: Dockerfile
+          - image: monitoring
+            context: apps/monitoring
+            dockerfile: apps/monitoring/Dockerfile
+    steps:
+      - uses: actions/checkout@v6
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4.1.0
+      - name: Build (no push)
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: false
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+
+  # Audit C7: FRP_VERSION (+ artifact SHAs) is pinned in three places that
+  # must move in lockstep — drift breaks the tunnel at runtime, not in CI.
+  frp-consistency:
+    name: FRP pins in lockstep
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Compare the three FRP_VERSION pins
+        run: |
+          ci=$(grep -m1 '^  FRP_VERSION:' .github/workflows/ci.yml | grep -o '[0-9][0-9.]*')
+          rel=$(grep -m1 '^  FRP_VERSION:' .github/workflows/release.yml | grep -o '[0-9][0-9.]*')
+          compose=$(grep -m1 'snowdreamtech/frps:' docker-compose.yml | grep -o '[0-9][0-9.]*')
+          sha_ci=$(grep -m1 'FRP_SHA256_LINUX_AMD64:' .github/workflows/ci.yml | grep -o '[0-9a-f]\{64\}')
+          sha_rel=$(grep -m1 'FRP_SHA256_LINUX_AMD64:' .github/workflows/release.yml | grep -o '[0-9a-f]\{64\}')
+          echo "ci.yml=$ci release.yml=$rel docker-compose.yml=$compose"
+          test -n "$ci" && test "$ci" = "$rel" && test "$ci" = "$compose" || {
+            echo "::error::FRP_VERSION drift detected (ci=$ci, release=$rel, compose=$compose)"; exit 1; }
+          test "$sha_ci" = "$sha_rel" || {
+            echo "::error::FRP_SHA256_LINUX_AMD64 differs between ci.yml and release.yml"; exit 1; }

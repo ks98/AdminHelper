@@ -193,6 +193,22 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
   (Session-Expiry weiterhin ausgenommen).
 ### Added
 
+- **CI schließt die „grün-aber-kaputt"-Blindspots** (Audit C1–C3): neuer
+  Windows-`cargo check`-Job (der `windows`-Crate-Code wurde nie in CI
+  kompiliert), ein `cargo tauri build`-Smoke auf Linux (beforeBuildCommand/
+  UI-Embedding/deb-Bundling liefen nur auf Tags) und Docker-Builds beider
+  Images auf PRs (`push: false`). Dazu ein FRP-Pin-Konsistenz-Check über
+  die drei `FRP_VERSION`-Stellen.
+- **Wöchentlicher Dependency-Audit-Workflow** (`audit.yml`, Audit D2):
+  pip-audit (beide gehashten Locks), cargo audit, govulncheck, npm audit —
+  das automatische CVE-Signal zwischen den agent-getriebenen Update-Runden.
+- **Coverage-Reporting in CI** (Audit C4, report-only): pytest-cov für
+  Server/Monitoring, `go test -cover`, vitest `--coverage` in beiden UIs.
+- **Release: Extension als versioniertes Zip-Artefakt** (Audit C5) — bisher
+  wurde die MV3-Extension getestet, aber nie ausgeliefert („Load unpacked"
+  aus dem Clone); jetzt hängt sie als `adminhelper-extension-X.Y.Z.zip` am
+  Draft-Release und ist Teil des Release-Gates. `tauri-cli` ist im
+  Release-Build exakt gepinnt statt floatendem `^2`.
 - **Web: Monitoring aktualisiert sich automatisch** (Entscheidung nach Audit).
   30-s-Polling wie im Desktop, aber pausiert bei verstecktem Tab
   (`visibilitychange`; beim Sichtbarwerden sofortiger Refresh) — bei

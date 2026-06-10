@@ -1,0 +1,78 @@
+# SPDX-FileCopyrightText: 2026 Kevin Stenzel
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+# Audit D2: dependency updates are agent-driven (no Dependabot) — this
+# scheduled sweep is the automatic CVE signal between the manual update
+# rounds. Report-only in the sense that it gates nothing else: a red run is
+# the signal to start an update round.
+
+name: Dependency Audit
+
+on:
+  schedule:
+    - cron: "17 6 * * 1" # Monday 06:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  python:
+    name: pip-audit (server + monitoring)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - name: Install pip-audit
+        run: pip install pip-audit
+      - name: Audit server lock
+        run: pip-audit -r apps/server/requirements.txt --disable-pip
+      - name: Audit monitoring lock
+        if: ${{ !cancelled() }}
+        run: pip-audit -r apps/monitoring/requirements.txt --disable-pip
+
+  rust:
+    name: cargo audit (desktop)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
+      - name: Install cargo-audit
+        run: cargo install cargo-audit --locked
+      - name: Audit Cargo.lock
+        working-directory: apps/desktop/src-tauri
+        run: cargo audit
+
+  go:
+    name: govulncheck (agent)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.25"
+          cache-dependency-path: apps/agent/go.sum
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+      - name: Audit module
+        working-directory: apps/agent
+        run: govulncheck ./...
+
+  npm:
+    name: npm audit (web + desktop-ui)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+      - name: Audit web lockfile
+        working-directory: apps/web
+        run: npm audit --audit-level=high
+      - name: Audit desktop-ui lockfile
+        if: ${{ !cancelled() }}
+        working-directory: apps/desktop/ui
+        run: npm audit --audit-level=high
