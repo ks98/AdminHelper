@@ -118,6 +118,20 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
   erlaubt koordinierte, getestete Bumps über alle Ökosysteme). GitHubs separate
   Security-Alerts bleiben als Sicherheitsnetz unberührt. Neuer Workflow in
   `DEVELOPMENT.md` dokumentiert.
+- **Server: FK-Spalten indiziert** (Audit, Ziel 250–500 Server). Neue Migration
+  `a258973bb7fd` legt Indizes auf `connections.server_id`,
+  `frp_tunnels.server_id`/`frp_config_id`/`connection_id` und
+  `provision_tokens.server_id` an — Postgres indiziert FK-Spalten nicht
+  automatisch; Server-Deletes (CASCADE/SET NULL) und server-bezogene Filter
+  liefen vorher als Full-Table-Scans.
+
+### Fixed
+
+- **Server: Webhook-Trigger blockiert den Event-Loop nicht mehr** (Audit-Rest).
+  Der Redis-Rate-Limit-Increment und die Hook-DB-Query in `trigger_webhook`
+  liefen als einzige sync-I/O-Reste direkt im Event-Loop des async-Handlers —
+  jetzt via `run_in_threadpool`, konsistent zum bereits ausgelagerten
+  Hook-Subprozess.
 
 ## [0.26.0] - 2026-06-07
 

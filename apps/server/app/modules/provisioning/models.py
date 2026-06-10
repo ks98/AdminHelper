@@ -24,7 +24,7 @@ class ProvisionToken(Base):
     __tablename__ = "provision_tokens"
 
     id = Column(String, primary_key=True)
-    server_id = Column(String, ForeignKey("servers.id", ondelete="CASCADE"), nullable=False)
+    server_id = Column(String, ForeignKey("servers.id", ondelete="CASCADE"), nullable=False, index=True)
     hashed_token = Column(String, unique=True, nullable=False)
     expires_at = Column(DateTime, nullable=False)
     used_at = Column(DateTime, nullable=True)

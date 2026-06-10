@@ -137,10 +137,13 @@ def create_hook(
 # IMPORTANT: /trigger/{token} must be defined before /{hook_id}
 @router.post("/trigger/{token}")
 async def trigger_webhook(token: str, request: Request, db: Session = Depends(get_db)):
-    _check_trigger_rate_limit(request)
+    # This handler must stay async (request.json(), run_in_threadpool), so the
+    # sync pieces — Redis rate-limit increment and the DB lookup — must not run
+    # on the event loop directly (single-worker backend, see comment below).
+    await run_in_threadpool(_check_trigger_rate_limit, request)
     hashed = hash_api_key(token)
-    hook = (
-        db.query(Hook)
+    hook = await run_in_threadpool(
+        lambda: db.query(Hook)
         .filter(Hook.hashed_token == hashed, Hook.hook_type == "webhook")
         .first()
     )

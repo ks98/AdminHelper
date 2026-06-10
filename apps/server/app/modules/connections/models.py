@@ -45,7 +45,7 @@ class Connection(Base):
     last_used = Column(String, nullable=True)
     scaling_mode = Column(String, nullable=True)
     extra_data = Column(String, nullable=True)  # JSON for unknown extra fields
-    server_id = Column(String, ForeignKey("servers.id", ondelete="SET NULL"), nullable=True)
+    server_id = Column(String, ForeignKey("servers.id", ondelete="SET NULL"), nullable=True, index=True)
     created_at = Column(DateTime, server_default=func.now())
 
     def to_dict(self) -> dict[str, Any]:
