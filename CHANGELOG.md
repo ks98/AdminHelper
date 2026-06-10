@@ -125,6 +125,12 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
   erlaubt koordinierte, getestete Bumps über alle Ökosysteme). GitHubs separate
   Security-Alerts bleiben als Sicherheitsnetz unberührt. Neuer Workflow in
   `DEVELOPMENT.md` dokumentiert.
+- **Web: Monitoring-Seite zerlegt** (Audit F8). `Monitoring.svelte` schrumpft
+  von 743 auf 153 Zeilen: Filter-/Gruppierungs-/Summen-Logik lebt jetzt
+  testbar in `lib/utils/monitoring.ts`, die Tab-Inhalte in fünf
+  Subkomponenten unter `lib/components/monitoring/` (Muster der
+  Desktop-Sektionen). Verhalten und Optik unverändert (Screenshot-Tests
+  grün); Polling/„zuletzt aktualisiert" bleiben auf Seitenebene.
 - **Server: FK-Spalten indiziert** (Audit, Ziel 250–500 Server). Neue Migration
   `a258973bb7fd` legt Indizes auf `connections.server_id`,
   `frp_tunnels.server_id`/`frp_config_id`/`connection_id` und
@@ -211,6 +217,11 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
   manueller Checks, Assignment-Entfernung, Server-Cleanup; dazu
   Endpoint-Verhaltenstests für das `consecutive_fails`-Damping im Push-Pfad.
   Monitoring-Suite 53 → 72 Tests.
+- **Web: E2E-CRUD- und Fehler-Flows** (Audit T2). Stateful-Mocks +
+  `crud.spec.ts`: Connection-Roundtrip (anlegen → Liste → löschen),
+  Server-Anlage, API-500 → Fehler-Toast-Assertion; dazu 17 Unit-Tests für
+  die extrahierte Monitoring-Filter-/Gruppierungslogik. Web-Suite 41 → 59
+  Unit-Tests, Playwright 18 → 21 Specs.
 - **Frontend: Tests für Token-Refresh und i18n-Parität** (Audit T3/T5).
   `client.ts` (401→Refresh→Retry, Refresh-Fehlschlag→Logout, parallele
   Requests teilen einen Refresh, 204→null) war als sicherheitskritischste

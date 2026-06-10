@@ -2,7 +2,13 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import type { MonCheckSummary, MonitorCheck, MonitorCheckType, MonStatus } from '$lib/api/types';
+import type {
+  MonCheckSummary,
+  MonitorCheck,
+  MonitorCheckType,
+  MonStatus,
+  Server,
+} from '$lib/api/types';
 
 const ORDER: Record<MonStatus, number> = {
   critical: 4,
@@ -33,6 +39,136 @@ export function worstStatusOf(checks: MonitorCheck[]): MonStatus {
     if (ORDER[s] > ORDER[worst]) worst = s;
   }
   return worst;
+}
+
+// ── Overview view logic (filter / summary / grouping) ───────────────────
+
+export interface CheckViewFilter {
+  serverId: string;
+  checkType: string;
+  status: string;
+  tag: string;
+  search: string;
+}
+
+export function serverNameMap(servers: Server[]): Map<string, string> {
+  const m = new Map<string, string>();
+  for (const s of servers) m.set(s.id, s.name);
+  return m;
+}
+
+export function filterChecks(
+  checks: MonitorCheck[],
+  servers: Server[],
+  filter: CheckViewFilter,
+): MonitorCheck[] {
+  let list = checks;
+  if (filter.serverId) list = list.filter((c) => c.serverId === filter.serverId);
+  if (filter.checkType) list = list.filter((c) => c.checkType === filter.checkType);
+  if (filter.status) {
+    list = list.filter((c) => (c.state?.status ?? 'pending') === filter.status);
+  }
+  if (filter.tag) {
+    const tag = filter.tag;
+    const byId = new Map(servers.map((s) => [s.id, s]));
+    list = list.filter((c) => {
+      const srv = c.serverId ? byId.get(c.serverId) : null;
+      return !!srv && (srv.tags ?? []).includes(tag);
+    });
+  }
+  if (filter.search) {
+    const q = filter.search.toLowerCase();
+    const names = serverNameMap(servers);
+    list = list.filter((c) => {
+      const sn = c.serverId ? (names.get(c.serverId) ?? '') : '';
+      return (
+        c.name.toLowerCase().includes(q) ||
+        (c.state?.message ?? '').toLowerCase().includes(q) ||
+        sn.toLowerCase().includes(q)
+      );
+    });
+  }
+  return list;
+}
+
+export interface CheckStatusCounts {
+  total: number;
+  ok: number;
+  warning: number;
+  critical: number;
+}
+
+export function summarizeChecks(checks: MonitorCheck[]): CheckStatusCounts {
+  const counts: CheckStatusCounts = { total: checks.length, ok: 0, warning: 0, critical: 0 };
+  for (const c of checks) {
+    const s = c.state?.status ?? 'pending';
+    if (s === 'ok') counts.ok++;
+    else if (s === 'warning') counts.warning++;
+    else if (s === 'critical') counts.critical++;
+  }
+  return counts;
+}
+
+export const NO_SERVER_GROUP_KEY = '__nosrv__';
+
+export interface CheckGroup {
+  key: string;
+  title: string;
+  checks: MonitorCheck[];
+  worst: MonStatus;
+}
+
+export function groupChecksByServer(
+  checks: MonitorCheck[],
+  serverNames: ReadonlyMap<string, string>,
+  noServerTitle: string,
+): CheckGroup[] {
+  const byServer = new Map<string, MonitorCheck[]>();
+  const noServer: MonitorCheck[] = [];
+  for (const c of checks) {
+    if (c.serverId) {
+      const bucket = byServer.get(c.serverId) ?? [];
+      bucket.push(c);
+      byServer.set(c.serverId, bucket);
+    } else {
+      noServer.push(c);
+    }
+  }
+  const groups: CheckGroup[] = [];
+  for (const [sid, list] of byServer.entries()) {
+    groups.push({
+      key: sid,
+      title: serverNames.get(sid) ?? sid,
+      checks: list,
+      worst: worstStatusOf(list),
+    });
+  }
+  if (noServer.length > 0) {
+    groups.push({
+      key: NO_SERVER_GROUP_KEY,
+      title: noServerTitle,
+      checks: noServer,
+      worst: worstStatusOf(noServer),
+    });
+  }
+  return groups;
+}
+
+export function distinctServerIds(checks: MonitorCheck[]): string[] {
+  return Array.from(new Set(checks.map((c) => c.serverId).filter((x): x is string => !!x)));
+}
+
+export function distinctCheckTypes(checks: MonitorCheck[]): MonitorCheckType[] {
+  return Array.from(new Set(checks.map((c) => c.checkType))).sort();
+}
+
+export function distinctServerTags(checks: MonitorCheck[], servers: Server[]): string[] {
+  const set = new Set<string>();
+  for (const id of distinctServerIds(checks)) {
+    const s = servers.find((srv) => srv.id === id);
+    for (const tg of s?.tags ?? []) set.add(tg);
+  }
+  return Array.from(set).sort();
 }
 
 // ── Default thresholds (central) ─────────────────────────────────────────

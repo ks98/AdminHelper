@@ -21,7 +21,7 @@ function json({ status = 200, body }: JsonOk): Parameters<Route['fulfill']>[0] {
 // wie /src/lib/api/*). Grund: der Glob `**/api/**` ist nicht pfad-anchored und
 // verschluckt auch Source-Module, wodurch JS mit JSON-MIME geliefert wird und
 // main.ts nicht bootet.
-function api(path: string): RegExp {
+export function api(path: string): RegExp {
   const escaped = path.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*');
   return new RegExp(`^https?://[^/]+/api/${escaped}(\\?.*)?$`);
 }
@@ -65,7 +65,24 @@ const DEMO_CONNECTIONS = [
   },
 ];
 
+// snake_case-Body, wie ihn ServerModal sendet (ServerInput).
+interface ServerCreateBody {
+  name: string;
+  hostname: string;
+  os_type: string | null;
+  tags: string[];
+  notes: string;
+}
+
 export async function mockApi(page: Page): Promise<void> {
+  // Stateful In-Memory-"DB" pro Test: POST/DELETE mutieren den Stand, GET
+  // liefert ihn aus — noetig fuer CRUD-Roundtrips (anlegen -> Liste -> loeschen).
+  const db = {
+    connections: DEMO_CONNECTIONS.map((c) => ({ ...c }) as Record<string, unknown>),
+    servers: DEMO_SERVERS.map((s) => ({ ...s }) as Record<string, unknown>),
+  };
+  let seq = 1;
+
   // Playwright prueft Routes in LIFO-Reihenfolge (zuletzt registriert zuerst),
   // deshalb wird der generische Fallback ZUERST angelegt und von den spezifischen
   // Handlern unten ueberschrieben.
@@ -82,10 +99,40 @@ export async function mockApi(page: Page): Promise<void> {
   await page.route(api('auth/me'), async (route) => route.fulfill(json({ body: ADMIN_USER })));
   await page.route(api('auth/logout'), async (route) => route.fulfill({ status: 204, body: '' }));
 
-  await page.route(api('connections'), async (route) =>
-    route.fulfill(json({ body: DEMO_CONNECTIONS })),
-  );
-  await page.route(api('servers'), async (route) => route.fulfill(json({ body: DEMO_SERVERS })));
+  await page.route(api('connections'), async (route) => {
+    if (route.request().method() === 'POST') {
+      const body = route.request().postDataJSON() as Record<string, unknown>;
+      const created = { ...body, id: `conn-e2e-${seq++}` };
+      db.connections.push(created);
+      return route.fulfill(json({ status: 201, body: created }));
+    }
+    return route.fulfill(json({ body: db.connections }));
+  });
+  await page.route(api('connections/*'), async (route) => {
+    if (route.request().method() === 'DELETE') {
+      const id = new URL(route.request().url()).pathname.split('/').pop();
+      db.connections = db.connections.filter((c) => c.id !== id);
+      return route.fulfill({ status: 204, body: '' });
+    }
+    return route.fallback();
+  });
+  await page.route(api('servers'), async (route) => {
+    if (route.request().method() === 'POST') {
+      const body = route.request().postDataJSON() as ServerCreateBody;
+      const created = {
+        id: `srv-e2e-${seq++}`,
+        name: body.name,
+        hostname: body.hostname,
+        osType: body.os_type,
+        tags: body.tags,
+        notes: body.notes,
+        connections: [],
+      };
+      db.servers.push(created);
+      return route.fulfill(json({ status: 201, body: created }));
+    }
+    return route.fulfill(json({ body: db.servers }));
+  });
   await page.route(api('users'), async (route) => route.fulfill(json({ body: [ADMIN_USER] })));
   await page.route(api('apikeys'), async (route) => route.fulfill(json({ body: [] })));
   await page.route(api('hooks'), async (route) => route.fulfill(json({ body: [] })));
