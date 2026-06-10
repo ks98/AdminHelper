@@ -7,13 +7,14 @@ import logging
 import uuid
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.auth import get_current_admin
 from app.core.config import MONITOR_SERVICE_URL, MONITOR_API_KEY
 from app.core.events import fire_event
+from app.core.pagination import paginate
 from app.modules.servers.models import Server
 from app.modules.servers.schemas import ServerCreate, ServerUpdate
 
@@ -24,8 +25,15 @@ router = APIRouter(prefix="/api/servers", tags=["servers"])
 
 
 @router.get("")
-def list_servers(db: Session = Depends(get_db), _admin=Depends(get_current_admin)):
-    servers = db.query(Server).order_by(Server.name).all()
+def list_servers(
+    response: Response,
+    db: Session = Depends(get_db),
+    _admin=Depends(get_current_admin),
+    limit: int | None = Query(None, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
+):
+    query = db.query(Server).order_by(Server.name, Server.id)
+    servers = paginate(query, response, limit, offset).all()
     return [s.to_dict() for s in servers]
 
 

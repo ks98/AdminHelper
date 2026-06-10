@@ -9,11 +9,12 @@ from __future__ import annotations
 import json
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
 from app.core.auth import require_internal
 from app.core.database import get_db
+from app.core.pagination import paginate
 from app.core.victoria import victoria
 from app.models import MonitorCheck, MonitorState
 from app.schemas import CheckCreate, CheckUpdate, VALID_CHECK_TYPES, VALID_INTERVALS, VALID_SEVERITIES
@@ -68,14 +69,17 @@ _DYNAMIC_METRIC_PATTERNS: dict[str, str] = {
 
 @router.get("/checks", dependencies=[Depends(require_internal)])
 def list_checks(
+    response: Response,
     server_id: str | None = Query(None),
+    limit: int | None = Query(None, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
 ):
     """Lists all checks, optionally filtered by server_id."""
     q = db.query(MonitorCheck)
     if server_id:
         q = q.filter(MonitorCheck.server_id == server_id)
-    checks = q.order_by(MonitorCheck.name).all()
+    checks = paginate(q.order_by(MonitorCheck.name, MonitorCheck.id), response, limit, offset).all()
 
     check_ids = [c.id for c in checks]
     states = {s.check_id: s for s in db.query(MonitorState).filter(MonitorState.check_id.in_(check_ids)).all()} if check_ids else {}
@@ -213,9 +217,15 @@ def run_check_now(check_id: str, db: Session = Depends(get_db)):
 # ---------------------------------------------------------------------------
 
 @router.get("/status", dependencies=[Depends(require_internal)])
-def get_all_status(db: Session = Depends(get_db)):
+def get_all_status(
+    response: Response,
+    limit: int | None = Query(None, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
+    db: Session = Depends(get_db),
+):
     """Returns all check states for the dashboard."""
-    checks = db.query(MonitorCheck).order_by(MonitorCheck.name).all()
+    query = db.query(MonitorCheck).order_by(MonitorCheck.name, MonitorCheck.id)
+    checks = paginate(query, response, limit, offset).all()
     check_ids = [c.id for c in checks]
     states = {s.check_id: s for s in db.query(MonitorState).filter(MonitorState.check_id.in_(check_ids)).all()} if check_ids else {}
     return [c.to_dict(state=states.get(c.id)) for c in checks]
@@ -232,7 +242,8 @@ def get_server_status(server_id: str, db: Session = Depends(get_db)):
 
 @router.get("/status/summary", dependencies=[Depends(require_internal)])
 def get_status_summary(db: Session = Depends(get_db)):
-    """Summary: count per status."""
+    """Summary: count per status. Dict response (aggregate, not a list) —
+    deliberately unpaginated."""
     states = db.query(MonitorState).all()
     summary = {"total": len(states), "ok": 0, "warning": 0, "critical": 0, "unknown": 0, "pending": 0}
     for s in states:

@@ -209,6 +209,13 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
   aus dem Clone); jetzt hängt sie als `adminhelper-extension-X.Y.Z.zip` am
   Draft-Release und ist Teil des Release-Gates. `tauri-cli` ist im
   Release-Build exakt gepinnt statt floatendem `^2`.
+- **API: optionale Pagination auf den Listen-Endpunkten** (Audit P4, Ziel
+  250–500 Server). `limit`/`offset`-Query-Parameter (1–1000) +
+  `X-Total-Count`-Header auf `GET /api/servers`, `/api/connections`,
+  `/api/hooks` sowie Monitoring-Checks/-Status/-Alert-Regeln — ohne
+  Parameter unverändertes Verhalten (volle Liste), Frontends unberührt.
+  Pagination läuft in SQL nach dem Per-User-Scoping; der Monitoring-Proxy
+  reicht `X-Total-Count` jetzt durch (Whitelist). 21 neue Tests.
 - **Web: Monitoring aktualisiert sich automatisch** (Entscheidung nach Audit).
   30-s-Polling wie im Desktop, aber pausiert bei verstecktem Tab
   (`visibilitychange`; beim Sichtbarwerden sofortiger Refresh) — bei

@@ -81,8 +81,16 @@ async def proxy_to_monitoring(path: str, request: Request, _admin=Depends(get_cu
             },
             params=request.query_params,
         )
+        # Forward the pagination total — the proxy otherwise strips response
+        # headers, which would make X-Total-Count unreachable for the UI.
+        extra_headers = (
+            {"X-Total-Count": resp.headers["x-total-count"]}
+            if "x-total-count" in resp.headers
+            else None
+        )
         return Response(
             content=resp.content,
             status_code=resp.status_code,
             media_type=resp.headers.get("content-type"),
+            headers=extra_headers,
         )

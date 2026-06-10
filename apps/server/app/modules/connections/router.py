@@ -7,13 +7,14 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
 from app.core.auth import ApiKeyOrUser, get_current_admin
 from app.core.database import get_db
 from app.core.events import fire_event
+from app.core.pagination import paginate
 from app.modules.connections.models import Connection
 from app.modules.connections.schemas import ConnectionCreate, ConnectionUpdate, ImportRequest
 from app.modules.users.models import User
@@ -46,8 +47,17 @@ def _scope_connections(query, auth):
 
 
 @router.get("", response_model=list[dict[str, Any]])
-def get_connections(db: Session = Depends(get_db), auth=Depends(read_dep)):
-    connections = _scope_connections(db.query(Connection), auth).all()
+def get_connections(
+    response: Response,
+    db: Session = Depends(get_db),
+    auth=Depends(read_dep),
+    limit: int | None = Query(None, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
+):
+    # Pagination strictly AFTER the per-user/key scoping: LIMIT/OFFSET and
+    # X-Total-Count must apply to the visible subset, not the full table.
+    query = _scope_connections(db.query(Connection), auth).order_by(Connection.name, Connection.id)
+    connections = paginate(query, response, limit, offset).all()
     return [c.to_dict() for c in connections]
 
 

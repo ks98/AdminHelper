@@ -6,12 +6,13 @@ import json
 import uuid
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from sqlalchemy.orm import Session
 from starlette.concurrency import run_in_threadpool
 
 from app.core.auth import generate_api_key, get_current_admin, hash_api_key
 from app.core.database import get_db
+from app.core.pagination import paginate
 from app.modules.hooks.schemas import (
     HookCreate,
     HookCreatedResponse,
@@ -88,8 +89,17 @@ def _validate_create(data: HookCreate) -> None:
 
 
 @router.get("", response_model=list[HookResponse])
-def list_hooks(db: Session = Depends(get_db), _admin=Depends(get_current_admin)):
-    hooks = db.query(Hook).order_by(Hook.created_at).all()
+def list_hooks(
+    response: Response,
+    db: Session = Depends(get_db),
+    _admin=Depends(get_current_admin),
+    limit: int | None = Query(None, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
+):
+    # created_at is the transaction timestamp -> identical for rows created
+    # together; id breaks the tie so pages stay stable.
+    query = db.query(Hook).order_by(Hook.created_at, Hook.id)
+    hooks = paginate(query, response, limit, offset).all()
     return [_to_dict(h) for h in hooks]
 
 
