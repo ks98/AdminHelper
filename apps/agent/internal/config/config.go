@@ -7,6 +7,7 @@ package config
 import (
 	"bufio"
 	"fmt"
+	"net/url"
 	"os"
 	"strings"
 )
@@ -116,6 +117,30 @@ func LoadMonitorConfig() (*MonitorConfig, error) {
 		CACert:     kv["CACERT"],
 		Insecure:   kv["INSECURE"] == "1",
 	}, nil
+}
+
+// ServerBaseURL returns the base server URL (scheme://host[:port]) from
+// whichever agent config carries one. Used for the cert-renewal endpoint
+// (<base>/ca/renew on the gateway data plane).
+func ServerBaseURL() (string, error) {
+	if cfg, err := LoadFrpcConfig(); err == nil && cfg.AdminHelperURL != "" {
+		return baseURL(cfg.AdminHelperURL)
+	}
+	if cfg, err := LoadMonitorConfig(); err == nil && cfg.MonitorURL != "" {
+		return baseURL(cfg.MonitorURL)
+	}
+	return "", fmt.Errorf("keine Server-URL in der Agent-Konfiguration")
+}
+
+func baseURL(raw string) (string, error) {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return "", err
+	}
+	if u.Scheme == "" || u.Host == "" {
+		return "", fmt.Errorf("ungueltige Server-URL %q", raw)
+	}
+	return u.Scheme + "://" + u.Host, nil
 }
 
 // splitServices splits a comma-separated SERVICES list, ignoring whitespace

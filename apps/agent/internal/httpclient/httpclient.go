@@ -37,3 +37,32 @@ func New(cacert string, insecure bool, timeout time.Duration) (*http.Client, err
 		Transport: &http.Transport{TLSClientConfig: tlsCfg},
 	}, nil
 }
+
+// NewMTLS builds a client that presents the given client certificate (cert +
+// key PEM files) and trusts ONLY the given CA bundle — system roots are NOT
+// added (ADR 0001 D2: validate every leaf against our pinned CA, so even a
+// compromised public CA is rejected). Used for all server pushes once the agent
+// is enrolled.
+func NewMTLS(certPath, keyPath, caPath string, timeout time.Duration) (*http.Client, error) {
+	cert, err := tls.LoadX509KeyPair(certPath, keyPath)
+	if err != nil {
+		return nil, fmt.Errorf("Client-Zertifikat laden: %w", err)
+	}
+	caPEM, err := os.ReadFile(caPath)
+	if err != nil {
+		return nil, fmt.Errorf("CA-Zertifikat lesen: %w", err)
+	}
+	pool := x509.NewCertPool()
+	if !pool.AppendCertsFromPEM(caPEM) {
+		return nil, fmt.Errorf("CA-Zertifikat ungueltig")
+	}
+	tlsCfg := &tls.Config{
+		Certificates: []tls.Certificate{cert},
+		RootCAs:      pool,
+		MinVersion:   tls.VersionTLS12,
+	}
+	return &http.Client{
+		Timeout:   timeout,
+		Transport: &http.Transport{TLSClientConfig: tlsCfg},
+	}, nil
+}

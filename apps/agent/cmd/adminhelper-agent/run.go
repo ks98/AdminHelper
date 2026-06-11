@@ -13,6 +13,8 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"adminhelper-agent/internal/config"
+	"adminhelper-agent/internal/enroll"
 	"adminhelper-agent/internal/frpc"
 	"adminhelper-agent/internal/monitor"
 )
@@ -67,10 +69,36 @@ func runLoop() error {
 }
 
 func runOnce() {
+	// The agent runs as a oneshot (systemd timer / scheduled task), so renewal
+	// is a check-at-each-run rather than a background timer: if the enrolled cert
+	// is past ~50 % of its lifetime, renew it before the pushes.
+	maybeRenewIdentity()
 	if err := frpc.Sync(); err != nil {
 		fmt.Fprintf(os.Stderr, "[adminhelper-agent] FRPC-Sync Fehler: %v\n", err)
 	}
 	if err := monitor.Push(); err != nil {
 		fmt.Fprintf(os.Stderr, "[adminhelper-agent] Monitor-Push Fehler: %v\n", err)
+	}
+}
+
+// maybeRenewIdentity renews the enrolled mTLS cert when due. Best-effort: a
+// transient issuer outage must not abort the cycle — the current cert is still
+// valid for the remaining lifetime.
+func maybeRenewIdentity() {
+	dir := config.AgentPkiDir()
+	if !enroll.Provisioned(dir) {
+		return
+	}
+	base, err := config.ServerBaseURL()
+	if err != nil {
+		return // no server URL configured yet; nothing to renew against
+	}
+	renewed, err := enroll.MaybeRenew(dir, base, 30*time.Second)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "[adminhelper-agent] Cert-Renew Fehler: %v\n", err)
+		return
+	}
+	if renewed {
+		fmt.Println("[adminhelper-agent] mTLS-Client-Zertifikat erneuert.")
 	}
 }

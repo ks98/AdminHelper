@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"adminhelper-agent/internal/config"
-	"adminhelper-agent/internal/httpclient"
+	"adminhelper-agent/internal/enroll"
 )
 
 // Sync checks for config changes and updates frpc (port of do_sync).
@@ -31,7 +31,8 @@ func Sync() error {
 		return fmt.Errorf("adminhelper.conf unvollstaendig")
 	}
 
-	client, err := httpclient.New(cfg.CACert, cfg.Insecure, 30*time.Second)
+	// mTLS with the enrolled client cert when present; legacy fallback otherwise.
+	client, err := enroll.ServerClient(config.AgentPkiDir(), cfg.CACert, cfg.Insecure, 30*time.Second)
 	if err != nil {
 		return fmt.Errorf("HTTP-Client: %w", err)
 	}

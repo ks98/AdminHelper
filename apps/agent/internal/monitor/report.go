@@ -12,7 +12,8 @@ import (
 	"net/http"
 	"time"
 
-	"adminhelper-agent/internal/httpclient"
+	"adminhelper-agent/internal/config"
+	"adminhelper-agent/internal/enroll"
 )
 
 const logTag = "adminhelper-agent-monitor"
@@ -93,7 +94,9 @@ func PushReport(url, apiKey, serverID string, report map[string]any, cacert stri
 		return fmt.Errorf("JSON-Encoding: %w", err)
 	}
 
-	client, err := httpclient.New(cacert, insecure, 15*time.Second)
+	// Present the enrolled mTLS client cert when available (custom-root-only);
+	// fall back to the legacy pinned-CA/insecure client until the agent enrolls.
+	client, err := enroll.ServerClient(config.AgentPkiDir(), cacert, insecure, 15*time.Second)
 	if err != nil {
 		return err
 	}
