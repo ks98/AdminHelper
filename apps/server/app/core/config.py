@@ -105,3 +105,9 @@ REDIS_URL = os.environ.get("REDIS_URL", "").strip()
 # logged but allowed, so the system is usable before all clients have certs. A8
 # flips it to True (CERT_REQUIRED at the gateway + enforced app-side scope).
 MTLS_ENFORCE = os.environ.get("MTLS_ENFORCE", "false").lower() in ("1", "true", "yes")
+
+# Public port of the gateway's enrollment plane (ADR 0001 §3.2). The server has
+# no reliable view of its own public address, so it only returns this port hint
+# in the provision response — the agent derives the host from the URL it already
+# provisioned against and builds <host>:ENROLL_PORT/enroll itself.
+ENROLL_PORT = int(os.environ.get("ENROLL_PORT", "8444"))

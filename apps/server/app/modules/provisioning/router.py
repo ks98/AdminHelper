@@ -18,7 +18,13 @@ Activate response schema:
   "frp": {                          // if the server has FRP tunnels configured
     "config": "<base64 frpc.toml>",
     "pkiBundle": "<base64 tar.gz>"
-  } | null
+  } | null,
+  "enrollment": {                   // one-time grant for the mTLS client cert
+    "token": "...",                 // single-use, redeemed at the ca-issuer /enroll
+    "subjectId": "<server_id>",     // the cert CN (issuer-dictated, not the CSR)
+    "scope": "tunnel",              // agent scope
+    "enrollPort": 8444              // gateway enroll plane; agent adds its own host
+  }
 }
 """
 
@@ -32,12 +38,18 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from app.core.auth import generate_api_key, get_current_admin, hash_api_key
+from app.core.config import ENROLL_PORT
 from app.core.database import get_db
-from app.core.identity import SCOPE_ACCESS, require_scope
+from app.core.identity import SCOPE_ACCESS, SCOPE_AGENT, require_scope
 from app.modules.api_keys.models import ApiKey
+from app.modules.enrollment.models import EnrollmentToken
 from app.modules.provisioning.helpers import build_frp_bundle, fetch_or_skip_monitor_key
 from app.modules.provisioning.models import ProvisionToken
 from app.modules.servers.models import Server
+
+# Enrollment token lifetime: long enough for the agent to enroll right after
+# provisioning, short enough to limit exposure of the single-use grant.
+_ENROLL_TOKEN_TTL = datetime.timedelta(minutes=10)
 
 router = APIRouter(prefix="/api/servers", tags=["provisioning"])
 
@@ -152,6 +164,23 @@ def activate_provision(
     # 3. FRP bundle (only if FRP is configured + tunnels exist)
     frp_bundle = build_frp_bundle(server_id, db)
 
+    # 4. One-time enrollment token (tunnel scope = agent, ADR 0001 §3.1 / A3).
+    # The agent enrolls its mTLS client cert at the ca-issuer right after this.
+    # Single-use, hashed at rest with the same SHA-256 the ca-issuer consumes by;
+    # identity (CN) is the stable server_id, not the client's CSR.
+    raw_enroll_token = generate_api_key()
+    db.add(
+        EnrollmentToken(
+            id=str(uuid.uuid4()),
+            hashed_token=hash_api_key(raw_enroll_token),
+            subject_id=server_id,
+            scope=SCOPE_AGENT,
+            browser=False,
+            expires_at=datetime.datetime.now(datetime.timezone.utc) + _ENROLL_TOKEN_TTL,
+        )
+    )
+    db.commit()
+
     return {
         "serverName": server.name,
         "apiKey": raw_api_key,
@@ -162,4 +191,12 @@ def activate_provision(
         # needing to know its own public address. None when monitoring is down.
         "monitorUrl": "/api/monitoring" if monitor_key else None,
         "frp": frp_bundle,
+        # The agent derives the enroll host from its own server URL + this port
+        # (the gateway's certless enroll plane), then POSTs token + CSR there.
+        "enrollment": {
+            "token": raw_enroll_token,
+            "subjectId": server_id,
+            "scope": SCOPE_AGENT,
+            "enrollPort": ENROLL_PORT,
+        },
     }

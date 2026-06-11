@@ -23,6 +23,7 @@ import pytest
 from app.core.auth import hash_api_key
 from app.core.config import MONITOR_SERVICE_URL
 from app.modules.api_keys.models import ApiKey
+from app.modules.enrollment.models import EnrollmentToken
 from app.modules.provisioning import helpers as prov_helpers
 from app.modules.provisioning.models import ProvisionToken
 from app.modules.servers.models import Server
@@ -156,6 +157,35 @@ class TestProvisionActivate:
         assert body["monitorApiKey"] == "mocked-monitor-key-xyz"
         # Server-relative path; the agent joins it to its own trusted server URL.
         assert body["monitorUrl"] == "/api/monitoring"
+
+    def test_activate_mints_enrollment_token(self, test_client, db_session):
+        """Activate also mints a one-time tunnel-scoped enrollment token (A4) so
+        the agent can fetch its mTLS client cert from the ca-issuer next."""
+        srv = _make_server(db_session, sid="srv-enroll", name="enroll-srv")
+        raw = _make_token(db_session, server_id=srv.id)
+
+        res = test_client.post(
+            f"/api/servers/{srv.id}/provision/activate",
+            headers={"X-Provision-Token": raw},
+        )
+        assert res.status_code == 200, res.text
+        enroll = res.json()["enrollment"]
+        assert enroll["subjectId"] == srv.id
+        assert enroll["scope"] == "tunnel"
+        assert enroll["enrollPort"] == 8444
+        assert enroll["token"]
+
+        # The minted row is consumable: hashed with the same SHA-256 the ca-issuer
+        # consumes by, tunnel scope, stable server_id as identity, still valid.
+        row = (
+            db_session.query(EnrollmentToken)
+            .filter(EnrollmentToken.hashed_token == hash_api_key(enroll["token"]))
+            .one()
+        )
+        assert row.subject_id == srv.id
+        assert row.scope == "tunnel"
+        assert row.used_at is None
+        assert row.is_valid()
 
     def test_activate_wrong_token_fails(self, test_client, db_session):
         srv = _make_server(db_session)
