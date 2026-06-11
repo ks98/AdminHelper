@@ -184,7 +184,7 @@ A0 Spikes ─► A1 ca-issuer ─► A2 Gateway ─► A3 Per-Route-Authz(permis
     (mTLS) → neues Cert mit **erhaltener** Identität (Renew-CSR-CN verworfen ⇒ Issuer leitet
     Identität aus dem vorgelegten Cert ab, nicht der CSR). Docs (agent-deployment DE+EN) ergänzt.
 
-### A5 — Desktop: Auto-Enrollment + mTLS + Browser-P12-Export (Rust/Tauri)
+### A5 — Desktop: Auto-Enrollment + mTLS + Browser-P12-Export (Rust/Tauri) — A5a ✅ (A5b/A5c offen)
 - **Beschreibung:** Beim ersten Server-Login ECDSA-Keypair+CSR (`rcgen`), Enroll via
   `ca-issuer`, Cert+Key in den Keyring (ECDSA passt; **Datei-Fallback** bei Windows-Limit),
   CA pinnen (`tofu.rs`: CA statt Leaf), `reqwest` `identity()` + `tls_certs_only()`. Auto-Renew.
@@ -195,6 +195,29 @@ A0 Spikes ─► A1 ca-issuer ─► A2 Gateway ─► A3 Per-Route-Authz(permis
   Plattform-Verifikation dokumentiert (Linux; **Windows-Keyring-Größe manuell prüfen**).
 - **Aufwand:** XL → **aufteilen** (A5a Enroll, A5b Renew, A5c P12-Export) · **Risiko:**
   mittel-hoch (Keyring-Plattform) · **Abh.:** A1, A2
+- **A5a (Enroll + mTLS) ✅ ABGESCHLOSSEN 2026-06-11** (4 Inkremente):
+  - **Server:** `POST /api/enrollment/token` (JWT-gated, kein Cert-Guard — Bootstrap-Tür) mintet
+    ein access-scoped Token für den eingeloggten User (CN = username, issuer-diktiert). 3 Tests.
+  - **Desktop `enrollment.rs`:** On-device ECDSA-P-256-Key + CSR (**rcgen**, ring-Backend → kein
+    aws-lc-rs); Orchestrierung mint→keygen→redeem→store (über das bestehende `build_client`, also
+    derselbe TOFU-gepinnte Gateway-Leaf wie beim Login); Identität in **3 Keyring-Einträgen**
+    (Key/cert/ca — ECDSA passt unter das Windows-2560-Byte-Limit, D10/V4, daher kein Datei-Fallback
+    nötig); Tauri-Command `enroll_device`.
+  - **mTLS-Nutzung (build_client):** Sobald enrollt, präsentiert der Client sein Cert + verifiziert
+    den Server gegen die **gepinnte CA-Kette** statt den TOFU-Leaf. **Entscheidung: CA-Pin OHNE
+    Hostname** — ein Custom-`CaPinVerifier` nutzt rustls' `WebPkiServerVerifier`, akzeptiert aber
+    `NotValidForName{,Context}` (Kette-zur-CA erzwungen, Hostname nicht) → kein Regressions-Risiko
+    bei Zugriff über einen Host außerhalb der Gateway-Leaf-SANs, überlebt aber Leaf-Rotation (D2).
+    Logout räumt die (user-spezifische) Identität.
+  - **Verifiziert:** cargo fmt/clippy(`--all-targets -D warnings`)/test **55 grün**, inkl. **zwei
+    echter In-Process-mTLS-Handshake-Tests** (rcgen-CA + Server/Client-Leaves, tokio-rustls-Server
+    mit Client-Auth-Pflicht): Client präsentiert Cert + wird gegen die gepinnte CA akzeptiert,
+    auch bei Verbindung über IP (Server-SAN `localhost`); fremde CA wird abgelehnt. Der Test fing
+    einen echten Bug (rustls liefert `NotValidForNameContext`, nicht `NotValidForName`).
+  - **Plattform-Hinweis ([[project_ci_windows_blindspot]]):** Linux verifiziert; der Windows-
+    Keyring-Pfad (`password.rs`) ist nicht e2e getestet — vor A8 manuell auf echtem Windows prüfen.
+  - **Offen:** **A5b** (Auto-Renew bei ~50 % via `/ca/renew` mit dem aktuellen Cert — die
+    Renew-Bausteine existieren bereits im Go-Agent als Vorlage) und **A5c** (Browser-P12-Export).
 
 ### A6 — Browser + Extension
 - **Beschreibung:** Web-SPA hinter mTLS (kein `fetch`-Code-Change, aber P12-Import dokumentieren);

@@ -32,6 +32,14 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
   Cert-Scope (`access` = Mensch, `tunnel` = Agent). **In dieser Phase permissiv** (`MTLS_ENFORCE`
   default `false`): ein Mismatch wird nur geloggt, der Request läuft durch — das System bleibt
   nutzbar, bis alle Clients Certs haben. Das Scharfschalten auf `CERT_REQUIRED` folgt später.
+- **Desktop: automatisches mTLS-Enrollment (A5a).** Nach dem Login mintet der Desktop ein
+  access-scoped Enrollment-Token (`POST /api/enrollment/token`, JWT-gated), erzeugt on-device
+  einen ECDSA-Key + CSR (`rcgen`), holt sein Client-Zertifikat vom `ca-issuer` über die
+  Enroll-Plane des Gateways und legt Key/Cert/CA in drei Keyring-Einträgen ab. Danach präsentiert
+  `build_client` das Cert per mTLS und verifiziert den Server gegen die **gepinnte CA-Kette**
+  (CA-Pinning statt Leaf-TOFU — überlebt Gateway-Leaf-Rotation, D2; Hostname bewusst nicht
+  erzwungen, damit Enrollment keinen funktionierenden Zugriff bricht). Logout räumt die Identität.
+  Auto-Renew (A5b) und Browser-P12-Export (A5c) folgen.
 - **Agent: automatisches mTLS-Enrollment + Auto-Renew.** Beim Provisioning erzeugt der Agent
   on-device einen ECDSA-Key, holt über die Enroll-Plane des Gateways (Port `8444`) ein
   `tunnel`-scoped Client-Zertifikat vom `ca-issuer`, legt es unter `/etc/adminhelper/identity/`
