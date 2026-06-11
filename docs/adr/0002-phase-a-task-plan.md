@@ -206,7 +206,7 @@ A0 Spikes ─► A1 ca-issuer ─► A2 Gateway ─► A3 Per-Route-Authz(permis
   scheitert (erwartet). Extension erreicht API bei vorhandenem Host-Cert.
 - **Aufwand:** M · **Risiko:** mittel (Browser-UX) · **Abh.:** A2, A5c
 
-### A7 — frps unter die `tunnel`-Intermediate
+### A7 — frps unter die `tunnel`-Intermediate ✅ ABGESCHLOSSEN 2026-06-11 (Provider-Seite; Visitor → A5)
 - **Beschreibung:** `ca-issuer` signiert frps-Server-Cert + Agent-Tunnel-Client-Certs unter
   `tunnel`; frps-Materials publizieren (Logik aus Server raus, Isolation `frp-pki`⇏frps wahren);
   `trustedCaFile` = Kette (aus A0-Spike bestätigt).
@@ -215,6 +215,27 @@ A0 Spikes ─► A1 ca-issuer ─► A2 Gateway ─► A3 Per-Route-Authz(permis
 - **Akzeptanz:** frischer Agent zieht Tunnel-Client-Cert aus der neuen Kette, baut STCP-Tunnel;
   frps verifiziert gegen die Intermediate-Kette.
 - **Aufwand:** L · **Risiko:** mittel · **Abh.:** A1, A4
+- **Schnitt-Entscheidung:** **Provider-Seite jetzt, Desktop-Visitor in A5.** D9 (keine
+  produktiven Agenten) erlaubt einen sauberen Cut-over ohne Migration/Dual-Trust.
+- **Inkrement 1 (ca-issuer):** `ensure_frps_cert` provisioniert — analog zum Gateway-Leaf — ein
+  **tunnel-signiertes** frps-Server-Cert (server_auth, SAN=server_addr) + `frps.key` (0600) +
+  `ca.crt` (tunnel-Kette) in ein `frps-certs`-Volume. Env-gated `CA_FRPS_CERT_DIR`/
+  `CA_FRPS_SERVER_ADDR` (Default DOMAIN). `_gateway_sans`→`_classify_sans` geteilt. 4 Tests.
+- **Inkrement 2 (Rewire, brechend):** Compose: `frps-certs`-Volume, frps mountet es ro unter
+  `/etc/frp-pki` (depends_on ca-issuer healthy), Issuer-Entrypoint chownt es. `frps.toml`-TLS-Block
+  → `/etc/frp-pki`; **`frpc.toml`-TLS-Block → die A4-Identität** (`/etc/adminhelper/identity`) —
+  ein tunnel-Cert für Server-Push *und* frp-Tunnel. `build_frp_bundle` mintet/shipt kein
+  per-Client-frp-Cert mehr (leeres `pkiBundle`; Agent-`Apply` überspringt es bereits). **Keine
+  Agent-Go-Änderung nötig.**
+- **Verifiziert (live):** Issuer provisioniert `frps.crt` (Issuer = „Tunnel Intermediate");
+  frps (root) liest die 0600-Key; `openssl verify -CAfile ca.crt` bestätigt **beide** Richtungen
+  gegen die tunnel-Kette — `frps.crt` (frpc würde frps akzeptieren) **und** ein frisch enrolltes
+  `OU=tunnel`-Agent-Cert (frps würde den Agenten akzeptieren). 182 Server-Tests grün; Docs DE+EN
+  (developer/server, admin/frp-tunnel) korrigiert.
+- **Bewusst zurückgestellt:** der Desktop-**Visitor** bleibt auf dem Legacy-`/etc/frp/pki`-Layout
+  (bricht bis A5 — akzeptiert); die jetzt **dormante** server-eigene FRP-CA (`modules/frp/pki.py`,
+  nur noch Visitor) wird mit A5 entfernt. Voller STCP-Roundtrip mit 2 frp-Prozessen ist über die
+  bidirektionale `openssl verify` + den A0-Spike (V2, depth 2) belegt.
 
 ### A8 — Enforcement umlegen (permissive → `CERT_REQUIRED`)  ⚠ Schlüssel-Task
 - **Beschreibung:** Gateway-Datenlistener auf `CERT_REQUIRED`, App-Authz von permissive auf

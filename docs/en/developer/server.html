@@ -122,9 +122,9 @@ auth.token = "&lt;token&gt;"
 
 [transport.tls]
 enable = true
-trustedCaFile = "/etc/frp/pki/ca.crt"
-certFile = "/etc/frp/pki/k01-lnx1.crt"
-keyFile = "/etc/frp/pki/k01-lnx1.key"
+trustedCaFile = "/etc/adminhelper/identity/ca.crt"
+certFile = "/etc/adminhelper/identity/agent.crt"
+keyFile = "/etc/adminhelper/identity/agent.key"
 
 [[proxies]]
 name = "ssh"
@@ -135,7 +135,8 @@ secretKey = "&lt;secret&gt;"
 allowUsers = ["ops-admin"]</code></pre>
 
           <h2>FRP PKI &amp; TLS</h2>
-          <p><code>modules/frp/pki.py</code> manages the mTLS PKI for FRP using the <code>cryptography</code> library. Keys are RSA-4096, signatures SHA-256.</p>
+          <p><strong>As of A7</strong> the frps server cert <em>and</em> the agent tunnel cert come from the <code>ca-issuer</code>'s <code>tunnel</code> intermediate (ECDSA P-256, a single trust root): frps mounts the issuer-provisioned material (<code>frps.crt</code>/<code>frps.key</code>/<code>ca.crt</code>) read-only at <code>/etc/frp-pki</code>, and the agent uses the tunnel cert it enrolled (A4) at <code>/etc/adminhelper/identity</code> &mdash; one cert for server pushes <em>and</em> the frp tunnel, auto-renewed at ~50&nbsp;% of its lifetime. <code>trustedCaFile</code> is the <code>tunnel</code> chain on both sides. The server-run <code>modules/frp/pki.py</code> CA (RSA-4096) below now serves only the legacy desktop visitor, until A5 moves it to enrollment too.</p>
+          <p><code>modules/frp/pki.py</code> manages that (now visitor-only) FRP CA using the <code>cryptography</code> library. Keys are RSA-4096, signatures SHA-256.</p>
           <p><strong>Master/published split (least privilege):</strong> the full PKI &mdash; CA <em>private key</em> and all client keys &mdash; lives server-private under <code>PKI_DIR = FRP_PKI_DIR</code> (default <code>DATA_DIR/frp-pki</code>, compose volume <code>frp-pki</code>, mounted on the server only). Only the subset frps needs is written into the volume shared with the internet-facing <code>frps</code> (<code>FRP_CONFIG_DIR/pki</code>) via <code>_publish_frps_materials()</code>: <code>ca.crt</code>, <code>frps.crt</code>, <code>frps.key</code>. frps verifies clients against <code>ca.crt</code> (public) and never needs the CA key. Deployments created before the split (where the whole PKI used to sit in the shared volume) are relocated once at startup by <code>migrate_master_pki_out_of_shared()</code> &mdash; the CA key and client keys leave the exposed volume without re-issuing the CA.</p>
           <table>
             <thead><tr><th>Function</th><th>Produces</th><th>Properties</th></tr></thead>
@@ -146,7 +147,7 @@ allowUsers = ["ops-admin"]</code></pre>
             </tbody>
           </table>
           <p><code>get_pki_status()</code> reports CA/server-cert existence with expiry dates and lists all client certs (every <code>*.crt</code> except <code>ca.crt</code>/<code>frps.crt</code>). In the <code>main.py</code> lifespan, <code>_ensure_pki()</code> auto-generates the CA and server cert as soon as a <code>FrpServerConfig</code> exists; the server cert is re-issued when <code>server_addr</code> is no longer in the SANs.</p>
-          <p>The TLS wiring in <code>frps.toml</code>/<code>frpc.toml</code> is produced by the <code>config_generator</code>: the server block sets <code>force = true</code> with <code>certFile</code>/<code>keyFile</code>/<code>trustedCaFile</code>, the client block <code>enable = true</code> with <code>trustedCaFile</code> and — when a client user is set — the matching client <code>certFile</code>/<code>keyFile</code>. This yields mutual TLS against the same CA on both sides.</p>
+          <p>The TLS wiring in <code>frps.toml</code>/<code>frpc.toml</code> is produced by the <code>config_generator</code>: the server block (<code>force = true</code>) points at the issuer-provisioned material under <code>/etc/frp-pki</code>; the agent block (<code>enable = true</code>) at the enrolled tunnel cert under <code>/etc/adminhelper/identity</code>. Both sides verify against the <code>tunnel</code> chain — mutual TLS against the one internal trust root. (The visitor block still uses the legacy <code>/etc/frp/pki</code> layout until A5.)</p>
 
           <h2>SQLAlchemy Models</h2>
           <p>Tables live in their respective modules (e.g. <code>modules/users/models.py</code>) and are created at startup via <code>Base.metadata.create_all()</code>. Idempotent column migrations run through <code>_migrate_add_columns()</code> with <code>PRAGMA table_info</code>.</p>

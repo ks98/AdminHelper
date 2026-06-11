@@ -38,24 +38,24 @@
           <ul>
             <li><strong>frps</strong> – läuft im Server-Stack, exponiert Port 7000 (Kontrollkanal) und 7443 (Tunnel).</li>
             <li><strong>frpc</strong> – läuft auf jedem Agent-Host, verbindet sich zu <code>frps</code> und meldet Services an.</li>
-            <li><strong>PKI</strong> – eigene CA im Server, jeder <code>frpc</code> authentifiziert sich mit einem Client-Zertifikat (mTLS).</li>
+            <li><strong>PKI</strong> – die interne <code>tunnel</code>-Intermediate des <code>ca-issuer</code> signiert das frps-Server-Cert und die Agent-Tunnel-Certs; jeder <code>frpc</code> authentifiziert sich per mTLS (seit A7 eine einheitliche Vertrauenswurzel statt einer frps-eigenen CA).</li>
           </ul>
 
           <h2>PKI-Setup</h2>
-          <p>Die CA wird beim ersten Server-Start automatisch erzeugt:</p>
+          <p>Die Tunnel-PKI ist Teil der einheitlichen internen CA (ADR 0001):</p>
           <ul>
-            <li><strong>CA-Zertifikat</strong>: 10 Jahre gültig, liegt unter <code>data/pki/ca.crt</code> + <code>ca.key</code></li>
-            <li><strong>Server-Cert</strong> für <code>frps</code>: CN <code>frps</code>, signiert von der CA</li>
-            <li><strong>Client-Certs</strong>: 1 Jahr gültig, pro Agent individuell, CN = Server-ID</li>
+            <li><strong>frps-Server-Cert</strong>: vom <code>ca-issuer</code> unter <code>tunnel</code> ausgestellt (ECDSA P-256, SAN = öffentliche frps-Adresse), beim ersten Start ins frps-Volume provisioniert. Der CA-Key erreicht das internet-zugewandte frps nie.</li>
+            <li><strong>Agent-Tunnel-Cert</strong>: der Agent <em>enrollt</em> es beim Provisioning on-device (A4) — dasselbe <code>tunnel</code>-Cert dient Server-Pushes <em>und</em> dem frp-Tunnel.</li>
+            <li><strong>trustedCaFile</strong>: beidseitig die <code>tunnel</code>-Kette (Intermediate + Root).</li>
           </ul>
 
           <div class="callout callout-note" data-reveal>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
-            <div><div class="callout-title">CA-Backup nicht vergessen</div><p>Das <code>data/pki/</code>-Verzeichnis ist <em>das</em> Security-Asset der Installation. Verliert der Server die CA, müssen alle Agenten neu provisioniert werden. Backup ist Teil des <a href="./betrieb.html#backup">Datenverzeichnis-Backups</a>.</p></div>
+            <div><div class="callout-title">CA-Backup nicht vergessen</div><p>Das Security-Asset ist jetzt das <code>ca-pki</code>-Volume des <code>ca-issuer</code> (Root + Intermediates). Verlust bedeutet, dass alle Clients neu enrollen müssen. Backup-Details unter <a href="./betrieb.html#backup">Datenverzeichnis-Backup</a>.</p></div>
           </div>
 
           <h2>Client-Zertifikate rotieren</h2>
-          <p>Client-Zertifikate laufen nach 12 Monaten ab. Der Agent prüft das Ablaufdatum bei jedem Start und requested automatisch eine Rotation, wenn weniger als 30 Tage Restlaufzeit bleiben. Manueller Rotate-Trigger im Web-Panel: <em>Server → Details → Zertifikat rotieren</em>.</p>
+          <p>Das Agent-Tunnel-Cert wird vom Agent <strong>automatisch erneuert</strong>, sobald es ~50&nbsp;% seiner Laufzeit erreicht (über <code>/ca/renew</code>, mit dem aktuellen Cert als Nachweis) — kein manueller Rotate-Trigger nötig. (Der Desktop-Visitor nutzt noch die ältere Rotation, bis A5 ihn auf Enrollment umstellt.)</p>
 
           <h2>Provision-Token</h2>
           <p>Jeder neue Agent bekommt beim Registrieren einen Einmal-Token. Token-Eigenschaften:</p>

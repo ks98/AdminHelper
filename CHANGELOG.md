@@ -37,6 +37,14 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Changed
 
+- **FRP-Tunnel auf die einheitliche PKI umgestellt** (ADR 0001 D1, Provider-Seite). Das
+  frps-Server-Cert und das Agent-Tunnel-Cert kommen jetzt aus der `tunnel`-Intermediate des
+  `ca-issuer` (ECDSA P-256) statt aus einer frps-eigenen RSA-CA: der Issuer provisioniert
+  `frps.crt`/`frps.key`/`ca.crt` (tunnel-Kette) in ein neues `frps-certs`-Volume, das frps
+  read-only unter `/etc/frp-pki` mountet; der Agent nutzt für den frp-Tunnel **dasselbe**
+  enrollte Tunnel-Cert wie für seine Server-Pushes. `trustedCaFile` ist beidseitig die
+  tunnel-Kette; der Server mintet kein per-Client-frp-Zertifikat mehr. Der **Desktop-Visitor**
+  bleibt vorerst auf dem bisherigen Cert-Layout (Umstellung folgt).
 - **Der Server terminiert kein TLS mehr selbst.** Er lauscht plain-HTTP intern auf `:8080` hinter
   dem Gateway und hat **keinen Host-Port** mehr; `server` und `ca-issuer` sind nur noch im
   Compose-Netz erreichbar. Dadurch ist der vom Gateway gesetzte Identitäts-Header von außen
