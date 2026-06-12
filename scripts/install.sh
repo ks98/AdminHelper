@@ -100,9 +100,9 @@ fi
 # Pull first so a stale locally-cached :latest (or a pinned tag) is refreshed —
 # `up` alone reuses an existing image and would run an outdated one.
 echo "[install] Ziehe die Images..."
-docker compose pull
+docker compose pull </dev/null
 echo "[install] Starte den Stack..."
-docker compose up -d
+docker compose up -d </dev/null
 
 echo "[install] Warte auf den Server (Migration + uvicorn)..."
 # `</dev/null` on every `docker compose exec` is load-bearing under `curl | bash`:
