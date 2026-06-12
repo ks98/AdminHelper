@@ -320,7 +320,7 @@ A0 Spikes ─► A1 ca-issuer ─► A2 Gateway ─► A3 Per-Route-Authz(permis
 - **Bekannte Grenze (Bootstrap):** der erste Desktop-Login läuft über `:443`; unter `CERT_REQUIRED`
   kann ein brandneuer certloser Client sich dort nicht anmelden → Onboarding in einem kurzen
   permissiven Fenster (dokumentiert). Eine vom Login entkoppelte Enrollment-Tür wäre die saubere
-  Phase-B-Lösung.
+  Phase-B-Lösung — skizziert in [ADR 0003](0003-decoupled-enrollment-door.md).
 
 ### A9 — Backup/Restore inkl. CA-Kronjuwel (parallel ab A1) ✅ ABGESCHLOSSEN 2026-06-11
 - **Beschreibung:** `scripts/backup.sh` / `restore.sh`: `ca-issuer`-Volume (Root+Intermediates),
