@@ -7,7 +7,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 # ADR 0001 — Einheitliche interne PKI + sichere Installation/Updates
 
 - **Status:** **Implementiert (Phase-A-Kern, permissiv)** — Stand 2026-06-12.
-  Ausstehend: Enforcement-Scharfschaltung (A8).
+  Ausstehend: Browser-Web-SPA-Onboarding-Doku (A6) und Enforcement-Scharfschaltung (A8).
 - **Datum:** 2026-06-11 (Entwurf), 2026-06-12 (Phase-A-Kern umgesetzt)
 - **Betrifft:** Server, ca-issuer (neu), Desktop-Client, Go-Agent, Web-Frontend, frps, Install/Update/Backup-Skripte
 - **Umsetzung:** siehe [ADR 0002](0002-phase-a-task-plan.md) (Task-Plan A0–A10 mit Fortschritt)
