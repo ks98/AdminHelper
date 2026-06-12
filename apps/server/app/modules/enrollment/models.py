@@ -14,7 +14,8 @@ from __future__ import annotations
 import datetime
 from typing import Any
 
-from sqlalchemy import Boolean, Column, DateTime, String, UniqueConstraint
+from sqlalchemy import Boolean, Column, DateTime, String, UniqueConstraint, or_
+from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
 
 from app.core.database import Base
@@ -53,6 +54,22 @@ class EnrollmentToken(Base):
             "isValid": self.is_valid(),
             "createdAt": self.created_at.isoformat() if self.created_at else None,
         }
+
+
+def cleanup_finished_enrollment_tokens(db: Session) -> int:
+    """Prune enrollment tokens that are spent (used_at set) or past expiry so the
+    table does not grow without bound (F6). A token is single-use and short-lived,
+    so once either is true it is dead weight. Run periodically by a system job,
+    mirroring the JWT blacklist cleanup. Compares against a tz-naive UTC ``now`` to
+    match the naive ``expires_at`` column (the server↔issuer storage convention)."""
+    now = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
+    count = (
+        db.query(EnrollmentToken)
+        .filter(or_(EnrollmentToken.used_at.isnot(None), EnrollmentToken.expires_at < now))
+        .delete(synchronize_session=False)
+    )
+    db.commit()
+    return count
 
 
 class RevokedIdentity(Base):

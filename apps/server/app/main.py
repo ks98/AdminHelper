@@ -184,6 +184,7 @@ async def lifespan(app: FastAPI):
     from app.modules.hooks.scheduler import (
         load_all_scheduled_hooks,
         schedule_blacklist_cleanup,
+        schedule_enrollment_token_cleanup,
         scheduler,
     )
 
@@ -191,6 +192,7 @@ async def lifespan(app: FastAPI):
 
     load_all_scheduled_hooks()
     schedule_blacklist_cleanup()
+    schedule_enrollment_token_cleanup()
     scheduler.start()
     fire_event("server.startup", {})
     yield

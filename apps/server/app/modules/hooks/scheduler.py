@@ -179,3 +179,35 @@ def schedule_blacklist_cleanup(hours: int = 6) -> None:
         replace_existing=True,
         next_run_time=datetime.now(timezone.utc),
     )
+
+
+_ENROLLMENT_TOKEN_CLEANUP_JOB_ID = "system:enrollment-token-cleanup"
+
+
+def _run_enrollment_token_cleanup() -> None:
+    """Remove spent/expired enrollment tokens so the enrollment_tokens table does
+    not grow without bound (F6)."""
+    from app.core.database import SessionLocal
+    from app.modules.enrollment.models import cleanup_finished_enrollment_tokens
+
+    db = SessionLocal()
+    try:
+        removed = cleanup_finished_enrollment_tokens(db)
+        if removed:
+            logger.info("Enrollment-Token-Cleanup: %d erledigte Eintraege entfernt", removed)
+    except Exception:
+        logger.exception("Enrollment-Token-Cleanup fehlgeschlagen")
+    finally:
+        db.close()
+
+
+def schedule_enrollment_token_cleanup(hours: int = 6) -> None:
+    """Register a periodic system job for the enrollment-token cleanup (idempotent).
+    Runs once immediately at start and then every `hours` hours."""
+    scheduler.add_job(
+        _run_enrollment_token_cleanup,
+        trigger=IntervalTrigger(hours=hours),
+        id=_ENROLLMENT_TOKEN_CLEANUP_JOB_ID,
+        replace_existing=True,
+        next_run_time=datetime.now(timezone.utc),
+    )
