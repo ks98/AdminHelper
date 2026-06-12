@@ -97,6 +97,10 @@ if [ "$ASSUME_YES" != 1 ]; then
 fi
 
 # --- Stack hoch (enforced per Default) --------------------------------------
+# Pull first so a stale locally-cached :latest (or a pinned tag) is refreshed —
+# `up` alone reuses an existing image and would run an outdated one.
+echo "[install] Ziehe die Images..."
+docker compose pull
 echo "[install] Starte den Stack..."
 docker compose up -d
 
