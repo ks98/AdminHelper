@@ -51,6 +51,13 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
   automatisch bei ~50&nbsp;% Laufzeit via `/ca/renew`. **Best-effort:** ohne erfolgreiches
   Enrollment läuft der Agent vorerst mit dem API-Key weiter. `provision/activate` liefert dafür
   einen einmaligen Enrollment-Token mit.
+- **Desktop: Browser-Zertifikat-Export im UI (A6).** Die Einstellungen (Server-Modus, angemeldet)
+  haben jetzt einen Knopf **„Browser-Zertifikat exportieren"**: Der Desktop enrollt ein langlebiges
+  `access`-Zertifikat, verpackt es als passwortgeschützte `.p12` (auf `0600` gehärtet, im
+  App-Datenverzeichnis) und zeigt den Speicherpfad an. Damit lässt sich ein Browser für den späteren
+  mTLS-Zwang vorbereiten — Import-Anleitung (Chrome/Edge + Firefox) DE+EN unter „Benutzer &amp;
+  Zugriff → Browser-Zugriff". Das Backend-Command bestand seit dem Desktop-Enrollment, war aber nie
+  ins UI verdrahtet; die Datei schreibt — mangels FS-/Dialog-Plugin — der Rust-Layer.
 
 ### Changed
 

@@ -67,10 +67,11 @@ pub async fn enroll_device(
     enrollment::enroll(&server_url, &token, self_signed).await
 }
 
-/// Enroll a long-lived browser cert and return it as a PKCS12 blob for the user
-/// to import into the browser's cert store (A5c). The bytes are handed to the
-/// frontend, which saves them via a file dialog. Does not affect the desktop's
-/// own enrolled identity.
+/// Enroll a long-lived browser cert (A5c), write it as a password-protected
+/// PKCS12 (.p12) into the app data dir, and return the path for the user to
+/// import into their browser's cert store. The desktop has no file-save dialog
+/// (no fs/dialog plugin), so Rust persists the file — like the Ansible flow.
+/// Does not affect the desktop's own enrolled identity.
 #[tauri::command]
 pub async fn export_browser_p12(
     app: tauri::AppHandle,
@@ -78,13 +79,14 @@ pub async fn export_browser_p12(
     token: String,
     password: String,
     allow_self_signed: Option<bool>,
-) -> Result<Vec<u8>, AppError> {
+) -> Result<String, AppError> {
     let self_signed = allow_self_signed.unwrap_or_else(|| {
         storage::load_settings(&app)
             .map(|s| s.allow_self_signed_certs)
             .unwrap_or(false)
     });
-    enrollment::export_browser_p12(&server_url, &token, &password, self_signed).await
+    let der = enrollment::export_browser_p12(&server_url, &token, &password, self_signed).await?;
+    storage::write_browser_p12(&app, &der)
 }
 
 /// Generic API proxy: forwards requests to the server via reqwest.

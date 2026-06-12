@@ -79,6 +79,18 @@ export function resetServerCertPin(serverUrl: string): Promise<void> {
   return invoke('reset_server_cert_pin', { serverUrl });
 }
 
+// Enroll a long-lived browser certificate and write it as a password-protected
+// .p12 into the app data dir; resolves to the absolute path the user imports
+// into their browser's certificate store (needed once mTLS is enforced).
+export function exportBrowserP12(
+  serverUrl: string,
+  token: string,
+  password: string,
+  allowSelfSigned?: boolean,
+): Promise<string> {
+  return invoke<string>('export_browser_p12', { serverUrl, token, password, allowSelfSigned });
+}
+
 // ─────────────────────────── Server API proxy ────────────────────
 
 export function apiProxy<T = unknown>(

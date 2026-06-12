@@ -13,7 +13,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
     serverLogout,
   } from '$lib/stores/settings';
   import { t } from '$lib/i18n';
-  import { resetServerCertPin } from '$lib/bridge';
+  import { resetServerCertPin, exportBrowserP12 } from '$lib/bridge';
   import {
     RDP_WINDOW_MODES,
     RDP_PERFORMANCE_PROFILES,
@@ -41,6 +41,9 @@ SPDX-License-Identifier: GPL-3.0-or-later
   let rdpPerformanceProfile = $state<RdpPerformanceProfile>('auto');
   let serverUrl = $state('');
   let pinResetMsgKey = $state('');
+  let browserCertPassword = $state('');
+  let browserCertMsg = $state('');
+  let browserCertBusy = $state(false);
 
   $effect(() => {
     if (!$settingsModalOpen) return;
@@ -57,6 +60,9 @@ SPDX-License-Identifier: GPL-3.0-or-later
     rdpPerformanceProfile = s.rdpPerformanceProfile ?? 'auto';
     serverUrl = s.serverUrl ?? '';
     pinResetMsgKey = '';
+    browserCertPassword = '';
+    browserCertMsg = '';
+    browserCertBusy = false;
   });
 
   async function onResetPin(): Promise<void> {
@@ -70,6 +76,31 @@ SPDX-License-Identifier: GPL-3.0-or-later
       pinResetMsgKey = 'settings.resetCertPin.done';
     } catch {
       pinResetMsgKey = '';
+    }
+  }
+
+  async function onExportBrowserCert(): Promise<void> {
+    const sess = $session;
+    if (!sess) return;
+    if (browserCertPassword.length < 8) {
+      browserCertMsg = $t('settings.browserCert.passwordTooShort');
+      return;
+    }
+    browserCertBusy = true;
+    browserCertMsg = $t('settings.browserCert.working');
+    try {
+      const path = await exportBrowserP12(
+        sess.serverUrl,
+        sess.token,
+        browserCertPassword,
+        allowSelfSignedCerts,
+      );
+      browserCertMsg = `${$t('settings.browserCert.done')} ${path}`;
+      browserCertPassword = '';
+    } catch {
+      browserCertMsg = $t('settings.browserCert.error');
+    } finally {
+      browserCertBusy = false;
     }
   }
 
@@ -204,6 +235,24 @@ SPDX-License-Identifier: GPL-3.0-or-later
             <span class="field-label">{$t('settings.loggedInAs')}</span>
             <strong>{$session.username}</strong>
             <button class="btn ghost small" onclick={onLogout}>{$t('settings.logout')}</button>
+          </div>
+          <div class="sm-browser-cert">
+            <span class="field-label">{$t('settings.browserCert.hint')}</span>
+            <div class="sm-browser-cert-row">
+              <input
+                type="password"
+                bind:value={browserCertPassword}
+                placeholder={$t('settings.browserCert.passwordPlaceholder')}
+              />
+              <button
+                class="btn ghost small"
+                onclick={onExportBrowserCert}
+                disabled={browserCertBusy}
+              >
+                {$t('settings.browserCert.export')}
+              </button>
+            </div>
+            {#if browserCertMsg}<span class="sm-browser-cert-msg">{browserCertMsg}</span>{/if}
           </div>
         {/if}
       {/if}
@@ -382,6 +431,37 @@ SPDX-License-Identifier: GPL-3.0-or-later
   .sm-reset-msg {
     font-size: 12px;
     color: var(--accent);
+  }
+  .sm-browser-cert {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-2);
+    padding-top: var(--sp-2);
+  }
+  .sm-browser-cert-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--sp-2);
+  }
+  .sm-browser-cert-row input {
+    flex: 1;
+    min-width: 180px;
+    background: var(--bg-input, var(--bg-panel));
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    padding: var(--sp-2) var(--sp-3);
+    font-size: 13px;
+    font-family: inherit;
+  }
+  .sm-browser-cert-row input:focus {
+    outline: 1px solid var(--accent);
+  }
+  .sm-browser-cert-msg {
+    font-size: 12px;
+    color: var(--accent);
+    word-break: break-all;
   }
   .panel-actions {
     display: flex;

@@ -7,8 +7,8 @@ SPDX-License-Identifier: GPL-3.0-or-later
 # Phase A — Detaillierter Task-Plan (Umsetzung der PKI/mTLS-Grundlage)
 
 - **Status:** **Phase-A-Kern umgesetzt (permissiv)** — Stand 2026-06-12. Abgeschlossen:
-  A0–A5, A7, A9 + der A10-Konsolidierungs-Pass. Ausstehend: A6 (Browser-Web-SPA-Onboarding-Doku),
-  A8 (Enforcement-Scharfschaltung) und der A10-Schluss-Pass nach A8.
+  A0–A7, A9 + der A10-Konsolidierungs-Pass. Ausstehend: A8 (Enforcement-Scharfschaltung) und der
+  A10-Schluss-Pass nach A8; vor A8 noch die manuelle Browser-/Windows-Verifikation (A5/A6).
 - **Datum:** 2026-06-11 (Bauplan), 2026-06-12 (Phase-A-Kern umgesetzt)
 - **Basis:** [ADR 0001](0001-unified-pki-and-secure-deployment.md) (D1–D11), alle Verifikationspunkte geklärt.
 
@@ -239,14 +239,24 @@ A0 Spikes ─► A1 ca-issuer ─► A2 Gateway ─► A3 Per-Route-Authz(permis
     wurde **vollständig aus dem Projekt entfernt** (Code, CI-/Release-Jobs, Doku) — sie ist kein
     mTLS-Client mehr und entfällt aus dem Plan (A6 ist jetzt reine Web-SPA-Doku).
 
-### A6 — Browser (Web-SPA)
-- **Beschreibung:** Web-SPA hinter mTLS (kein `fetch`-Code-Change, aber P12-Import dokumentieren).
-  Der Browser-P12 kommt aus dem Desktop-Export (A5c, bereits umgesetzt); hier bleibt nur der
-  Onboarding-Hinweis im Web-Panel + die Import-Doku.
-- **Betroffen:** `apps/web/` (Doku/Onboarding-Hinweis).
+### A6 — Browser (Web-SPA) ✅ ABGESCHLOSSEN 2026-06-12 (Export-UI + Import-Doku; Real-Browser-Verifikation offen)
+- **Beschreibung:** Web-SPA hinter mTLS (kein `fetch`-Code-Change). Der Browser-P12 wird im
+  Desktop-Client erzeugt + exportiert; hier: den Export im UI klickbar machen + die Import-Doku.
+- **Betroffen:** `apps/desktop/` (Export-Button + Bridge + Rust-Write), `docs/` (admin/benutzer +
+  users, DE+EN; Querlink aus der Installation).
 - **Akzeptanz:** mit importiertem P12 lädt die SPA + Login funktioniert; ohne → Handshake
   scheitert (erwartet).
-- **Aufwand:** S · **Risiko:** niedrig (nur Doku/Onboarding) · **Abh.:** A2, A5c
+- **Aufwand:** S · **Risiko:** niedrig · **Abh.:** A2, A5c
+- **Fortschritt ✅ 2026-06-12:** Das Backend-Command `export_browser_p12` bestand seit A5a, war aber
+  **nie ins UI verdrahtet** (kein Button → für Nutzer unerreichbar; die A5c-Notiz „Frontend speichert
+  via Dialog" stimmte nicht). A6 schließt das: ein „Browser-Zertifikat exportieren"-Button im
+  `SettingsModal` (Server-Modus, angemeldet) fragt ein Passwort (≥8) ab und ruft das Command, das die
+  `.p12` (gehärtet `0600`) in den App-Data-Dir schreibt und den **Pfad** zurückgibt — kein FS-/
+  Dialog-Plugin nötig, sondern das `ansible_write_playbook`-Idiom (`storage::write_browser_p12`).
+  Import-Doku DE+EN (Chrome/Edge + Firefox) unter „Benutzer &amp; Zugriff → Browser-Zugriff". Checks
+  grün (cargo fmt/clippy/test 57, svelte-check/eslint/prettier, vitest 73 inkl. i18n-Parität).
+- **Offen (ehrliche Lücke):** der *echte* Browser-Import + mTLS-Connect ist nicht automatisierbar —
+  vor A8 manuell gegen Chrome/Firefox prüfen (analog zur Windows-Keyring-Lücke aus A5).
 - **Hinweis:** Die frühere Browser-Erweiterung (`apps/extension/`) wurde am 2026-06-12 vollständig
   aus dem Projekt entfernt und ist **kein** Bestandteil dieses Tasks mehr.
 
