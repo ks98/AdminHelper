@@ -6,7 +6,8 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 # ADR 0001 — Einheitliche interne PKI + sichere Installation/Updates
 
-- **Status:** **Implementiert (Phase A) — permissiv per Default.** Stand 2026-06-12. Umgesetzt: die
+- **Status:** **Implementiert (Phase A).** Default bis 0.28 permissiv; **ab 0.29.0 enforced per Default**
+  (`MTLS_ENFORCE=true`), da `scripts/install.sh` dem Erst-Admin sein Cert out-of-band besorgt. Stand 2026-06-12. Umgesetzt: die
   einheitliche PKI, das mTLS-Gateway, Per-Route-Scopes, Auto-Enrollment (Agent/Desktop), Browser-
   P12-Export, der `MTLS_ENFORCE`-Enforcement-Schalter (**end-to-end verifiziert**, §7) und Backup/
   Restore inkl. CA. Die **entkoppelte Enrollment-Tür** ([ADR 0003](0003-decoupled-enrollment-door.md))
@@ -36,7 +37,7 @@ ist eine Operator-Entscheidung.
 | D5 Cert-Laufzeit pro Zielgruppe | ✅ native kurz+auto; Browser lang (`browser=true`) + P12-Re-Import |
 | D6 eigener `ca-issuer`, Server nie im Signier-Pfad | ✅ einzige Signier-Capability; Gateway hält nur ein Leaf; die alte server-eigene FRP-CA ist entfernt (F3, 0.28.0) |
 | D7 Root kalt + passphrase-verschlüsselt | ✅ `root.key.enc`; `CA_ROOT_PASSPHRASE` getrennt vom Backup |
-| D8 Human+Agent teilen `:443` per Scope | ✅ `access` (Mensch) / `tunnel` (Agent), Per-Route-Guards (permissiv per Default, enforced via `MTLS_ENFORCE`) |
+| D8 Human+Agent teilen `:443` per Scope | ✅ `access` (Mensch) / `tunnel` (Agent), Per-Route-Guards (enforced per Default ab 0.29.0; via `MTLS_ENFORCE=false` permissiv) |
 | D9 keine Migration | ✅ frische Hierarchie ab Tag 1 |
 | D10 ECDSA-P-256-Leaves | ✅ Agent (Go) + Desktop (rcgen) |
 | D11 ein nginx-Gateway vor den HTTP-Planes; frps ausgenommen | ✅ Gateway `:443`/`:8444`; frps eigene TLS-Kante (unter `tunnel`) |

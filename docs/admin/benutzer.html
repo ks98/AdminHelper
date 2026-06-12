@@ -79,7 +79,7 @@
           </ol>
           <div class="callout callout-note" data-reveal>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
-            <div><div class="callout-title">Aktuell permissiv</div><p>Die Datenebene läuft noch <strong>permissiv</strong> – ein Browser-Zertifikat ist <em>noch nicht</em> Pflicht, das Web-Panel lädt auch ohne. Du kannst die <code>.p12</code> aber jetzt schon verteilen, damit beim Scharfschalten (<code>CERT_REQUIRED</code>) niemand ausgesperrt wird. Das Browser-Zertifikat ist langlebig und erneuert sich <em>nicht</em> automatisch – vor Ablauf einfach neu exportieren und importieren.</p></div>
+            <div><div class="callout-title">Browser-Cert unter erzwungenem mTLS</div><p>Seit 0.29.0 läuft die Datenebene per Default <strong>scharf</strong> (<code>CERT_REQUIRED</code>) – ein Browser ohne importiertes Zertifikat wird schon am TLS-Handshake abgewiesen, das Web-Panel lädt dann nicht. Verteile die <code>.p12</code> also an jeden, der das Panel im Browser nutzt. Das Browser-Zertifikat ist langlebig und erneuert sich <em>nicht</em> automatisch – vor Ablauf einfach neu exportieren und importieren.</p></div>
           </div>
 
           <h2>Neuen Nutzer unter erzwungenem mTLS onboarden</h2>
@@ -94,7 +94,7 @@
           </ol>
           <div class="callout callout-note" data-reveal>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
-            <div><div class="callout-title">Ausnahme: der allererste Admin</div><p>Für den <strong>ersten</strong> Admin gibt es noch niemanden, der ein Token ausstellen könnte. Diesen einen Fall löst ein <strong>einmaliges</strong> permissives Fenster: <code>MTLS_ENFORCE=false</code>, ersten Admin per Bootstrap-Token anlegen + Desktop enrollen, dann <code>MTLS_ENFORCE=true</code>. Ab da läuft jedes weitere Onboarding über die Token-Tür – ohne erneutes Lockern.</p></div>
+            <div><div class="callout-title">Ausnahme: der allererste Admin</div><p>Für den <strong>ersten</strong> Admin gibt es noch niemanden, der ein Token ausstellen könnte. Am einfachsten erledigt das <code>scripts/install.sh</code> (legt Admin + Erst-Token out-of-band an und schaltet scharf). Manuell ohne Script: ein <strong>einmaliges</strong> permissives Fenster (<code>MTLS_ENFORCE=false</code>, ersten Admin anlegen + Desktop enrollen, dann <code>MTLS_ENFORCE=true</code>). Ab da läuft jedes weitere Onboarding über die Token-Tür – ohne erneutes Lockern.</p></div>
           </div>
 
           <h2>API-Keys</h2>

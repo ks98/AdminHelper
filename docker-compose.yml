@@ -37,10 +37,11 @@ services:
       - EXTRA_SANS=${EXTRA_SANS:-}
       - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
-      # A8 mTLS enforcement (per-route cert-scope check). false = permissive
-      # (log only); true = reject protected routes without a valid cert. Must be
-      # flipped together with the gateway's MTLS_ENFORCE. See docs (Betrieb).
-      - MTLS_ENFORCE=${MTLS_ENFORCE:-false}
+      # mTLS enforcement (per-route cert-scope check). Default true = enforced
+      # (reject protected routes without a valid cert); set false for a permissive
+      # window (e.g. a manual first-admin bootstrap). Flipped together with the
+      # gateway. scripts/install.sh mints the first cert out-of-band; see docs (Betrieb).
+      - MTLS_ENFORCE=${MTLS_ENFORCE:-true}
       - FRP_CONFIG_DIR=/app/frp-config
       # Postgres
       - DATABASE_URL=postgresql+psycopg://adminhelper:${POSTGRES_PASSWORD}@postgres:5432/adminhelper
@@ -83,10 +84,11 @@ services:
       - gateway-certs:/etc/nginx/certs:ro
     environment:
       - TZ=${TZ:-Europe/Berlin}
-      # A8: true → data plane :443 becomes CERT_REQUIRED (ssl_verify_client on);
-      # default false → permissive (optional). Flip together with the server's
-      # MTLS_ENFORCE, and only once every client holds a cert (see docs/Betrieb).
-      - MTLS_ENFORCE=${MTLS_ENFORCE:-false}
+      # Default true → data plane :443 is CERT_REQUIRED (ssl_verify_client on);
+      # set false for a permissive window (optional). Flip together with the
+      # server's MTLS_ENFORCE. scripts/install.sh sets up the first admin's cert
+      # before arming, so a fresh install is usable enforced (see docs/Betrieb).
+      - MTLS_ENFORCE=${MTLS_ENFORCE:-true}
     restart: unless-stopped
     depends_on:
       # nginx resolves the upstream names at startup, so both must already exist.

@@ -73,7 +73,7 @@
           </ol>
           <div class="callout callout-note" data-reveal>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
-            <div><div class="callout-title">Currently permissive</div><p>The data plane still runs <strong>permissive</strong> — a browser certificate is <em>not yet</em> required, the web panel loads without one. You can hand out the <code>.p12</code> now so that nobody is locked out when you switch to <code>CERT_REQUIRED</code>. The browser certificate is long-lived and does <em>not</em> auto-renew — just export and import a fresh one before it expires.</p></div>
+            <div><div class="callout-title">Browser cert under enforced mTLS</div><p>Since 0.29.0 the data plane runs <strong>enforced</strong> by default (<code>CERT_REQUIRED</code>) — a browser without an imported certificate is rejected at the TLS handshake and the web panel won't load. So hand out the <code>.p12</code> to everyone who uses the panel in a browser. The browser certificate is long-lived and does <em>not</em> auto-renew — just export and import a fresh one before it expires.</p></div>
           </div>
 
           <h2>Onboarding a new user under enforced mTLS</h2>
@@ -88,7 +88,7 @@
           </ol>
           <div class="callout callout-note" data-reveal>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
-            <div><div class="callout-title">Exception: the very first admin</div><p>For the <strong>first</strong> admin there is nobody yet who could issue a token. That single case is handled with a <strong>one-time</strong> permissive window: <code>MTLS_ENFORCE=false</code>, create the first admin via the bootstrap token + enroll the desktop, then <code>MTLS_ENFORCE=true</code>. From then on every further onboarding goes through the token door — no more loosening.</p></div>
+            <div><div class="callout-title">Exception: the very first admin</div><p>For the <strong>first</strong> admin there is nobody yet who could issue a token. Easiest is <code>scripts/install.sh</code> (it creates the admin + a first token out-of-band and arms enforcement). Manually without the script: a <strong>one-time</strong> permissive window (<code>MTLS_ENFORCE=false</code>, create the first admin + enroll the desktop, then <code>MTLS_ENFORCE=true</code>). From then on every further onboarding goes through the token door — no more loosening.</p></div>
           </div>
 
           <h2>API keys</h2>
