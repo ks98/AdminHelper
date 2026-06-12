@@ -211,6 +211,13 @@ fn keyring_del(key: &str) {
 #[cfg(not(any(unix, target_os = "windows")))]
 fn keyring_del(_key: &str) {}
 
+/// The enrolled identity as `(key_pem, fullchain_pem, ca_pem)`, if present —
+/// exported by the frpc visitor (F2) to present the desktop's access cert on the
+/// frp plane (frps trusts the access intermediate).
+pub fn identity_pems() -> Option<(String, String, String)> {
+    load_identity()
+}
+
 /// The stored identity as `(key_pem, fullchain_pem, ca_pem)`, if enrolled.
 fn load_identity() -> Option<(String, String, String)> {
     Some((

@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
@@ -60,7 +59,9 @@ impl FrpcProcess {
 #[derive(Deserialize)]
 struct VisitorBundle {
     toml: String,
-    pki: HashMap<String, String>,
+    // The server no longer ships PKI material (F2/F3: D6 — the server holds no
+    // signing capability). The visitor presents the desktop's own enrolled
+    // identity instead; any `pki` field the server still sends is ignored.
 }
 
 /// Fetch the visitor bundle (TOML + PKI) from the server.
@@ -82,8 +83,32 @@ async fn fetch_visitor_bundle(
     Ok(bundle)
 }
 
-/// Write visitor bundle (TOML + PKI files) to the app data directory.
-/// Rewrites relative PKI paths in the TOML to absolute paths.
+/// Rewrite the relative `identity/` TLS paths in a visitor TOML to absolute paths.
+fn rewrite_identity_paths(toml: &str, abs_identity_dir: &str) -> String {
+    toml.replace("\"identity/", &format!("\"{abs_identity_dir}/"))
+}
+
+/// Export the enrolled identity (key 0600 + cert + CA) into `identity_dir` so the
+/// frpc sidecar can read it as files. The visitor presents the desktop's own
+/// access cert (F2); the server no longer mints one.
+fn export_identity(identity_dir: &Path) -> Result<(), AppError> {
+    let (key_pem, cert_pem, ca_pem) = crate::enrollment::identity_pems().ok_or_else(|| {
+        AppError::Validation(
+            "Kein mTLS-Zertifikat vorhanden — bitte zuerst am Server anmelden (Enrollment), \
+             dann den Tunnel starten."
+                .to_string(),
+        )
+    })?;
+    std::fs::create_dir_all(identity_dir)?;
+    write_secret(&identity_dir.join("key.pem"), key_pem.as_bytes())?;
+    std::fs::write(identity_dir.join("cert.pem"), cert_pem.as_bytes())?;
+    std::fs::write(identity_dir.join("ca.crt"), ca_pem.as_bytes())?;
+    Ok(())
+}
+
+/// Write the visitor TOML to the app data dir and export the enrolled identity it
+/// references (F2). The server ships only the TOML; the desktop supplies its own
+/// mTLS identity for the visitor.
 fn write_visitor_bundle(
     app: &tauri::AppHandle,
     bundle: &VisitorBundle,
@@ -96,34 +121,13 @@ fn write_visitor_bundle(
     })?;
     std::fs::create_dir_all(&data_dir)?;
 
-    // Write PKI files if present
-    let pki_dir = data_dir.join("pki");
-    if !bundle.pki.is_empty() {
-        std::fs::create_dir_all(&pki_dir)?;
-        for (filename, content) in &bundle.pki {
-            // The server controls these filenames; reject anything that is not a
-            // plain file name before joining, or it could escape pki_dir (zip-slip).
-            crate::validation::validate_pki_filename(filename)?;
-            let file_path = pki_dir.join(filename);
-            // Write private keys (.key) restrictively; certs may stay 0644.
-            if filename.ends_with(".key") {
-                write_secret(&file_path, content.as_bytes())?;
-            } else {
-                std::fs::write(&file_path, content)?;
-            }
-        }
+    let identity_dir = data_dir.join("identity");
+    if bundle.toml.contains("[transport.tls]") {
+        export_identity(&identity_dir)?;
     }
 
-    // Fail early if TOML references TLS certs but server sent no PKI bundle
-    if bundle.pki.is_empty() && bundle.toml.contains("[transport.tls]") {
-        return Err(AppError::Validation(
-            "Server hat kein PKI-Bundle geliefert. Bitte CA auf dem Server generieren (FRP → PKI → CA generieren).".to_string(),
-        ));
-    }
-
-    // Always rewrite relative pki/ paths to absolute paths in the TOML
-    let abs_pki = pki_dir.to_string_lossy();
-    let toml_content = bundle.toml.replace("\"pki/", &format!("\"{abs_pki}/"));
+    let abs_identity = identity_dir.to_string_lossy();
+    let toml_content = rewrite_identity_paths(&bundle.toml, &abs_identity);
     let config_path = data_dir.join("visitor.toml");
     // visitor.toml contains the frp auth token -> 0600 on Unix.
     write_secret(&config_path, toml_content.as_bytes())?;
@@ -223,7 +227,7 @@ pub fn tunnel_status(state: &FrpcState) -> TunnelStatus {
     }
 }
 
-/// Full tunnel start flow: fetch bundle, write config + PKI, start frpc.
+/// Full tunnel start flow: fetch bundle, write config + identity, start frpc.
 pub async fn start_tunnel(
     app: tauri::AppHandle,
     state: FrpcState,
@@ -236,4 +240,22 @@ pub async fn start_tunnel(
     let config_path = write_visitor_bundle(&app, &bundle)?;
     start_frpc(&app, &config_path, &state, username.to_string())?;
     Ok(tunnel_status(&state))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::rewrite_identity_paths;
+
+    #[test]
+    fn rewrites_relative_identity_paths_to_absolute() {
+        let toml = "[transport.tls]\n\
+             certFile = \"identity/cert.pem\"\n\
+             keyFile = \"identity/key.pem\"\n\
+             trustedCaFile = \"identity/ca.crt\"\n";
+        let out = rewrite_identity_paths(toml, "/data/app/identity");
+        assert!(out.contains("certFile = \"/data/app/identity/cert.pem\""));
+        assert!(out.contains("keyFile = \"/data/app/identity/key.pem\""));
+        assert!(out.contains("trustedCaFile = \"/data/app/identity/ca.crt\""));
+        assert!(!out.contains("\"identity/"), "no relative path may remain");
+    }
 }
