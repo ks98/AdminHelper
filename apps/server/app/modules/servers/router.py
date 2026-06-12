@@ -14,7 +14,9 @@ from app.core.auth import get_current_admin
 from app.core.config import MONITOR_API_KEY, MONITOR_SERVICE_URL
 from app.core.database import get_db
 from app.core.events import fire_event
+from app.core.identity import SCOPE_AGENT
 from app.core.pagination import paginate
+from app.modules.enrollment.models import revoke_identity
 from app.modules.servers.models import Server
 from app.modules.servers.schemas import ServerCreate, ServerUpdate
 
@@ -95,6 +97,9 @@ def delete_server(server_id: str, db: Session = Depends(get_db), _admin=Depends(
     if not server:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Server nicht gefunden")
     fire_event("server.deleted", {"id": server.id, "name": server.name})
+    # Deprovision the agent's mTLS identity (CN = stable server_id, tunnel scope):
+    # the ca-issuer stops renewing its cert and the data plane rejects it (F1).
+    revoke_identity(db, server.id, SCOPE_AGENT)
     db.delete(server)
     db.commit()
 

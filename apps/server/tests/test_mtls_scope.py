@@ -110,9 +110,10 @@ def _permissive(monkeypatch):
     monkeypatch.setattr(config, "MTLS_ENFORCE", False)
 
 
-def _check(dep, ident: ClientIdentity):
-    """Invoke the dependency directly with a pre-resolved identity."""
-    return dep(_req({}), ident)
+def _check(dep, ident: ClientIdentity, db=None):
+    """Invoke the dependency directly with a pre-resolved identity (and optional
+    db session for the revocation check; None = no revocation, pure scope logic)."""
+    return dep(_req({}), ident, db)
 
 
 def test_permissive_allows_matching_scope():
@@ -163,6 +164,41 @@ def test_enforced_dual_use_accepts_either_scope(monkeypatch):
     assert _check(dep, ClientIdentity(True, "human", SCOPE_ACCESS)).verified is True
     with pytest.raises(HTTPException):
         _check(dep, ClientIdentity(True, "svc", "internal"))
+
+
+# --- require_scope: revocation (F1, ADR 0001 §3.4 lever 2) --------------------
+
+
+def test_enforced_rejects_revoked_identity(db_session, monkeypatch):
+    from app.modules.enrollment.models import revoke_identity
+
+    monkeypatch.setattr(config, "MTLS_ENFORCE", True)
+    revoke_identity(db_session, "u", SCOPE_ACCESS)
+    db_session.commit()
+
+    dep = require_scope(SCOPE_ACCESS)
+    with pytest.raises(HTTPException) as exc:
+        _check(dep, ClientIdentity(True, "u", SCOPE_ACCESS), db_session)
+    assert exc.value.status_code == 403
+
+
+def test_enforced_allows_non_revoked_identity(db_session, monkeypatch):
+    monkeypatch.setattr(config, "MTLS_ENFORCE", True)
+    dep = require_scope(SCOPE_ACCESS)
+    # A matching, non-revoked cert still passes (the check is scoped to the row).
+    assert (
+        _check(dep, ClientIdentity(True, "fresh", SCOPE_ACCESS), db_session).scope == SCOPE_ACCESS
+    )
+
+
+def test_permissive_allows_revoked_identity(db_session):
+    from app.modules.enrollment.models import revoke_identity
+
+    revoke_identity(db_session, "u", SCOPE_ACCESS)
+    db_session.commit()
+    dep = require_scope(SCOPE_ACCESS)
+    # Permissive: still allowed (the deleted user is blocked by app-layer auth).
+    assert _check(dep, ClientIdentity(True, "u", SCOPE_ACCESS), db_session).verified is True
 
 
 # --- integration: real routes through the TestClient -------------------------

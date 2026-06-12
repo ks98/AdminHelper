@@ -29,8 +29,10 @@ from dataclasses import dataclass
 from cryptography import x509
 from cryptography.x509.oid import NameOID
 from fastapi import Depends, HTTPException, Request, status
+from sqlalchemy.orm import Session
 
 from app.core import config
+from app.core.database import get_db
 
 logger = logging.getLogger("adminhelper.identity")
 
@@ -90,31 +92,57 @@ def get_client_identity(request: Request) -> ClientIdentity:
     )
 
 
+def _is_revoked(db: Session | None, cn: str | None, scope: str | None) -> bool:
+    """Whether the verified identity has been revoked (ADR 0001 §3.4 lever 2 — the
+    immediate data-plane cut-off, not waiting for cert expiry). ``db`` is the
+    request session; it is None only in pure-logic unit tests, where there is no
+    revocation to check."""
+    if db is None or cn is None or scope is None:
+        return False
+    from app.modules.enrollment.models import is_identity_revoked
+
+    return is_identity_revoked(db, cn, scope)
+
+
 def require_scope(*allowed: str):
     """Dependency factory: require the client cert to carry one of ``allowed``
-    scopes. Dual-use routes pass several (e.g. agent + admin read the same config).
+    scopes and not be revoked. Dual-use routes pass several (e.g. agent + admin
+    read the same config).
 
-    Permissive (default): a missing/mismatched scope is logged but the request
-    proceeds — only a *wrong-scope* cert warns; the expected "no cert yet" case
-    stays at debug so the rollout doesn't spam logs. Enforced (``MTLS_ENFORCE``,
-    A8): a mismatch returns 403."""
+    Permissive (default): a missing/mismatched/revoked cert is logged but the
+    request proceeds — only a *wrong-scope* or *revoked* cert warns; the expected
+    "no cert yet" case stays at debug so the rollout doesn't spam logs. Enforced
+    (``MTLS_ENFORCE``, A8): any of those returns 403."""
     allowed_set = frozenset(allowed)
 
     def dependency(
         request: Request,
         identity: ClientIdentity = Depends(get_client_identity),
+        db: Session = Depends(get_db),
     ) -> ClientIdentity:
-        if identity.verified and identity.scope in allowed_set:
+        revoked = identity.verified and _is_revoked(db, identity.cn, identity.scope)
+        if identity.verified and not revoked and identity.scope in allowed_set:
             return identity
 
         if config.MTLS_ENFORCE:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Kein gültiges Client-Zertifikat mit passendem Scope",
+                detail="Identität widerrufen"
+                if revoked
+                else "Kein gültiges Client-Zertifikat mit passendem Scope",
             )
 
         wanted = "/".join(sorted(allowed_set))
-        if identity.verified:
+        if revoked:
+            logger.warning(
+                "mTLS permissiv: %s %s — widerrufene Identität CN=%s (scope=%s) erlaubt "
+                "(App-Auth blockt)",
+                request.method,
+                request.url.path,
+                identity.cn,
+                identity.scope,
+            )
+        elif identity.verified:
             logger.warning(
                 "mTLS permissiv: %s %s erwartet Scope %s, Cert hat '%s' (CN=%s) — erlaubt",
                 request.method,

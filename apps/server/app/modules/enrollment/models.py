@@ -12,9 +12,11 @@ plane) reads/consumes them; it never holds a minting capability of its own.
 from __future__ import annotations
 
 import datetime
+import uuid
 from typing import Any
 
 from sqlalchemy import Boolean, Column, DateTime, String, UniqueConstraint, or_
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
 
@@ -83,3 +85,41 @@ class RevokedIdentity(Base):
     subject_id = Column(String, nullable=False)
     scope = Column(String, nullable=False)
     revoked_at = Column(DateTime, server_default=func.now())
+
+
+def revoke_identity(db: Session, subject_id: str, scope: str) -> None:
+    """Mark ``(subject_id, scope)`` revoked so the ca-issuer refuses to renew its
+    cert (lever 1) and the data plane rejects it on sight (lever 2) — the fast
+    cut-off without CRL (ADR 0001 §3.4, F1). Idempotent. Does not commit; the
+    caller's transaction (e.g. user/server deletion) does. Idempotent and
+    race-free via INSERT ... ON CONFLICT DO NOTHING on the unique (subject_id,
+    scope) constraint — no read-then-write window. Identity reuse caveat: the cert
+    CN is the username/server-id, so a still-valid cert minted before the
+    revocation is only fully cut off once it expires (≤90 d native)."""
+    db.execute(
+        pg_insert(RevokedIdentity.__table__)
+        .values(id=str(uuid.uuid4()), subject_id=subject_id, scope=scope)
+        .on_conflict_do_nothing(constraint="uq_revoked_subject_scope")
+    )
+
+
+def clear_revocation(db: Session, subject_id: str, scope: str) -> int:
+    """Drop any revocation for ``(subject_id, scope)``. Usernames are reusable, so
+    re-creating a user must clear a stale revocation from a former namesake — else
+    the new identity could never renew its cert. Returns the rows removed."""
+    return (
+        db.query(RevokedIdentity)
+        .filter(RevokedIdentity.subject_id == subject_id, RevokedIdentity.scope == scope)
+        .delete(synchronize_session=False)
+    )
+
+
+def is_identity_revoked(db: Session, subject_id: str, scope: str) -> bool:
+    """True if ``(subject_id, scope)`` is revoked (renewal refusal + data-plane
+    cut-off)."""
+    return (
+        db.query(RevokedIdentity.id)
+        .filter(RevokedIdentity.subject_id == subject_id, RevokedIdentity.scope == scope)
+        .first()
+        is not None
+    )

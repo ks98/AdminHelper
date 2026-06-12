@@ -10,6 +10,8 @@ from sqlalchemy.orm import Session
 from app.core.auth import get_current_admin, get_current_user, hash_password
 from app.core.database import get_db
 from app.core.events import fire_event
+from app.core.identity import SCOPE_ACCESS
+from app.modules.enrollment.models import clear_revocation, revoke_identity
 from app.modules.servers.models import Server
 from app.modules.users.models import User
 from app.modules.users.schemas import UserCreate, UserUpdate
@@ -48,6 +50,9 @@ def create_user(data: UserCreate, db: Session = Depends(get_db), _admin=Depends(
         servers = db.query(Server).filter(Server.id.in_(data.server_ids)).all()
         user.servers = servers
     db.add(user)
+    # Usernames are reusable and the cert CN is the username, so a new user must
+    # not inherit a stale revocation from a former namesake (F1).
+    clear_revocation(db, data.username, SCOPE_ACCESS)
     db.commit()
     db.refresh(user)
     fire_event(
@@ -98,6 +103,9 @@ def delete_user(user_id: int, db: Session = Depends(get_db), admin=Depends(get_c
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Benutzer nicht gefunden")
     fire_event("user.deleted", {"id": user.id, "username": user.username})
+    # Deprovision the mTLS identity: the ca-issuer stops renewing this user's cert
+    # and the data plane rejects it on sight (ADR 0001 §3.4 / F1).
+    revoke_identity(db, user.username, SCOPE_ACCESS)
     db.delete(user)
     db.commit()
 

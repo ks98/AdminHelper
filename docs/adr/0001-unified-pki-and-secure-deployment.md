@@ -169,13 +169,18 @@ Header-Integrität der Datenebene, nicht die CA.
 ### 3.4 Deprovisionierung ohne CRL (wichtige Präzisierung zu D4)
 
 „Revocation = Ablauf" wirkt auf der **TLS-Schicht**. Für *sofortiges* Kappen eines
-kompromittierten/ausgemusterten Geräts **vor** Ablauf gibt es zwei App-Ebenen-Hebel:
-1. **Renewal-Verweigerung**: Der Issuer prüft beim `/renew` eine serverseitige
-   Aktiv-/Deprovision-Liste → das Cert wird nicht erneuert und stirbt zum Ablauf.
-2. **Aktiv-Prüfung pro Request** auf `:443` (App-Ebene, billig) → Zugang sofort entzogen,
-   ohne auf den TLS-Ablauf zu warten.
+kompromittierten/ausgemusterten Geräts **vor** Ablauf gibt es zwei App-Ebenen-Hebel
+(**beide umgesetzt**, F1):
+1. **Renewal-Verweigerung**: Der Issuer prüft beim `/renew` die `revoked_identities`-Liste
+   (`is_active`) → das Cert wird nicht erneuert und stirbt zum Ablauf.
+2. **Aktiv-Prüfung pro Request** auf `:443` (`require_scope` → `is_identity_revoked`, billiger
+   indexierter Lookup) → Zugang sofort entzogen, ohne auf den TLS-Ablauf zu warten.
 
-Das ist der praktische Schnell-Widerruf ohne CRL-Maschinerie.
+Die Liste wird beim Löschen eines Users (CN = Username, `access`) bzw. Servers (CN = `server_id`,
+`tunnel`) befüllt; das Neuanlegen eines Users räumt einen veralteten Eintrag (Username-Reuse).
+**Grenze:** der Widerruf keyt auf den CN — ein bereits ausgestelltes, noch gültiges Cert wird auf
+der TLS-Schicht erst zum Ablauf endgültig wertlos (App-Auth/JWT greift sofort). Das ist der
+praktische Schnell-Widerruf ohne CRL-Maschinerie.
 
 ---
 
