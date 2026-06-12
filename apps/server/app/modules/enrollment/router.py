@@ -14,17 +14,16 @@ cert-gated: the client has no cert yet — this is its bootstrap door.
 from __future__ import annotations
 
 import datetime
-import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.core.auth import generate_api_key, get_current_admin, get_current_user, hash_api_key
+from app.core.auth import get_current_admin, get_current_user
 from app.core.config import ENROLL_PORT
 from app.core.database import get_db
 from app.core.identity import SCOPE_ACCESS
-from app.modules.enrollment.models import EnrollmentToken
+from app.modules.enrollment.service import mint_enrollment_token
 from app.modules.users.models import User
 
 router = APIRouter(prefix="/api/enrollment", tags=["enrollment"])
@@ -41,18 +40,9 @@ def _mint_token(db: Session, subject_id: str, browser: bool) -> dict:
     same SHA-256 the ca-issuer consumes by. ``browser=true`` flags a long-lived
     leaf (D5): the browser cannot auto-renew, so it gets a long cert + manual
     re-import; the desktop exports it as a PKCS12 for the browser cert store (A5c)."""
-    raw_token = generate_api_key()
-    db.add(
-        EnrollmentToken(
-            id=str(uuid.uuid4()),
-            hashed_token=hash_api_key(raw_token),
-            subject_id=subject_id,
-            scope=SCOPE_ACCESS,
-            browser=browser,
-            expires_at=datetime.datetime.now(datetime.timezone.utc) + _ENROLL_TOKEN_TTL,
-        )
+    raw_token = mint_enrollment_token(
+        db, subject_id, SCOPE_ACCESS, browser=browser, ttl=_ENROLL_TOKEN_TTL
     )
-    db.commit()
     return {
         "token": raw_token,
         "subjectId": subject_id,
@@ -65,7 +55,7 @@ def _mint_token(db: Session, subject_id: str, browser: bool) -> dict:
 
 
 @router.post("/token")
-def mint_enrollment_token(
+def mint_self_enrollment_token(
     browser: bool = False,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
