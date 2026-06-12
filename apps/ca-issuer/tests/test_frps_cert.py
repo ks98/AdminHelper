@@ -57,6 +57,32 @@ def test_ca_is_the_tunnel_trust_bundle(tmp_path):
     assert [c.subject for c in parsed] == [tunnel.cert.subject, root_cert.subject]
 
 
+def test_ca_trusts_access_visitor_certs_with_extra_trust(tmp_path):
+    # F2: the desktop STCP visitor presents its ACCESS cert, so frps must trust
+    # the access intermediate alongside tunnel — without re-signing its own leaf.
+    root_cert, root_key = pki.build_root_ca()
+    tunnel_cert, tunnel_key = pki.build_intermediate_ca("tunnel", root_cert, root_key)
+    access_cert, access_key = pki.build_intermediate_ca("access", root_cert, root_key)
+    tunnel = Intermediate("tunnel", tunnel_cert, tunnel_key, pki.chain_pem(tunnel_cert, root_cert))
+    access = Intermediate("access", access_cert, access_key, pki.chain_pem(access_cert, root_cert))
+
+    ensure_frps_cert(tmp_path, tunnel, "frp.example", extra_trust=(access,))
+
+    subjects = [
+        c.subject for c in x509.load_pem_x509_certificates((tmp_path / "ca.crt").read_bytes())
+    ]
+    assert tunnel_cert.subject in subjects
+    assert root_cert.subject in subjects
+    assert access_cert.subject in subjects  # the visitor's trust anchor
+
+    # frps presents a tunnel-signed leaf (unchanged), not access.
+    frps_leaf = x509.load_pem_x509_certificates((tmp_path / "frps.crt").read_bytes())[0]
+    frps_leaf.verify_directly_issued_by(tunnel_cert)
+    # An access-signed visitor leaf chains to an intermediate present in the bundle.
+    visitor_leaf, _ = pki.build_server_leaf(access_cert, access_key, "desktop-visitor")
+    visitor_leaf.verify_directly_issued_by(access_cert)
+
+
 def test_idempotent_keeps_existing_frps_key(tmp_path):
     tunnel, _ = _tunnel_intermediate()
     ensure_frps_cert(tmp_path, tunnel, "frp.example")

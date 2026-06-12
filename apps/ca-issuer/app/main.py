@@ -52,6 +52,9 @@ def build_issuer(token_store: TokenStore | None = None) -> Issuer:
             intermediates["tunnel"],
             config.FRPS_SERVER_ADDR,
             config.FRPS_EXTRA_SANS,
+            # The desktop STCP visitor presents its access cert (F2), so frps must
+            # trust the access intermediate alongside tunnel.
+            extra_trust=(intermediates["access"],),
         )
     if token_store is None:
         if config.DATABASE_URL:

@@ -180,20 +180,32 @@ def ensure_gateway_cert(
 
 
 def ensure_frps_cert(
-    out_dir: Path, tunnel: Intermediate, server_addr: str, extra_sans: str = ""
+    out_dir: Path,
+    tunnel: Intermediate,
+    server_addr: str,
+    extra_sans: str = "",
+    extra_trust: tuple[Intermediate, ...] = (),
 ) -> None:
     """Provision the frps server TLS material under the tunnel intermediate
     (ADR 0001 §3.1 / A7). frps mounts these read-only:
-        ca.crt    tunnel intermediate + root (verify frpc/agent client certs)
+        ca.crt    tunnel intermediate + root (+ extra_trust intermediates)
         frps.crt  server leaf + tunnel intermediate (server_auth, SAN=server_addr)
         frps.key  the leaf's private key (0600)
+
+    ``extra_trust`` widens the client-cert trust beyond the tunnel scope: the
+    desktop STCP *visitor* presents its enrolled **access** identity (F2 / ADR
+    0001 D8 — the frp plane accepts both the agent's tunnel cert and the human's
+    access cert; the real per-tunnel authz is the STCP secretKey + server-side
+    bundle filtering, not the cert scope). The frps server leaf stays tunnel-signed.
 
     The CA private key never reaches the internet-facing frps — only the public
     chain (the GHSA-rv39 master/published split, now under the unified PKI).
     Idempotent like the gateway cert; re-minted once past half its life (F4)."""
     out_dir.mkdir(parents=True, exist_ok=True)
-    # Trust bundle frps verifies agent/visitor tunnel certs against.
-    (out_dir / "ca.crt").write_bytes(tunnel.chain)
+    # Trust bundle frps verifies agent (tunnel) + visitor (access) client certs
+    # against: the tunnel chain plus each extra intermediate (root already in it).
+    ca_bundle = tunnel.chain + b"".join(pki.cert_to_pem(i.cert) for i in extra_trust)
+    (out_dir / "ca.crt").write_bytes(ca_bundle)
 
     cert_path = out_dir / "frps.crt"
     key_path = out_dir / "frps.key"
