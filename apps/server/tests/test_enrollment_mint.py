@@ -53,3 +53,21 @@ def test_mint_uses_the_callers_identity(test_client, normal_user, db_session):
     res = test_client.post("/api/enrollment/token", headers={"Authorization": f"Bearer {token}"})
     assert res.status_code == 200, res.text
     assert res.json()["subjectId"] == "viewer"
+
+
+def test_mint_browser_flag_marks_long_lived_token(test_client, admin_user, db_session):
+    # browser=true -> the ca-issuer signs a long-lived leaf (D5), for the P12 the
+    # desktop exports to the browser cert store (A5c).
+    token = _login(test_client, "admin", "adminpass")
+    res = test_client.post(
+        "/api/enrollment/token?browser=true",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert res.status_code == 200, res.text
+    assert res.json()["browser"] is True
+    row = (
+        db_session.query(EnrollmentToken)
+        .filter(EnrollmentToken.hashed_token == hash_api_key(res.json()["token"]))
+        .one()
+    )
+    assert row.browser is True

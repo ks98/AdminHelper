@@ -32,6 +32,8 @@ rcgen = { version = "0.13", default-features = false, features = ["ring", "pem"]
 rustls-pemfile = "2"
 # Read the enrolled leaf's validity to decide when to auto-renew (A5b).
 x509-parser = "0.16"
+# Package the browser's enrolled cert + key as a PKCS12 for import (A5c).
+p12 = "0.6"
 
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.61", features = ["Win32_Security_Credentials", "Win32_Foundation"] }

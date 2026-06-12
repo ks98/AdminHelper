@@ -67,6 +67,26 @@ pub async fn enroll_device(
     enrollment::enroll(&server_url, &token, self_signed).await
 }
 
+/// Enroll a long-lived browser cert and return it as a PKCS12 blob for the user
+/// to import into the browser's cert store (A5c). The bytes are handed to the
+/// frontend, which saves them via a file dialog. Does not affect the desktop's
+/// own enrolled identity.
+#[tauri::command]
+pub async fn export_browser_p12(
+    app: tauri::AppHandle,
+    server_url: String,
+    token: String,
+    password: String,
+    allow_self_signed: Option<bool>,
+) -> Result<Vec<u8>, AppError> {
+    let self_signed = allow_self_signed.unwrap_or_else(|| {
+        storage::load_settings(&app)
+            .map(|s| s.allow_self_signed_certs)
+            .unwrap_or(false)
+    });
+    enrollment::export_browser_p12(&server_url, &token, &password, self_signed).await
+}
+
 /// Generic API proxy: forwards requests to the server via reqwest.
 /// Works around WebView TLS restrictions for self-signed certs.
 #[tauri::command]

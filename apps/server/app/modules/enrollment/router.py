@@ -35,6 +35,7 @@ _ENROLL_TOKEN_TTL = datetime.timedelta(minutes=10)
 
 @router.post("/token")
 def mint_enrollment_token(
+    browser: bool = False,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -42,7 +43,9 @@ def mint_enrollment_token(
 
     Identity (the cert CN) is the username, issuer-dictated — never taken from
     the client's CSR. Hashed at rest with the same SHA-256 the ca-issuer consumes
-    by."""
+    by. `browser=true` flags a long-lived leaf (D5): the browser cannot auto-renew,
+    so it gets a long cert + manual re-import; the desktop exports it as a PKCS12
+    for the browser cert store (A5c)."""
     raw_token = generate_api_key()
     db.add(
         EnrollmentToken(
@@ -50,7 +53,7 @@ def mint_enrollment_token(
             hashed_token=hash_api_key(raw_token),
             subject_id=current_user.username,
             scope=SCOPE_ACCESS,
-            browser=False,
+            browser=browser,
             expires_at=datetime.datetime.now(datetime.timezone.utc) + _ENROLL_TOKEN_TTL,
         )
     )
@@ -59,6 +62,7 @@ def mint_enrollment_token(
         "token": raw_token,
         "subjectId": current_user.username,
         "scope": SCOPE_ACCESS,
+        "browser": browser,
         # The client derives the enroll host from its own (already-trusted) server
         # URL + this port (the gateway's certless enroll plane).
         "enrollPort": ENROLL_PORT,

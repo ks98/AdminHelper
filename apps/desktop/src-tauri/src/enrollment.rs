@@ -9,10 +9,8 @@
 //! CSR **on-device** (the private key never leaves the host), and redeems the
 //! token at the gateway's certless enroll plane. The ca-issuer signs an
 //! access-scoped client leaf; the desktop pins the returned CA chain and presents
-//! the cert on every later request.
-//!
-//! The mTLS `build_client` wiring + CA-pinning (presenting the stored cert) is
-//! the next increment; this one obtains and stores the identity.
+//! the cert on every later request (mTLS + CA-pinning in `build_client`), renews
+//! it at ~50% lifetime, and can export a long-lived browser cert as a PKCS12.
 
 use std::sync::Arc;
 
@@ -216,7 +214,7 @@ pub fn clear_identity() {
 /// issued identity. The TLS trust for both calls is the same the login used
 /// (the TOFU-pinned gateway cert — the enroll plane presents the same leaf).
 pub async fn enroll(server_url: &str, jwt: &str, allow_self_signed: bool) -> Result<(), AppError> {
-    let grant = mint_token(server_url, jwt, allow_self_signed).await?;
+    let grant = mint_token(server_url, jwt, allow_self_signed, false).await?;
     // The desktop is a human client — refuse anything but an access-scoped grant.
     if grant.scope != "access" {
         return Err(AppError::Validation(format!(
@@ -241,9 +239,15 @@ async fn mint_token(
     server_url: &str,
     jwt: &str,
     allow_self_signed: bool,
+    browser: bool,
 ) -> Result<EnrollGrant, AppError> {
     let client = crate::auth::build_client(server_url, allow_self_signed)?;
-    let url = format!("{}/api/enrollment/token", server_url.trim_end_matches('/'));
+    let base = server_url.trim_end_matches('/');
+    let url = if browser {
+        format!("{base}/api/enrollment/token?browser=true")
+    } else {
+        format!("{base}/api/enrollment/token")
+    };
     let resp = client
         .post(&url)
         .header("Authorization", format!("Bearer {jwt}"))
@@ -481,6 +485,70 @@ pub fn enrolled_client() -> Result<reqwest::Client, AppError> {
     build_mtls_client(&key_pem, &cert_pem, &ca_pem)
 }
 
+// ── Browser PKCS12 export (A5c) ───────────────────────────────────────────
+
+/// Package a leaf cert + its PKCS#8 key as a password-protected PKCS12 (.p12)
+/// for import into a browser's certificate store. The key is opaque PKCS8 bytes
+/// to the builder, so the ECDSA leaf packages fine. Split out for a structural
+/// round-trip test.
+fn package_pkcs12(
+    key_pem: &str,
+    cert_pem: &str,
+    password: &str,
+    friendly_name: &str,
+) -> Result<Vec<u8>, AppError> {
+    let cert = rustls_pemfile::certs(&mut cert_pem.as_bytes())
+        .next()
+        .ok_or_else(|| AppError::Validation("Kein Zertifikat im PEM".to_string()))?
+        .map_err(|e| AppError::Validation(format!("Zertifikat nicht lesbar: {e}")))?;
+    let key = rustls_pemfile::private_key(&mut key_pem.as_bytes())
+        .map_err(|e| AppError::Validation(format!("Schlüssel nicht lesbar: {e}")))?
+        .ok_or_else(|| AppError::Validation("Kein Schlüssel im PEM".to_string()))?;
+    let pfx = p12::PFX::new(
+        cert.as_ref(),
+        key.secret_der(),
+        None,
+        password,
+        friendly_name,
+    )
+    .ok_or_else(|| AppError::Validation("PKCS12 erstellen fehlgeschlagen".to_string()))?;
+    Ok(pfx.to_der())
+}
+
+/// Enroll a long-lived browser cert (D5: the browser cannot auto-renew) and
+/// return it as a PKCS12 blob for the user to import. Does NOT touch the
+/// desktop's own keyring identity — this is a cert FOR the browser.
+pub async fn export_browser_p12(
+    server_url: &str,
+    jwt: &str,
+    password: &str,
+    allow_self_signed: bool,
+) -> Result<Vec<u8>, AppError> {
+    let grant = mint_token(server_url, jwt, allow_self_signed, true).await?;
+    if grant.scope != "access" {
+        return Err(AppError::Validation(format!(
+            "Unerwarteter Enrollment-Scope '{}' (erwartet 'access')",
+            grant.scope
+        )));
+    }
+    let key_and_csr = generate_key_and_csr(&grant.subject_id)?;
+    let endpoint = enroll_endpoint(server_url, grant.enroll_port)?;
+    let issued = redeem(
+        &endpoint,
+        &grant.token,
+        &key_and_csr.csr_pem,
+        server_url,
+        allow_self_signed,
+    )
+    .await?;
+    package_pkcs12(
+        &key_and_csr.key_pem,
+        &issued.fullchain,
+        password,
+        &grant.subject_id,
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -554,6 +622,28 @@ mod tests {
         // Degenerate window (not_before == not_after) -> due.
         let degen = make(nb, nb);
         assert!(needs_renewal(&degen, 0.5, nb.unix_timestamp()).unwrap());
+    }
+
+    #[test]
+    fn package_pkcs12_roundtrips_ec_key_with_password() {
+        use rcgen::{CertificateParams, DnType, KeyPair, PKCS_ECDSA_P256_SHA256};
+
+        // A self-signed EC leaf — enough to exercise the PKCS12 packaging.
+        let key = KeyPair::generate_for(&PKCS_ECDSA_P256_SHA256).unwrap();
+        let mut p = CertificateParams::new(vec![]).unwrap();
+        p.distinguished_name.push(DnType::CommonName, "user-01");
+        let cert = p.self_signed(&key).unwrap();
+
+        let der =
+            package_pkcs12(&key.serialize_pem(), &cert.pem(), "s3cret", "AdminHelper").unwrap();
+
+        // The .p12 must round-trip: MAC valid under the password (and only it),
+        // and both the cert and the (EC) key extractable.
+        let pfx = p12::PFX::parse(&der).unwrap();
+        assert!(pfx.verify_mac("s3cret"));
+        assert!(!pfx.verify_mac("wrong"));
+        assert_eq!(pfx.cert_x509_bags("s3cret").unwrap().len(), 1);
+        assert_eq!(pfx.key_bags("s3cret").unwrap().len(), 1);
     }
 
     // Real-handshake proof of the enrolled mTLS client: an in-process TLS server

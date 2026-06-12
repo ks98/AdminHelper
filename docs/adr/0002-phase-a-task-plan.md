@@ -184,7 +184,7 @@ A0 Spikes ─► A1 ca-issuer ─► A2 Gateway ─► A3 Per-Route-Authz(permis
     (mTLS) → neues Cert mit **erhaltener** Identität (Renew-CSR-CN verworfen ⇒ Issuer leitet
     Identität aus dem vorgelegten Cert ab, nicht der CSR). Docs (agent-deployment DE+EN) ergänzt.
 
-### A5 — Desktop: Auto-Enrollment + mTLS + Browser-P12-Export (Rust/Tauri) — A5a/A5b ✅ (A5c offen)
+### A5 — Desktop: Auto-Enrollment + mTLS + Browser-P12-Export (Rust/Tauri) ✅ ABGESCHLOSSEN 2026-06-12
 - **Beschreibung:** Beim ersten Server-Login ECDSA-Keypair+CSR (`rcgen`), Enroll via
   `ca-issuer`, Cert+Key in den Keyring (ECDSA passt; **Datei-Fallback** bei Windows-Limit),
   CA pinnen (`tofu.rs`: CA statt Leaf), `reqwest` `identity()` + `tls_certs_only()`. Auto-Renew.
@@ -223,7 +223,18 @@ A0 Spikes ─► A1 ca-issuer ─► A2 Gateway ─► A3 Per-Route-Authz(permis
   ≥50 % Laufzeit). Verdrahtet **best-effort in `check_session`** (Auto-Trigger beim App-Start,
   analog zum Per-Run-Check des Go-Agents — der Desktop ist langlaufend, kein oneshot). Test:
   Renew-Entscheidung über mehrere Cert-Alter (rcgen-Festdatums-Certs). **56 cargo-Tests grün.**
-  - **Offen:** **A5c** (Browser-P12-Export — Cert/Key als PKCS12 für den Browser-Import).
+- **A5c (Browser-P12-Export) ✅ ABGESCHLOSSEN 2026-06-12:** Server-Mint-Endpoint um `browser=true`
+  erweitert → langlebiges Cert (D5). Desktop `export_browser_p12`: enrollt ein eigenes
+  (browser-geflaggtes) access-Cert, verpackt Leaf + Key als **PKCS12** (`p12`-Crate, 3DES-shrouded
+  PKCS8 — algorithmus-agnostisch, daher EC sauber) und gibt die Bytes an die UI (Tauri-Command,
+  Frontend speichert via Dialog). Berührt die Desktop-Eigen-Identität **nicht**. Test:
+  P12-Roundtrip (`PFX::parse` → MAC unter dem Passwort valide, falsches Passwort scheitert, Cert +
+  EC-Key extrahierbar). **57 cargo-Tests grün.**
+  - **Ehrliche Verifikationslücke:** der *echte* Browser-Import + mTLS-Connect ist hier nicht
+    automatisierbar — nur strukturell geprüft. Vor Produktiv-Einsatz manuell gegen einen echten
+    Browser testen.
+  - **Bewusst NICHT (User-Vorgabe):** die **Browser-Erweiterung** (`apps/extension/`, A6-Extension-
+    Teil) bleibt vorerst weg.
 
 ### A6 — Browser + Extension
 - **Beschreibung:** Web-SPA hinter mTLS (kein `fetch`-Code-Change, aber P12-Import dokumentieren);
