@@ -86,7 +86,18 @@
             <li>Kein externer Reverse-Proxy nötig: der Stack bringt ein eigenes TLS-Gateway (nginx) mit, das auf <code>443</code> terminiert (siehe unten)</li>
           </ul>
 
-          <h2 id="stack">Stack starten</h2>
+          <h2 id="schnell-install">Schnell-Install (empfohlen)</h2>
+          <p><code>scripts/install.sh</code> erledigt alles in einem Durchlauf: Secrets generieren, Stack starten, Erst-Admin samt einmaligem Enrollment-Token anlegen und am Ende mTLS scharfschalten — so ist ein frischer Install sofort mit erzwungenem mTLS nutzbar, ohne manuelles permissives Fenster.</p>
+          <div class="code-header"><span>bash</span></div>
+<pre><code>git clone https://github.com/ks98/AdminHelper.git
+cd AdminHelper
+./scripts/install.sh --domain srm.example.com --admin-user kevin
+# fragt das Admin-Passwort ab. Non-interaktiv: --admin-password … --yes.
+# --no-enforce laesst den Stack permissiv (kein Scharfschalten).</code></pre>
+          <p>Am Ende gibt das Script die Zugangsdaten aus: URL, Admin-Login und einen <strong>Enrollment-Token</strong>. Den Token im Desktop-Client unter <em>„Mit Token enrollen"</em> (Server-URL + Token) einlösen — der Client erzeugt sein mTLS-Zertifikat <strong>on-device</strong> — danach normaler Login. Die Browser-<code>.p12</code> exportiert man anschliessend im Desktop über den Export-Knopf.</p>
+          <p>Warum der Token? Unter erzwungenem mTLS weist die Datenebene <code>:443</code> (inkl. Login) certlose Clients schon am TLS-Handshake ab. Der allererste Admin kann sich sein Cert also nicht per Login holen; das Script mintet den Token out-of-band über das interne Netz. Folge-Nutzer onboardet der Admin danach selbst (<a href="../developer/index.html">ADR 0003</a>).</p>
+
+          <h2 id="stack">Stack starten (manuell)</h2>
           <p>Die offizielle <code>docker-compose.yml</code> liegt im Repository-Root. Für einen schnellen Test reicht:</p>
 
           <div class="code-header"><span>bash</span></div>
@@ -180,6 +191,11 @@ docker compose up -d</code></pre>
             <li><code>:sha-&lt;commit&gt;</code> – deterministisches Image pro Commit</li>
           </ul>
 
+          <p>Am einfachsten per <code>scripts/update.sh</code> — es sichert zuerst (inkl. CA-Kronjuwel), zieht die gepinnten Images, startet neu und wartet, bis der Stack wieder antwortet:</p>
+          <div class="code-header"><span>bash</span></div>
+<pre><code>./scripts/update.sh                 # Backup-first, dann pull + up + Healthcheck
+./scripts/update.sh --skip-backup   # ohne Backup (nicht empfohlen)</code></pre>
+          <p>Version pinnen: die Image-Tags in <code>.env</code> setzen (<code>SERVER_IMAGE</code>, <code>GATEWAY_IMAGE</code>, <code>CA_ISSUER_IMAGE</code>, <code>MONITORING_IMAGE</code>) auf den Ziel-Release. Manuell geht es weiterhin:</p>
           <div class="code-header"><span>bash</span></div>
 <pre><code>docker compose pull server
 docker compose up -d server</code></pre>
