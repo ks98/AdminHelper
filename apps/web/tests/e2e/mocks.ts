@@ -144,18 +144,6 @@ export async function mockApi(page: Page): Promise<void> {
   await page.route(api('frp/status*'), async (route) =>
     route.fulfill(json({ body: { proxies: [], total: 0 } })),
   );
-  await page.route(api('frp/pki/status'), async (route) =>
-    route.fulfill(
-      json({
-        body: {
-          pkiDir: '/tmp/pki',
-          caExists: false,
-          serverCertExists: false,
-          clientCerts: [],
-        },
-      }),
-    ),
-  );
 
   // Monitoring
   await page.route(api('monitoring/status'), async (route) => route.fulfill(json({ body: [] })));
