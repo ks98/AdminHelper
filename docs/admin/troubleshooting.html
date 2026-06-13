@@ -33,6 +33,19 @@
           <h1>Troubleshooting</h1>
           <p class="lead">Diagnose-Rezepte für die häufigsten Probleme – gegliedert nach Symptom. Wenn du nichts Passendes findest: <code>docker compose logs</code> ist fast immer der richtige erste Schritt.</p>
 
+          <h2>Installation bricht ab</h2>
+          <div class="card-grid">
+            <div class="card" data-reveal>
+              <h3><code>password authentication failed for user "adminhelper"</code></h3>
+              <p>Der Install wartet 240&nbsp;s und bricht ab; im Server-Log steht <code>FATAL: password authentication failed</code>. Ursache: ein <strong>altes <code>postgres-data</code>-Volume</strong> aus einem früheren (abgebrochenen) Versuch. Postgres setzt das Passwort nur beim <em>ersten</em> Init des Volumes — ein neu generiertes <code>.env</code>-Passwort (z.&nbsp;B. nachdem der Ordner gelöscht wurde) passt also nicht mehr. Lösung — Volumes wegwerfen (gefahrlos, solange kein echter Datenbestand drin ist):</p>
+              <pre><code>cd adminhelper
+docker compose down -v
+# oder direkt beim Install:
+./scripts/install.sh … --reset</code></pre>
+              <p>Stolperfalle: Der Compose-Projektname ist der <em>Verzeichnisname</em>. Zwei Installs in verschiedenen Pfaden mit gleichem Ordnernamen (<code>adminhelper</code>) teilen sich dasselbe Volume <code>adminhelper_postgres-data</code> — daher kann ein „frischer" Ordner trotzdem auf ein altes Volume treffen.</p>
+            </div>
+          </div>
+
           <h2>Login funktioniert nicht</h2>
           <div class="card-grid">
             <div class="card" data-reveal>
