@@ -24,7 +24,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
   $effect(() => {
     if (hydrated && $isAuthenticated && (location.hash === '' || location.hash === '#/')) {
-      replace('/connections');
+      replace('/users');
     }
   });
 </script>

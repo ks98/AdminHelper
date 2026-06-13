@@ -19,20 +19,6 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
   const items: NavEntry[] = [
     {
-      page: 'connections',
-      label: 'nav.connections',
-      adminOnly: false,
-      group: 'top',
-      icon: 'M8 12h8M12 3v2m0 14v2M5.5 5.5l1.4 1.4m10.2 10.2l1.4 1.4M3 12h2m14 0h2M5.5 18.5l1.4-1.4m10.2-10.2l1.4-1.4',
-    },
-    {
-      page: 'servers',
-      label: 'nav.servers',
-      adminOnly: true,
-      group: 'mid',
-      icon: 'M2 3h20v7H2zM2 14h20v7H2z',
-    },
-    {
       page: 'users',
       label: 'nav.users',
       adminOnly: true,
@@ -60,26 +46,12 @@ SPDX-License-Identifier: GPL-3.0-or-later
       group: 'mid',
       icon: 'M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71',
     },
-    {
-      page: 'ansible',
-      label: 'nav.ansible',
-      adminOnly: true,
-      group: 'bot',
-      icon: 'M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z',
-    },
-    {
-      page: 'monitoring',
-      label: 'nav.monitoring',
-      adminOnly: true,
-      group: 'bot',
-      icon: 'M22 12h-4l-3 9L9 3l-3 9H2',
-    },
   ];
 
   const visibleItems = $derived(items.filter((i) => !i.adminOnly || $isAdmin));
 
   function currentPage(loc: string): string {
-    return (loc || '').replace(/^\//, '').split('/')[0] || 'connections';
+    return (loc || '').replace(/^\//, '').split('/')[0] || 'users';
   }
 </script>
 

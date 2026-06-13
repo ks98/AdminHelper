@@ -15,59 +15,43 @@ async function gotoAuthenticated(page: Page, hash: string): Promise<void> {
 }
 
 test.describe('CRUD-Roundtrips gegen stateful Mocks', () => {
-  test('Connection anlegen -> erscheint in Liste -> loeschen -> verschwindet', async ({ page }) => {
+  test('Benutzer anlegen -> erscheint in Liste -> loeschen -> verschwindet', async ({ page }) => {
     await mockApi(page);
-    await gotoAuthenticated(page, '#/connections');
+    await gotoAuthenticated(page, '#/users');
 
     // Anlegen
-    await page.getByRole('button', { name: '+ Verbindung' }).click();
+    await page.getByRole('button', { name: '+ Benutzer' }).click();
     const modal = page.getByRole('dialog');
-    await modal.locator('#cfName').fill('e2e-conn');
-    await modal.locator('#cfHost').fill('10.0.0.99');
+    await modal.locator('#ufUsername').fill('e2e-user');
+    await modal.locator('#ufPassword').fill('secret123');
     await modal.getByRole('button', { name: 'Speichern' }).click();
     await expect(modal).toBeHidden();
-    await expect(page.locator('.toast-stack .toast.success')).toHaveText('Verbindung erstellt');
+    await expect(page.locator('.toast-stack .toast.success')).toHaveText('Benutzer erstellt');
 
     // Erscheint in der Liste (kommt nach dem Modal-Close per frischem GET)
-    const row = page.locator('tbody tr', { hasText: 'e2e-conn' });
+    const row = page.locator('tbody tr', { hasText: 'e2e-user' });
     await expect(row).toBeVisible();
 
     // Loeschen (mit Bestaetigungs-Dialog)
     await row.getByRole('button', { name: 'Löschen' }).click();
     const confirm = page.getByRole('dialog');
-    await expect(confirm).toContainText('Verbindung wirklich löschen?');
+    await expect(confirm).toContainText('Benutzer wirklich löschen?');
     await confirm.getByRole('button', { name: 'Löschen' }).click();
 
-    // Verschwindet, Demo-Eintrag bleibt
-    await expect(page.locator('tbody tr', { hasText: 'e2e-conn' })).toHaveCount(0);
-    await expect(page.locator('tbody tr', { hasText: 'demo-ssh' })).toBeVisible();
-  });
-
-  test('Server anlegen -> erscheint in Liste', async ({ page }) => {
-    await mockApi(page);
-    await gotoAuthenticated(page, '#/servers');
-
-    await page.getByRole('button', { name: '+ Server' }).click();
-    const modal = page.getByRole('dialog');
-    await modal.locator('#sfName').fill('e2e-srv');
-    await modal.locator('#sfHostname').fill('10.0.0.42');
-    await modal.getByRole('button', { name: 'Speichern' }).click();
-    await expect(modal).toBeHidden();
-    await expect(page.locator('.toast-stack .toast.success')).toHaveText('Server erstellt');
-
-    await expect(page.locator('.server-card', { hasText: 'e2e-srv' })).toBeVisible();
-    await expect(page.locator('.server-card', { hasText: 'demo-server' })).toBeVisible();
+    // Verschwindet, Admin-Eintrag bleibt
+    await expect(page.locator('tbody tr', { hasText: 'e2e-user' })).toHaveCount(0);
+    await expect(page.locator('tbody tr', { hasText: 'admin' })).toBeVisible();
   });
 });
 
 test.describe('Fehler-Flows', () => {
-  test('500 beim Anlegen einer Connection zeigt Fehler-Toast, Modal bleibt offen', async ({
+  test('500 beim Anlegen eines Benutzers zeigt Fehler-Toast, Modal bleibt offen', async ({
     page,
   }) => {
     await mockApi(page);
     // Override NACH mockApi registriert -> gewinnt (LIFO); GET faellt per
     // fallback() an den stateful Handler durch.
-    await page.route(api('connections'), async (route) => {
+    await page.route(api('users'), async (route) => {
       if (route.request().method() === 'POST') {
         return route.fulfill({
           status: 500,
@@ -77,11 +61,12 @@ test.describe('Fehler-Flows', () => {
       }
       return route.fallback();
     });
-    await gotoAuthenticated(page, '#/connections');
+    await gotoAuthenticated(page, '#/users');
 
-    await page.getByRole('button', { name: '+ Verbindung' }).click();
+    await page.getByRole('button', { name: '+ Benutzer' }).click();
     const modal = page.getByRole('dialog');
-    await modal.locator('#cfName').fill('kaputt');
+    await modal.locator('#ufUsername').fill('kaputt');
+    await modal.locator('#ufPassword').fill('secret123');
     await modal.getByRole('button', { name: 'Speichern' }).click();
 
     const errorToast = page.locator('.toast-stack .toast.error');

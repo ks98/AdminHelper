@@ -40,46 +40,11 @@ const TOKENS = {
   token_type: 'bearer',
 };
 
-const DEMO_SERVERS = [
-  {
-    id: 'srv-1',
-    name: 'demo-server',
-    hostname: '10.0.0.10',
-    osType: 'linux',
-    tags: ['demo'],
-    notes: 'Demo-Server fuer Screenshots',
-    connections: [],
-  },
-];
-
-const DEMO_CONNECTIONS = [
-  {
-    id: 'conn-1',
-    name: 'demo-ssh',
-    kind: 'ssh',
-    host: '10.0.0.10',
-    port: 22,
-    username: 'root',
-    serverId: 'srv-1',
-    tags: ['demo'],
-  },
-];
-
-// snake_case-Body, wie ihn ServerModal sendet (ServerInput).
-interface ServerCreateBody {
-  name: string;
-  hostname: string;
-  os_type: string | null;
-  tags: string[];
-  notes: string;
-}
-
 export async function mockApi(page: Page): Promise<void> {
   // Stateful In-Memory-"DB" pro Test: POST/DELETE mutieren den Stand, GET
   // liefert ihn aus — noetig fuer CRUD-Roundtrips (anlegen -> Liste -> loeschen).
   const db = {
-    connections: DEMO_CONNECTIONS.map((c) => ({ ...c }) as Record<string, unknown>),
-    servers: DEMO_SERVERS.map((s) => ({ ...s }) as Record<string, unknown>),
+    users: [{ ...ADMIN_USER }] as Record<string, unknown>[],
   };
   let seq = 1;
 
@@ -99,61 +64,36 @@ export async function mockApi(page: Page): Promise<void> {
   await page.route(api('auth/me'), async (route) => route.fulfill(json({ body: ADMIN_USER })));
   await page.route(api('auth/logout'), async (route) => route.fulfill({ status: 204, body: '' }));
 
-  await page.route(api('connections'), async (route) => {
+  await page.route(api('users'), async (route) => {
     if (route.request().method() === 'POST') {
       const body = route.request().postDataJSON() as Record<string, unknown>;
-      const created = { ...body, id: `conn-e2e-${seq++}` };
-      db.connections.push(created);
+      const created = {
+        id: 100 + seq++,
+        username: body.username,
+        is_admin: body.is_admin ?? false,
+        created_at: '2026-01-01T00:00:00Z',
+        server_ids: body.server_ids ?? [],
+      };
+      db.users.push(created);
       return route.fulfill(json({ status: 201, body: created }));
     }
-    return route.fulfill(json({ body: db.connections }));
+    return route.fulfill(json({ body: db.users }));
   });
-  await page.route(api('connections/*'), async (route) => {
+  await page.route(api('users/*'), async (route) => {
     if (route.request().method() === 'DELETE') {
-      const id = new URL(route.request().url()).pathname.split('/').pop();
-      db.connections = db.connections.filter((c) => c.id !== id);
+      const id = Number(new URL(route.request().url()).pathname.split('/').pop());
+      db.users = db.users.filter((u) => u.id !== id);
       return route.fulfill({ status: 204, body: '' });
     }
     return route.fallback();
   });
-  await page.route(api('servers'), async (route) => {
-    if (route.request().method() === 'POST') {
-      const body = route.request().postDataJSON() as ServerCreateBody;
-      const created = {
-        id: `srv-e2e-${seq++}`,
-        name: body.name,
-        hostname: body.hostname,
-        osType: body.os_type,
-        tags: body.tags,
-        notes: body.notes,
-        connections: [],
-      };
-      db.servers.push(created);
-      return route.fulfill(json({ status: 201, body: created }));
-    }
-    return route.fulfill(json({ body: db.servers }));
-  });
-  await page.route(api('users'), async (route) => route.fulfill(json({ body: [ADMIN_USER] })));
   await page.route(api('apikeys'), async (route) => route.fulfill(json({ body: [] })));
   await page.route(api('hooks'), async (route) => route.fulfill(json({ body: [] })));
-  await page.route(api('playbooks'), async (route) => route.fulfill(json({ body: [] })));
 
-  // FRP
-  await page.route(api('frp/configs'), async (route) => route.fulfill(json({ body: [] })));
-  await page.route(api('frp/tunnels'), async (route) => route.fulfill(json({ body: [] })));
+  // FRP-Server-Config (Instanz-Verwaltung): leere Config -> "noConfig"-Zustand.
+  await page.route(api('frp/server-config'), async (route) => route.fulfill(json({ body: [] })));
   await page.route(api('frp/status*'), async (route) =>
     route.fulfill(json({ body: { proxies: [], total: 0 } })),
-  );
-
-  // Monitoring
-  await page.route(api('monitoring/status'), async (route) => route.fulfill(json({ body: [] })));
-  await page.route(api('monitoring/alerts'), async (route) => route.fulfill(json({ body: [] })));
-  await page.route(api('monitoring/alerts/log*'), async (route) =>
-    route.fulfill(json({ body: [] })),
-  );
-  await page.route(api('monitoring/templates'), async (route) => route.fulfill(json({ body: [] })));
-  await page.route(api('monitoring/templates/assignments/*'), async (route) =>
-    route.fulfill(json({ body: [] })),
   );
 }
 

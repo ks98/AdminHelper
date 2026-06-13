@@ -12,14 +12,10 @@ interface RouteCase {
 }
 
 const ROUTES: RouteCase[] = [
-  { hash: '#/connections', name: 'connections', expectSelector: '.page-title' },
-  { hash: '#/servers', name: 'servers', expectSelector: '.page-title' },
   { hash: '#/users', name: 'users', expectSelector: '.page-title' },
   { hash: '#/apikeys', name: 'apikeys', expectSelector: '.page-title' },
   { hash: '#/hooks', name: 'hooks', expectSelector: '.page-title' },
   { hash: '#/frp', name: 'frp', expectSelector: '.page-title' },
-  { hash: '#/ansible', name: 'ansible', expectSelector: '.page-title' },
-  { hash: '#/monitoring', name: 'monitoring', expectSelector: '.page-title' },
 ];
 
 async function gotoAuthenticated(page: Page, hash: string): Promise<void> {

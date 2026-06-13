@@ -9,9 +9,9 @@ SPDX-License-Identifier: GPL-3.0-or-later
   import Button from '$lib/components/ui/Button.svelte';
   import { t } from '$lib/i18n';
   import { users } from '$lib/stores/users';
-  import { servers } from '$lib/stores/servers';
+  import * as serversApi from '$lib/api/servers';
   import { showToast } from '$lib/stores/notifications';
-  import type { User } from '$lib/api/types';
+  import type { Server, User } from '$lib/api/types';
 
   interface Props {
     open: boolean;
@@ -24,6 +24,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
   let username = $state('');
   let password = $state('');
   let isAdmin = $state(false);
+  let serverList = $state<Server[]>([]);
   let selectedServerIds = $state<Set<string>>(new Set());
   let submitting = $state(false);
 
@@ -33,8 +34,19 @@ SPDX-License-Identifier: GPL-3.0-or-later
       password = '';
       isAdmin = editing?.is_admin ?? false;
       selectedServerIds = new Set(editing?.server_ids ?? []);
+      void loadServers();
     }
   });
+
+  // Read-only fetch of the server inventory (managed in the desktop) so an admin
+  // can still assign servers to a user here in the web.
+  async function loadServers() {
+    try {
+      serverList = await serversApi.list();
+    } catch {
+      serverList = [];
+    }
+  }
 
   function toggleServer(id: string) {
     // eslint-disable-next-line svelte/prefer-svelte-reactivity -- transient copy; reactivity comes from the reassignment to $state below
@@ -119,12 +131,12 @@ SPDX-License-Identifier: GPL-3.0-or-later
       <div
         style="display:flex;flex-direction:column;gap:6px;max-height:180px;overflow-y:auto;padding:8px;border:1px solid var(--border);border-radius:6px"
       >
-        {#if $servers.length === 0}
+        {#if serverList.length === 0}
           <span style="color:var(--text-muted);font-size:12px">
             {$t('page.users.noServers')}
           </span>
         {:else}
-          {#each $servers as s (s.id)}
+          {#each serverList as s (s.id)}
             <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
               <input
                 type="checkbox"

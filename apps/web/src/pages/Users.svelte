@@ -8,7 +8,6 @@ SPDX-License-Identifier: GPL-3.0-or-later
   import { onMount } from 'svelte';
   import { t, language } from '$lib/i18n';
   import { users } from '$lib/stores/users';
-  import { servers } from '$lib/stores/servers';
   import { currentUser } from '$lib/stores/auth';
   import { showToast } from '$lib/stores/notifications';
   import Button from '$lib/components/ui/Button.svelte';
@@ -26,7 +25,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
   async function load() {
     try {
-      await Promise.all([users.refresh(), servers.refresh()]);
+      await users.refresh();
     } catch (err) {
       showToast(err instanceof Error ? err.message : $t('error.generic'), 'error');
     }

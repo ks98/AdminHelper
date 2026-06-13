@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 import { http, getAccessToken } from './client';
-import type { FrpConfig, FrpConfigInput, FrpTunnel, FrpTunnelInput, FrpStatus } from './types';
+import type { FrpConfig, FrpConfigInput, FrpStatus } from './types';
 
 export function listConfigs(): Promise<FrpConfig[]> {
   return http.get<FrpConfig[]>('/api/frp/server-config');
@@ -15,22 +15,6 @@ export function createConfig(data: FrpConfigInput): Promise<FrpConfig> {
 
 export function updateConfig(id: string, data: FrpConfigInput): Promise<FrpConfig> {
   return http.put<FrpConfig>(`/api/frp/server-config/${id}`, data);
-}
-
-export function listTunnels(): Promise<FrpTunnel[]> {
-  return http.get<FrpTunnel[]>('/api/frp/tunnels');
-}
-
-export function createTunnel(data: FrpTunnelInput): Promise<FrpTunnel> {
-  return http.post<FrpTunnel>('/api/frp/tunnels', data);
-}
-
-export function updateTunnel(id: string, data: FrpTunnelInput): Promise<FrpTunnel> {
-  return http.put<FrpTunnel>(`/api/frp/tunnels/${id}`, data);
-}
-
-export function removeTunnel(id: string): Promise<void> {
-  return http.del<void>(`/api/frp/tunnels/${id}`);
 }
 
 async function _fetchText(path: string): Promise<string> {

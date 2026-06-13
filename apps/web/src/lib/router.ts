@@ -9,10 +9,10 @@ function readHash(): string {
   return h.startsWith('#') ? h.slice(1) : h;
 }
 
-const _path = writable<string>(readHash() || '/connections');
+const _path = writable<string>(readHash() || '/users');
 
 if (typeof window !== 'undefined') {
-  window.addEventListener('hashchange', () => _path.set(readHash() || '/connections'));
+  window.addEventListener('hashchange', () => _path.set(readHash() || '/users'));
 }
 
 export const path = { subscribe: _path.subscribe };
