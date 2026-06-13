@@ -118,7 +118,7 @@
         </nav>
 
         <div class="sidebar-footer">
-          <span>v0.30.1</span>
+          <span>v0.30.2</span>
           <span id="year"></span>
         </div>
       </aside>
@@ -151,7 +151,7 @@
       <main class="content">
         <div class="content-inner">
           <section class="hero" data-reveal>
-            <span class="eyebrow">Version 0.30.1 · 2026-06-13</span>
+            <span class="eyebrow">Version 0.30.2 · 2026-06-13</span>
             <h1>AdminHelper – Dokumentation</h1>
             <p class="lead">
               Ein modularer Monolith zur zentralen Verwaltung von
@@ -259,7 +259,20 @@
             </div>
           </div>
 
-          <h2>Was ist neu in 0.30.1?</h2>
+          <h2>Was ist neu in 0.30.2?</h2>
+          <div class="callout callout-note" data-reveal>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+            <div>
+              <div class="callout-title">v0.30.2 &ndash; Installer-Fix für <code>curl | bash</code> (2026-06-13)</div>
+              <p>
+                Der dokumentierte Einzeiler brach unter <code>curl | bash</code> an der
+                ersten Rückfrage sofort mit „Abgebrochen" ab — <code>read</code> las die
+                Script-Pipe statt deines Terminals. Die interaktiven Prompts
+                (Domain/Passwort/Bestätigung) kommen jetzt aus <code>/dev/tty</code>; ohne
+                Terminal verweist eine klare Meldung auf <code>--admin-password … --yes</code>.
+              </p>
+            </div>
+          </div>
           <div class="callout callout-note" data-reveal>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
             <div>

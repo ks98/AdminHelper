@@ -19,7 +19,7 @@
           <div class="nav-group"><div class="nav-title">Admin Guide</div><a href="./index.html">Overview</a><a href="./installation.html">Installation</a><a href="./operations.html">Operations &amp; Config</a><a href="./users.html">Users &amp; Access</a><a href="./agent-deployment.html">Agent Deployment</a><a href="./monitoring.html">Monitoring</a><a href="./ansible.html">Ansible</a><a href="./frp-tunnel.html">FRP Tunnel</a><a href="./troubleshooting.html">Troubleshooting</a></div>
           <div class="nav-group"><div class="nav-title">Developer Guide</div><a href="../developer/index.html">Overview</a><a href="../developer/server.html">Server (Backend)</a><a href="../developer/webui.html">Web Panel</a><a href="../developer/desktop.html">Desktop Client</a><a href="../developer/agent.html">Go Agent</a><a href="../developer/monitoring.html">Monitoring Stack</a><a href="../developer/api-reference.html">API Reference</a><a href="../developer/hooks.html">Hooks &amp; Events</a><a href="../developer/cicd.html">CI/CD &amp; Release</a></div>
         </nav>
-        <div class="sidebar-footer"><span>v0.30.1</span><span id="year"></span></div>
+        <div class="sidebar-footer"><span>v0.30.2</span><span id="year"></span></div>
       </aside>
 
       <header class="topbar">
@@ -67,8 +67,8 @@
           <h2 id="quick-install">Quick install (one command)</h2>
           <p>The installer fetches <strong>only the runtime files</strong> (the self-contained <code>docker-compose.yml</code> + a few ops scripts, <em>not</em> the source tree), brings up the stack, creates the first admin with a one-time enrollment token, and leaves mTLS <strong>enforced by default</strong>:</p>
           <div class="code-header"><span>bash</span></div>
-<pre><code>curl -fsSL https://raw.githubusercontent.com/ks98/AdminHelper/v0.30.1/scripts/install.sh \
-  | bash -s -- --domain srm.example.com --ref v0.30.1
+<pre><code>curl -fsSL https://raw.githubusercontent.com/ks98/AdminHelper/v0.30.2/scripts/install.sh \
+  | bash -s -- --domain srm.example.com --ref v0.30.2
 # prompts for the admin password. Non-interactive: --admin-password … --yes.
 # --permissive leaves the stack permissive (no enforced mTLS).</code></pre>
           <p>The script prints the credentials: URL, admin login, and an <strong>enrollment token</strong>. Redeem the token in the desktop client under <em>"Enroll with token"</em> (server URL + token) — the client generates its mTLS cert <strong>on-device</strong> — then log in normally. Export the browser <code>.p12</code> afterwards from the desktop's export button. Updates: <code>./scripts/update.sh</code> inside the created <code>adminhelper/</code> directory.</p>
@@ -144,7 +144,7 @@ docker compose up -d</code></pre>
 
 # 2) Version upgrade – also re-download the runtime files (compose + scripts)
 #    for the target version, then pull the images:
-./scripts/update.sh --ref v0.30.1
+./scripts/update.sh --ref v0.30.2
 
 ./scripts/update.sh --skip-backup   # without a backup (not recommended)</code></pre>
           <p>Background: a "version" is <strong>two</strong> parts — the <strong>images</strong> (the code) and the <strong>compose file</strong> (the structure: services, ports, env vars). <code>update.sh</code> always pulls the images via <code>docker compose pull</code>, but it only refreshes the compose and ops scripts <strong>with <code>--ref</code></strong>. As long as a release only changes code, the bare run is enough. Once the <em>structure</em> changes (a new service, a new env var, a different port — as 0.30.0 did with the self-contained compose), you need <code>--ref</code> so the compose moves <em>before</em> the pull.</p>
@@ -154,7 +154,7 @@ docker compose up -d</code></pre>
             <div>
               <div class="callout-title"><code>update.sh</code> does not update itself</div>
               <p>The script is intentionally not in its own refresh list (no self-overwrite while running). <code>--ref</code> pulls the <em>other</em> scripts (install/backup/restore/init-secrets); if <code>update.sh</code> itself changes, re-fetch it once via the install one-liner.</p>
-              <p>Also: <code>--ref</code> refreshes the compose but not the pulled tag — the default stays <code>:latest</code>. For a reproducibly <strong>pinned</strong> deployment, also set the <code>*_IMAGE</code> tags in <code>.env</code> (<code>SERVER_IMAGE</code>, <code>GATEWAY_IMAGE</code>, <code>CA_ISSUER_IMAGE</code>, <code>MONITORING_IMAGE</code>) to the fixed version, e.g. <code>SERVER_IMAGE=ghcr.io/ks98/adminhelper/server:0.30.1</code>.</p>
+              <p>Also: <code>--ref</code> refreshes the compose but not the pulled tag — the default stays <code>:latest</code>. For a reproducibly <strong>pinned</strong> deployment, also set the <code>*_IMAGE</code> tags in <code>.env</code> (<code>SERVER_IMAGE</code>, <code>GATEWAY_IMAGE</code>, <code>CA_ISSUER_IMAGE</code>, <code>MONITORING_IMAGE</code>) to the fixed version, e.g. <code>SERVER_IMAGE=ghcr.io/ks98/adminhelper/server:0.30.2</code>.</p>
             </div>
           </div>
 

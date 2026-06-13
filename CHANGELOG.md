@@ -5,6 +5,16 @@ Alle nennenswerten Aenderungen an diesem Projekt werden hier dokumentiert.
 Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
+## [0.30.2] - 2026-06-13
+
+### Fixed
+
+- **Einzeiler brach unter `curl | bash` an der ersten Rückfrage ab.** Die interaktiven
+  `read`-Prompts (Domain/Passwort/Bestätigung) lasen `stdin` — unter `curl | bash` ist das
+  die Script-Pipe, nicht das Terminal, also kam sofort „Abgebrochen" ohne Eingabemöglichkeit.
+  Die Prompts kommen jetzt aus `/dev/tty`; ohne Terminal bricht `install.sh` mit einer klaren
+  Meldung ab (Hinweis auf `--admin-password … --yes`).
+
 ## [0.30.1] - 2026-06-13
 
 ### Changed
@@ -1207,6 +1217,7 @@ ueber einen Multi-Stage-Build ausgeliefert.
 
 Aeltere Releases siehe Git-Tags `v0.7.0` bis `v0.16.0`.
 
+[0.30.2]: https://github.com/ks98/AdminHelper/releases/tag/v0.30.2
 [0.30.1]: https://github.com/ks98/AdminHelper/releases/tag/v0.30.1
 [0.30.0]: https://github.com/ks98/AdminHelper/releases/tag/v0.30.0
 [0.29.0]: https://github.com/ks98/AdminHelper/releases/tag/v0.29.0
