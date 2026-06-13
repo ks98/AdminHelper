@@ -5,6 +5,17 @@ Alle nennenswerten Aenderungen an diesem Projekt werden hier dokumentiert.
 Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
+## [0.31.0] - 2026-06-13
+
+### Added
+
+- **Browser-`.p12`-Export mit Speicherort-Auswahl.** Beim Export des Browser-Zertifikats
+  (Desktop → Einstellungen) öffnet der Client jetzt einen nativen Speichern-Dialog
+  (`tauri-plugin-dialog`) — der Nutzer wählt, wohin die `.p12` geschrieben wird (Default-Name
+  `adminhelper-browser.p12`), statt sie in einem versteckten App-Daten-Verzeichnis suchen zu
+  müssen. Abbruch des Dialogs bricht ohne Enrollment ab. (Das `.p12`-Format bleibt unverändert
+  — Legacy, aber von allen aktuellen Browsern akzeptiert.)
+
 ## [0.30.4] - 2026-06-13
 
 ### Fixed
@@ -1240,6 +1251,7 @@ ueber einen Multi-Stage-Build ausgeliefert.
 
 Aeltere Releases siehe Git-Tags `v0.7.0` bis `v0.16.0`.
 
+[0.31.0]: https://github.com/ks98/AdminHelper/releases/tag/v0.31.0
 [0.30.4]: https://github.com/ks98/AdminHelper/releases/tag/v0.30.4
 [0.30.3]: https://github.com/ks98/AdminHelper/releases/tag/v0.30.3
 [0.30.2]: https://github.com/ks98/AdminHelper/releases/tag/v0.30.2
