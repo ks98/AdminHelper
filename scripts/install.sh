@@ -20,6 +20,7 @@
 #                vX.Y.Z -> :X.Y.Z, main -> :main; default main)
 #   --dir DIR   (target dir in bootstrap mode; default ./adminhelper)
 #   --permissive (set MTLS_ENFORCE=false — opt out of enforced default)
+#   --reset      (docker compose down -v first — wipe volumes from a failed try)
 #   --yes
 
 set -euo pipefail
@@ -34,6 +35,7 @@ ENROLL_TTL=60
 TARGET_DIR="adminhelper"
 PERMISSIVE=0
 ASSUME_YES=0
+RESET=0
 
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -44,6 +46,7 @@ while [ $# -gt 0 ]; do
         --ref) REF="${2:?}"; shift ;;
         --dir) TARGET_DIR="${2:?}"; shift ;;
         --permissive) PERMISSIVE=1 ;;
+        --reset) RESET=1 ;;
         --yes|-y) ASSUME_YES=1 ;;
         -h|--help) sed -n '2,30p' "$0" 2>/dev/null || echo "siehe Kommentar-Header"; exit 0 ;;
         *) echo "Unbekannte Option: $1" >&2; exit 2 ;;
@@ -123,6 +126,10 @@ fi
 # --- Stack hoch (enforced per Default) --------------------------------------
 # Pull first so a stale locally-cached :latest (or a pinned tag) is refreshed —
 # `up` alone reuses an existing image and would run an outdated one.
+if [ "$RESET" = 1 ]; then
+    echo "[install] --reset: entferne bestehende Container + Volumes (postgres-data, CA, ...)..."
+    docker compose down -v </dev/null >/dev/null 2>&1 || true
+fi
 echo "[install] Ziehe die Images..."
 docker compose pull </dev/null
 echo "[install] Starte den Stack..."
@@ -136,6 +143,18 @@ echo "[install] Warte auf den Server (Migration + uvicorn)..."
 ATTEMPT=0
 until docker compose exec -T server \
         python -c "import socket; socket.create_connection(('127.0.0.1', 8080), 2).close()" </dev/null >/dev/null 2>&1; do
+    # A stale postgres-data volume (from an earlier, failed attempt) was initialised
+    # with a different POSTGRES_PASSWORD than the current .env — Postgres only honors
+    # the password on first init, so auth fails forever. Detect it and say so, instead
+    # of burning 240s into an opaque timeout.
+    if docker compose logs server 2>/dev/null | grep -q "password authentication failed"; then
+        echo "FEHLER: Postgres lehnt das Passwort ab (password authentication failed)." >&2
+        echo "       Ursache: meist ein altes 'postgres-data'-Volume aus einem frueheren" >&2
+        echo "       (fehlgeschlagenen) Versuch — dessen Init-Passwort passt nicht zur .env." >&2
+        echo "       Loesung: neu aufsetzen mit  docker compose down -v  (loescht die Volumes!)" >&2
+        echo "       oder  install.sh … --reset  (raeumt vorab auf)." >&2
+        exit 1
+    fi
     ATTEMPT=$((ATTEMPT + 1))
     if [ "$ATTEMPT" -gt 120 ]; then echo "FEHLER: Server nach 240s nicht bereit." >&2; exit 1; fi
     sleep 2
