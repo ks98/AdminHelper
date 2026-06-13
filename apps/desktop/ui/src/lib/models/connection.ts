@@ -53,6 +53,7 @@ export function normalizeConnection(
     trustCert,
     tags,
     lastUsed: (raw.lastUsed as string | null | undefined) ?? null,
+    serverId: (raw.serverId as string | null | undefined) ?? null,
   };
 }
 
@@ -103,6 +104,7 @@ export function emptyConnection(kind: ConnectionKind = 'ssh'): Connection {
     tags: [],
     trustCert: false,
     lastUsed: null,
+    serverId: null,
   };
 }
 

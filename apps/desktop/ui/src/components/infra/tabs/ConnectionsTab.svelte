@@ -9,6 +9,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
   import type { Connection, Server } from '$lib/api/types';
   import { connectionsApi } from '$lib/api/connections';
   import { session } from '$lib/stores/session';
+  import { refreshFromServer } from '$lib/stores/connections';
   import { reportError } from '$lib/stores/statusBar';
   import ServerConnectionModal from '../ServerConnectionModal.svelte';
   import { t } from '$lib/i18n';
@@ -52,6 +53,13 @@ SPDX-License-Identifier: GPL-3.0-or-later
     modalOpen = true;
   }
 
+  // After a hub write, refresh this tab's list and the launcher's cached list so
+  // both stay in sync (the launcher caches server connections locally).
+  async function onSaved(): Promise<void> {
+    await load();
+    await refreshFromServer();
+  }
+
   function meta(c: Connection): string {
     if (c.kind === 'web') return c.url || '—';
     const host = c.host || '—';
@@ -92,7 +100,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
   target={editing}
   serverId={server.id}
   onClose={() => (modalOpen = false)}
-  onSaved={load}
+  {onSaved}
 />
 
 <style>

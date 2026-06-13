@@ -164,6 +164,7 @@ mod tests {
             tags: Vec::new(),
             trust_cert: false,
             last_used: None,
+            server_id: None,
         }
     }
 

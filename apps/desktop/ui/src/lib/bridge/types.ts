@@ -32,6 +32,9 @@ export interface Connection {
   tags: string[];
   trustCert: boolean;
   lastUsed?: string | null;
+  // Set for server-owned connections (server mode). The launcher does not edit
+  // it but round-trips it so a server-mode edit keeps the server association.
+  serverId?: string | null;
 }
 
 export interface Settings {

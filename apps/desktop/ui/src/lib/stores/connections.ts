@@ -8,7 +8,10 @@
 import { writable, derived, get } from 'svelte/store';
 import * as bridge from '$lib/bridge';
 import type { AuthSession, Connection, ConnectionKind, Settings } from '$lib/bridge/types';
+import type { Connection as ServerConnection } from '$lib/api/types';
 import { groupConnectionsByHost, type ConnectionGroup } from '$lib/models/connection';
+import { connectionsApi } from '$lib/api/connections';
+import { sessionStore } from './session';
 
 export type KindFilter = 'all' | 'ssh' | 'rdp' | 'web';
 export type GroupFilter = 'single' | 'grouped';
@@ -105,7 +108,41 @@ export async function saveAll(items: Connection[]): Promise<void> {
   _state.update((s) => ({ ...s, items }));
 }
 
+/** Maps the launcher's bridge connection onto the camelCase payload the server
+ * API expects. The id is never sent — it routes the request (PUT) or is assigned
+ * by the server (POST). serverId rides along so a server-mode edit keeps the
+ * server association. */
+function toServerPayload(conn: Connection): Partial<ServerConnection> {
+  return {
+    name: conn.name,
+    kind: conn.kind,
+    host: conn.host ?? null,
+    port: conn.port ?? null,
+    username: conn.username ?? null,
+    domain: conn.domain ?? null,
+    keyPath: conn.keyPath ?? null,
+    url: conn.url ?? null,
+    notes: conn.notes ?? null,
+    tags: conn.tags ?? [],
+    trustCert: conn.trustCert,
+    serverId: conn.serverId ?? null,
+  };
+}
+
 export async function upsert(conn: Connection): Promise<void> {
+  const { settings, session } = get(sessionStore);
+  // Server mode: connections are owned by the server — write through the API and
+  // refresh from it. Local/sync mode keeps the file-backed behaviour below.
+  if (settings?.mode === 'server' && session) {
+    const exists = get(_state).items.some((c) => c.id === conn.id);
+    if (exists) {
+      await connectionsApi.update(session, conn.id, toServerPayload(conn));
+    } else {
+      await connectionsApi.create(session, toServerPayload(conn));
+    }
+    await reloadForMode(settings, session);
+    return;
+  }
   const current = get(_state).items;
   const idx = current.findIndex((c) => c.id === conn.id);
   const next = idx >= 0 ? current.map((c, i) => (i === idx ? conn : c)) : [...current, conn];
@@ -121,8 +158,23 @@ export function patchInMemory(conn: Connection): void {
 }
 
 export async function remove(id: string): Promise<void> {
+  const { settings, session } = get(sessionStore);
+  if (settings?.mode === 'server' && session) {
+    await connectionsApi.remove(session, id);
+    await reloadForMode(settings, session);
+    return;
+  }
   const next = get(_state).items.filter((c) => c.id !== id);
   await saveAll(next);
+}
+
+/** Re-pulls connections from the server (server mode only). Lets other surfaces
+ * (e.g. the infrastructure hub) keep the launcher's list fresh after they write. */
+export async function refreshFromServer(): Promise<void> {
+  const { settings, session } = get(sessionStore);
+  if (settings?.mode === 'server' && session) {
+    await reloadForMode(settings, session);
+  }
 }
 
 export function countByKind(): Record<ConnectionKind | 'total', number> {

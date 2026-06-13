@@ -51,8 +51,10 @@ SPDX-License-Identifier: GPL-3.0-or-later
     try {
       await upsert(conn);
       showStatus($t('editor.status.saved'));
-      isNew = false;
-      form = conn;
+      // Close on save (matches the hub modal). In server mode the saved item
+      // gets a server-assigned id on reload, so keeping the editor open with the
+      // old client id would create a duplicate on a second save.
+      closeEditor();
     } catch (err) {
       reportError(err instanceof Error ? err.message : String(err));
     }

@@ -77,6 +77,11 @@ pub struct Connection {
     #[serde(default)]
     pub trust_cert: bool,
     pub last_used: Option<String>,
+    // Server-owned connections carry the id of their server. The launcher does
+    // not edit it, but must round-trip it so a server-mode edit doesn't drop the
+    // association. Absent for local/sync connections.
+    #[serde(default)]
+    pub server_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
