@@ -21,6 +21,36 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
   bzw. belegen die jeweilige Frage mit JA vor); `--yes` fährt nicht-interaktiv mit den
   Defaults. Das Skript wird von `install.sh`/`update.sh` mit ausgeliefert, liegt also nach
   der Installation lokal im Install-Verzeichnis.
+- **Desktop: lokaler Modus direkt vom Login erreichbar.** Der Login-Screen hat einen
+  Knopf „Ohne Server fortfahren (nur lokale Verbindungen)", der in den lokalen Modus
+  wechselt (reine Verbindungs-Verwaltung, keine Anmeldung). Bisher war der Login-Screen
+  eine Sackgasse, sobald der Client im Server-Modus war — der Modus-Umschalter lebte nur
+  in den Einstellungen innerhalb der App, die ohne Anmeldung nicht erreichbar ist.
+- **Desktop: Server-URL und Benutzername werden auf dem Login-Screen vorausgewählt.** Nach
+  einer erfolgreichen Server-Anmeldung merkt sich der Client die Server-URL und den
+  Benutzernamen (neues Feld `lastUsername`; das Passwort wird **nie** gespeichert) und füllt
+  beide beim nächsten Start vor — es muss dann nur noch das Passwort eingegeben werden.
+
+### Changed
+
+- **Desktop verlangt jetzt bei jedem Öffnen ein Passwort (Server-Modus).** Der Client stellt
+  beim Start keine gespeicherte Session mehr still aus dem Keyring wieder her. So kann an einem
+  entsperrten Rechner niemand ohne Passwort Verbindungen aufbauen oder Einstellungen ändern.
+  Die laufende Session erneuert ihre Tokens weiterhin automatisch; nur das Wiederherstellen
+  über einen Neustart entfällt. Die mTLS-Geräte-Identität bleibt erhalten.
+
+### Fixed
+
+- **Desktop-Logout überschrieb lokale Verbindungen.** Beim Abmelden leerte der Client den
+  Verbindungs-Cache via `saveConnections([])` und überschrieb damit die `connections.json` —
+  obwohl diese Datei der Speicher des lokalen Modus ist (Server-Verbindungen liegen nur im
+  Speicher). Wer lokale Verbindungen angelegt, sich dann an einem Server an- und wieder
+  abgemeldet hatte, verlor sie. Logout leert jetzt nur noch den Speicher.
+- **Desktop-Modus-Wechsel ließ eine veraltete Session zurück.** Der Wechsel auf den lokalen
+  oder Sync-Modus verwarf die aktive Server-Session nicht. Ein späterer Wechsel zurück auf
+  einen (geänderten) Server konnte dadurch Daten vom alten Server laden statt eine frische
+  Anmeldung zu erzwingen. Beim Verlassen des Server-Modus wird die Session jetzt verworfen;
+  zudem nullt der „Abmelden"-Knopf im Einstellungs-Dialog jetzt auch die In-Memory-Session.
 
 ## [0.32.1] - 2026-06-13
 
