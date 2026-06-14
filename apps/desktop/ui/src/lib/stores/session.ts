@@ -16,7 +16,7 @@
 import { writable, derived, get } from 'svelte/store';
 import * as bridge from '$lib/bridge';
 import { setLanguage } from '$lib/i18n';
-import { reloadForMode, saveAll as setConnections } from './connections';
+import { reloadForMode, clearInMemory } from './connections';
 import type { AuthSession, Settings, SyncMode } from '$lib/bridge/types';
 
 interface SessionState {
@@ -82,14 +82,12 @@ export async function logout(): Promise<void> {
   try {
     await bridge.logout();
   } finally {
-    // First clear the connection cache (memory + file via saveAll([])), then
-    // set session to null — otherwise subscribers briefly see the old
-    // data in the already-logged-out state.
-    try {
-      await setConnections([]);
-    } catch {
-      /* cache cleanup must not block logout */
-    }
+    // Drop the in-memory list first (server-mode connections live only in
+    // memory), then null the session — otherwise subscribers briefly see the
+    // old data in the already-logged-out state. Crucially this does NOT touch
+    // connections.json: that file is the local-mode store and overwriting it
+    // here would erase the user's locally saved connections.
+    clearInMemory();
     _state.update((s) => ({ ...s, session: null }));
   }
 }

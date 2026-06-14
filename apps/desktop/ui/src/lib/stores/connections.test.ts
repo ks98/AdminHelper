@@ -13,6 +13,7 @@ vi.mock('$lib/bridge', () => ({
   loadConnections: vi.fn(async () => []),
 }));
 
+import * as bridge from '$lib/bridge';
 import {
   searchTerm,
   kindFilter,
@@ -23,6 +24,7 @@ import {
   upsert,
   remove,
   patchInMemory,
+  clearInMemory,
   countByKind,
   recentConnections,
 } from './connections';
@@ -107,6 +109,19 @@ describe('connections store', () => {
       await seed([conn({ id: 'a', name: 'A' })]);
       patchInMemory(conn({ id: 'ghost', name: 'X' }));
       expect(get(connections).map((c) => c.id)).toEqual(['a']);
+    });
+  });
+
+  describe('clearInMemory', () => {
+    it('empties the in-memory list without writing connections.json', async () => {
+      await seed([conn({ id: 'a' }), conn({ id: 'b' })]);
+      vi.mocked(bridge.saveConnections).mockClear();
+      clearInMemory();
+      expect(get(connections)).toEqual([]);
+      // The on-disk connections.json is the local-mode store. Logout drops the
+      // in-memory (server-mode) view via clearInMemory and must NOT overwrite
+      // that file — otherwise the user's locally saved connections are lost.
+      expect(bridge.saveConnections).not.toHaveBeenCalled();
     });
   });
 

@@ -108,6 +108,15 @@ export async function saveAll(items: Connection[]): Promise<void> {
   _state.update((s) => ({ ...s, items }));
 }
 
+/** Clears the in-memory connection list WITHOUT touching connections.json.
+ * Server-mode connections live only in memory (reloadForMode never writes the
+ * file), while connections.json is the local-mode store. Logout must drop the
+ * in-memory view but must NOT overwrite that file — doing so would erase the
+ * user's locally saved connections. */
+export function clearInMemory(): void {
+  _state.set({ items: [], loading: false, error: null });
+}
+
 /** Maps the launcher's bridge connection onto the camelCase payload the server
  * API expects. The id is never sent — it routes the request (PUT) or is assigned
  * by the server (POST). serverId rides along so a server-mode edit keeps the
