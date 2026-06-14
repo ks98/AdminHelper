@@ -5,7 +5,7 @@ Alle nennenswerten Aenderungen an diesem Projekt werden hier dokumentiert.
 Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
-## [Unreleased]
+## [0.33.0] - 2026-06-14
 
 ### Added
 
@@ -1348,6 +1348,7 @@ ueber einen Multi-Stage-Build ausgeliefert.
 
 Aeltere Releases siehe Git-Tags `v0.7.0` bis `v0.16.0`.
 
+[0.33.0]: https://github.com/ks98/AdminHelper/releases/tag/v0.33.0
 [0.32.1]: https://github.com/ks98/AdminHelper/releases/tag/v0.32.1
 [0.32.0]: https://github.com/ks98/AdminHelper/releases/tag/v0.32.0
 [0.31.0]: https://github.com/ks98/AdminHelper/releases/tag/v0.31.0
