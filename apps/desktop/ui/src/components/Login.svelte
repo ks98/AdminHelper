@@ -5,15 +5,21 @@ SPDX-License-Identifier: GPL-3.0-or-later
 -->
 
 <script lang="ts">
-  import { login } from '$lib/stores/session';
+  import { get } from 'svelte/store';
+  import { login, setMode, settings } from '$lib/stores/session';
   import { enrollWithToken } from '$lib/bridge';
   import { t } from '$lib/i18n';
 
   let { onBack }: { onBack?: () => void } = $props();
 
+  // Pre-fill the server URL + username from the last successful login so only
+  // the password has to be entered on each start (a password is required every
+  // time the app is opened).
+  const remembered = get(settings);
+
   let mode = $state<'login' | 'enroll'>('login');
-  let serverUrl = $state('');
-  let username = $state('');
+  let serverUrl = $state(remembered?.serverUrl ?? '');
+  let username = $state(remembered?.lastUsername ?? '');
   let password = $state('');
   let enrollToken = $state('');
   let error = $state('');
@@ -24,6 +30,22 @@ SPDX-License-Identifier: GPL-3.0-or-later
     mode = next;
     error = '';
     info = '';
+  }
+
+  // Escape hatch: use the client purely locally (connections only, no server,
+  // no auth). Without this the login screen is a dead end once the app is in
+  // server mode — the mode switch otherwise lives only inside the app shell.
+  async function useLocal(): Promise<void> {
+    error = '';
+    info = '';
+    busy = true;
+    try {
+      await setMode('local');
+    } catch (err) {
+      error = err instanceof Error ? err.message : String(err);
+    } finally {
+      busy = false;
+    }
   }
 
   async function handleSubmit(event: SubmitEvent): Promise<void> {
@@ -111,6 +133,9 @@ SPDX-License-Identifier: GPL-3.0-or-later
         disabled={busy}
       >
         {$t('login.enroll.switch')}
+      </button>
+      <button type="button" class="btn ghost login-secondary" onclick={useLocal} disabled={busy}>
+        {$t('login.useLocal')}
       </button>
     {:else}
       <form autocomplete="off" onsubmit={handleEnroll}>

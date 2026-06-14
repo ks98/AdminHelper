@@ -30,6 +30,7 @@ export function getSettingsDefaults(): Settings {
     rdpPerformanceProfile: 'auto',
     allowSelfSignedCerts: false,
     serverUrl: '',
+    lastUsername: '',
   };
 }
 

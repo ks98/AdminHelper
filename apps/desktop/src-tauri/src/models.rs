@@ -107,6 +107,10 @@ pub struct Settings {
     pub allow_self_signed_certs: bool,
     #[serde(default)]
     pub server_url: Option<String>,
+    // Last username used for a successful server login. Pre-filled on the login
+    // screen so only the password has to be entered on each start. Not a secret.
+    #[serde(default)]
+    pub last_username: Option<String>,
 }
 
 impl Default for Settings {
@@ -123,6 +127,7 @@ impl Default for Settings {
             rdp_performance_profile: RdpPerformanceProfile::Auto,
             allow_self_signed_certs: false,
             server_url: None,
+            last_username: None,
         }
     }
 }

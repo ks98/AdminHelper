@@ -802,6 +802,7 @@ export const translations: Translations = {
     'login.enroll.working': 'Enrolle…',
     'login.enroll.back': 'Zurück zur Anmeldung',
     'login.enroll.done': 'Gerät enrollt — jetzt anmelden.',
+    'login.useLocal': 'Ohne Server fortfahren (nur lokale Verbindungen)',
 
     // ── Desktop: Dashboard ────────────────────────────────────────────
     'dashboard.total': 'Verbindungen gesamt',
@@ -1805,6 +1806,7 @@ export const translations: Translations = {
     'login.enroll.working': 'Enrolling…',
     'login.enroll.back': 'Back to sign in',
     'login.enroll.done': 'Device enrolled — sign in now.',
+    'login.useLocal': 'Continue without a server (local connections only)',
 
     // ── Desktop: Dashboard ────────────────────────────────────────────
     'dashboard.total': 'Connections total',

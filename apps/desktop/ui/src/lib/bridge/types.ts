@@ -49,6 +49,9 @@ export interface Settings {
   rdpPerformanceProfile: RdpPerformanceProfile;
   allowSelfSignedCerts: boolean;
   serverUrl?: string | null;
+  // Last username used for a successful server login; pre-filled on the login
+  // screen so only the password has to be entered on each start.
+  lastUsername?: string | null;
 }
 
 export interface AuthSession {

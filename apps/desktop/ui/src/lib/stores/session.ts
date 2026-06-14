@@ -68,11 +68,25 @@ export async function login(serverUrl: string, username: string, password: strin
   const current = get(_state);
   const allowSelfSigned = current.settings?.allowSelfSignedCerts ?? false;
   const sess = await bridge.login(serverUrl, username, password, allowSelfSigned);
-  _state.update((s) => ({ ...s, session: sess }));
+
+  // Persist server URL + username (never the password) so the next start can
+  // pre-fill the login screen and only ask for the password. Best-effort: a
+  // failed save must not block an otherwise successful login.
+  let next = current.settings;
+  if (current.settings) {
+    next = { ...current.settings, serverUrl: serverUrl.trim(), lastUsername: username.trim() };
+    try {
+      await bridge.saveSettings(next);
+    } catch {
+      next = current.settings;
+    }
+  }
+
   // Fetch connections fresh from the new server — prevents the old
   // connections.json file cache from staying visible after a server switch.
-  if (current.settings) {
-    await reloadForMode(current.settings, sess);
+  _state.update((s) => ({ ...s, settings: next ?? s.settings, session: sess }));
+  if (next) {
+    await reloadForMode(next, sess);
   }
 }
 

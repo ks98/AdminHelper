@@ -111,6 +111,23 @@ describe('session store', () => {
     });
   });
 
-  // settings persistence (serverUrl + lastUsername) is covered after the
-  // Baustein-B change lands.
+  describe('login persists prefill data', () => {
+    it('saves the trimmed server URL + username, never the password', async () => {
+      vi.mocked(bridge.loadSettings).mockResolvedValue(
+        baseSettings({ mode: 'server', serverUrl: '' }),
+      );
+      vi.mocked(bridge.login).mockResolvedValue(aSession);
+      await hydrate();
+      await login('  https://srv.example.com  ', '  alice  ', 'secret');
+
+      expect(bridge.saveSettings).toHaveBeenCalledWith(
+        expect.objectContaining({
+          serverUrl: 'https://srv.example.com',
+          lastUsername: 'alice',
+        }),
+      );
+      const saved = vi.mocked(bridge.saveSettings).mock.calls[0][0];
+      expect(JSON.stringify(saved)).not.toContain('secret');
+    });
+  });
 });
