@@ -426,8 +426,15 @@ rm -rf apps/server/.venv
 # Monitoring venv entfernen
 rm -rf apps/monitoring/.venv
 
-# Rust Build-Cache leeren
+# Rust Build-Cache leeren (Holzhammer — naechster Build ist ein Full-Rebuild)
 cd apps/desktop/src-tauri && cargo clean
+
+# Sanfter: nur veraltete Artefakte entfernen, letzten Build behalten.
+# target/ waechst sonst monoton, weil alte Dependency-/Toolchain-Versionen
+# liegen bleiben. (einmalig installieren: cargo install cargo-sweep)
+cargo sweep --installed       apps/desktop/src-tauri  # Reste alter Toolchains
+cargo sweep --time 30         apps/desktop/src-tauri  # Artefakte aelter als 30 Tage
+cargo sweep --dry-run --time 30 apps/desktop/src-tauri  # nur anzeigen, nichts loeschen
 
 # Go Build-Cache leeren
 cd apps/agent && go clean
