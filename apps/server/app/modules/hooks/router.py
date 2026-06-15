@@ -66,6 +66,18 @@ def _to_dict(hook: Hook) -> dict:
     }
 
 
+def _validate_schedule_interval(interval: str) -> None:
+    """Rejects an interval that is neither a known alias nor a 5-field cron
+    expression. Shared by create and update so a bad cron on PUT raises 422
+    instead of reaching add_hook -> _parse_trigger as an unhandled 500."""
+    parts = interval.split()
+    if interval not in _INTERVAL_MAP and len(parts) != 5:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Ungültiges Intervall. Erlaubt: {', '.join(VALID_INTERVALS)} oder Cron (5 Felder)",
+        )
+
+
 def _validate_create(data: HookCreate) -> None:
     if data.hook_type == "webhook":
         pass  # token is generated server-side
@@ -84,12 +96,7 @@ def _validate_create(data: HookCreate) -> None:
             raise HTTPException(
                 status_code=422, detail="schedule_interval erforderlich für Scheduled Hooks"
             )
-        parts = data.schedule_interval.split()
-        if data.schedule_interval not in _INTERVAL_MAP and len(parts) != 5:
-            raise HTTPException(
-                status_code=422,
-                detail=f"Ungültiges Intervall. Erlaubt: {', '.join(VALID_INTERVALS)} oder Cron (5 Felder)",
-            )
+        _validate_schedule_interval(data.schedule_interval)
     else:
         raise HTTPException(status_code=422, detail=f"Unbekannter Hook-Typ: {data.hook_type!r}")
 
@@ -224,6 +231,7 @@ def update_hook(
                 raise HTTPException(status_code=422, detail=f"Unbekanntes Event: {evt!r}")
         hook.event_triggers = json.dumps(data.event_triggers)
     if data.schedule_interval is not None:
+        _validate_schedule_interval(data.schedule_interval)
         hook.schedule_interval = data.schedule_interval
         if hook.hook_type == "schedule" and hook.enabled:
             add_hook(hook.id, data.schedule_interval)

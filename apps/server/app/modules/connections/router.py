@@ -9,6 +9,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import Response
+from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
 from app.core.auth import ApiKeyOrUser, get_current_admin
@@ -189,13 +190,40 @@ def import_connections(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
+    # Validate every entry through ConnectionCreate BEFORE touching the DB: the
+    # raw list bypassed schema validation, so an invalid kind/port (or a missing
+    # name) used to land in the table or blow up with a 500 mid-loop. Validate
+    # all-or-nothing — otherwise a "replace" import with bad input would wipe
+    # every existing connection and import nothing (data loss).
+    validated: list[dict] = []
+    errors: list[dict] = []
+    for idx, conn_data in enumerate(req.connections):
+        try:
+            payload = ConnectionCreate(**conn_data).model_dump()
+        except ValidationError as exc:
+            errors.append(
+                {
+                    "index": idx,
+                    "name": conn_data.get("name") if isinstance(conn_data, dict) else None,
+                    "errors": exc.errors(include_url=False),
+                }
+            )
+            continue
+        payload["id"] = str(uuid.uuid4())
+        validated.append(payload)
+
+    if errors:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"message": "Import enthält ungültige Einträge", "rejected": errors},
+        )
+
     if req.mode == "replace":
         db.query(Connection).delete()
 
     imported = []
-    for conn_data in req.connections:
-        conn_data["id"] = str(uuid.uuid4())
-        conn = Connection.from_dict(conn_data)
+    for payload in validated:
+        conn = Connection.from_dict(payload)
         db.add(conn)
         imported.append(conn)
 

@@ -6,6 +6,7 @@ import json
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_admin
@@ -115,7 +116,16 @@ def create_tunnel(
             db.flush()
             tunnel.connection_id = auto_conn.id
 
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        # Lost a race against a concurrent create on the same proxy name or
+        # STCP visitor_port (the read-then-check above has a TOCTOU window; the
+        # DB constraints are the only race-free guard). Map to the same 409.
+        db.rollback()
+        raise HTTPException(
+            status_code=409, detail="Proxy-Name oder Visitor-Port ist bereits belegt"
+        )
     db.refresh(tunnel)
     fire_event("frp.tunnel.created", {"id": tunnel.id, "name": tunnel.name, "serverId": server.id})
     audit.record(
@@ -150,6 +160,9 @@ def update_tunnel(
         raise HTTPException(status_code=404, detail="Tunnel nicht gefunden")
 
     sent = data.model_fields_set
+
+    if "tunnel_type" in sent and data.tunnel_type not in ("stcp", "https"):
+        raise HTTPException(status_code=400, detail="tunnel_type muss 'stcp' oder 'https' sein")
 
     if "name" in sent and data.name != tunnel.name:
         existing = db.query(FrpTunnel).filter(FrpTunnel.name == data.name).first()
@@ -214,7 +227,13 @@ def update_tunnel(
             db.flush()
             tunnel.connection_id = auto_conn.id
 
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=409, detail="Proxy-Name oder Visitor-Port ist bereits belegt"
+        )
     db.refresh(tunnel)
     fire_event("frp.tunnel.updated", {"id": tunnel.id, "name": tunnel.name})
     audit.record(

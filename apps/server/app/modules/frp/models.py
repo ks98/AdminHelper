@@ -6,7 +6,7 @@ import json
 import secrets
 from typing import Any
 
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Index, Integer, String, text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -38,19 +38,24 @@ class FrpServerConfig(Base):
         foreign_keys="FrpTunnel.frp_config_id",
     )
 
-    def to_dict(self, include_tunnels: bool = False) -> dict[str, Any]:
+    def to_dict(self, include_tunnels: bool = False, mask_secrets: bool = False) -> dict[str, Any]:
+        # mask_secrets: GET responses must never echo auth.token / dashboard
+        # password back to the client (they end up in the frps.toml the server
+        # generates, the client never needs them read back). Returned as None,
+        # not "", so the frontend's "auto-generated" placeholder shows and a
+        # PUT can distinguish "unchanged" from "set to empty".
         result = {
             "id": self.id,
             "name": self.name,
             "serverAddr": self.server_addr,
             "bindPort": self.bind_port,
             "vhostHttpsPort": self.vhost_https_port,
-            "authToken": self.auth_token,
+            "authToken": None if mask_secrets else self.auth_token,
             "subdomainHost": self.subdomain_host,
             "maxPortsPerClient": self.max_ports_per_client,
             "dashboardPort": self.dashboard_port,
             "dashboardUser": self.dashboard_user,
-            "dashboardPassword": self.dashboard_password,
+            "dashboardPassword": None if mask_secrets else self.dashboard_password,
             "extraConfig": json.loads(self.extra_config) if self.extra_config else None,
             "createdAt": self.created_at.isoformat() if self.created_at else None,
             "updatedAt": self.updated_at.isoformat() if self.updated_at else None,
@@ -62,6 +67,19 @@ class FrpServerConfig(Base):
 
 class FrpTunnel(Base):
     __tablename__ = "frp_tunnels"
+    # A given STCP visitor_port may be bound by at most one tunnel — two
+    # tunnels on the same port would generate a conflicting visitor.toml. The
+    # partial unique index is the only race-free guard (the read-then-assign in
+    # the router has a TOCTOU window). HTTPS tunnels have visitor_port NULL and
+    # are excluded.
+    __table_args__ = (
+        Index(
+            "uq_frp_tunnel_visitor_port",
+            "visitor_port",
+            unique=True,
+            postgresql_where=text("tunnel_type = 'stcp' AND visitor_port IS NOT NULL"),
+        ),
+    )
 
     id = Column(String, primary_key=True)
     server_id = Column(

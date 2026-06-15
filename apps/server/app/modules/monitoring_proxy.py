@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from starlette.concurrency import run_in_threadpool
 
 from app.core.auth import get_current_admin
 from app.core.config import MONITOR_API_KEY, MONITOR_SERVICE_URL
@@ -53,7 +54,10 @@ async def proxy_agent_report(
 ):
     """Proxy for agent reports (auth via X-API-Key, no JWT needed; agent scope)."""
     ip = resolve_client_ip(request)
-    if get_backend().increment(f"agent_ingest:{ip}", _INGEST_WINDOW) > _INGEST_MAX:
+    # The backend may be Redis (a blocking socket call); offload it so it does
+    # not stall the event loop on the single-worker backend (mirrors hooks/router).
+    count = await run_in_threadpool(get_backend().increment, f"agent_ingest:{ip}", _INGEST_WINDOW)
+    if count > _INGEST_MAX:
         raise HTTPException(status_code=429, detail="Zu viele Agent-Reports")
     async with httpx.AsyncClient(timeout=30) as client:
         resp = await client.post(

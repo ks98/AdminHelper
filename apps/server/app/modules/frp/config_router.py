@@ -24,7 +24,7 @@ router = APIRouter(prefix="/api/frp", tags=["frp"])
 @router.get("/server-config")
 def list_server_configs(db: Session = Depends(get_db), _admin=Depends(get_current_admin)):
     configs = db.query(FrpServerConfig).all()
-    return [c.to_dict() for c in configs]
+    return [c.to_dict(mask_secrets=True) for c in configs]
 
 
 @router.post("/server-config", status_code=status.HTTP_201_CREATED)
@@ -71,7 +71,7 @@ def get_server_config(
     config = db.query(FrpServerConfig).filter(FrpServerConfig.id == config_id).first()
     if not config:
         raise HTTPException(status_code=404, detail="FRP-Config nicht gefunden")
-    return config.to_dict(include_tunnels=True)
+    return config.to_dict(include_tunnels=True, mask_secrets=True)
 
 
 @router.put("/server-config/{config_id}")

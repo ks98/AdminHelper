@@ -12,9 +12,12 @@ from sqlalchemy import engine_from_config, pool
 
 import app.modules.ansible.models  # noqa: F401
 import app.modules.api_keys.models  # noqa: F401
+import app.modules.audit.models  # noqa: F401
 import app.modules.connections.models  # noqa: F401
+import app.modules.enrollment.models  # noqa: F401
 import app.modules.frp.models  # noqa: F401
 import app.modules.hooks.models  # noqa: F401
+import app.modules.provisioning.models  # noqa: F401
 import app.modules.servers.models  # noqa: F401
 
 # Explicitly import all modules with __tablename__, otherwise they are

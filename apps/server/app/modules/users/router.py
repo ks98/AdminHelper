@@ -5,6 +5,7 @@
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_admin, get_current_user, hash_password
@@ -60,7 +61,16 @@ def create_user(
     # Usernames are reusable and the cert CN is the username, so a new user must
     # not inherit a stale revocation from a former namesake (F1).
     clear_revocation(db, data.username, SCOPE_ACCESS)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        # Lost the race against a concurrent create of the same username (the
+        # check above has a TOCTOU window; users.username is unique). Map to the
+        # same 400 the pre-check returns.
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Benutzername bereits vergeben"
+        )
     db.refresh(user)
     fire_event(
         "user.created", {"id": user.id, "username": user.username, "is_admin": user.is_admin}

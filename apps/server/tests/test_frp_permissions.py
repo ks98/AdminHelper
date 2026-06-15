@@ -39,7 +39,9 @@ def _make_server(db, *, sid: str, name: str):
     return srv
 
 
-def _make_tunnel(db, *, tid: str, server_id: str, config_id: str, name: str):
+def _make_tunnel(
+    db, *, tid: str, server_id: str, config_id: str, name: str, visitor_port: int = 6000
+):
     tunnel = FrpTunnel(
         id=tid,
         server_id=server_id,
@@ -49,7 +51,7 @@ def _make_tunnel(db, *, tid: str, server_id: str, config_id: str, name: str):
         protocol="ssh",
         local_port=22,
         secret_key="super-secret-do-not-leak",
-        visitor_port=6000,
+        visitor_port=visitor_port,
         enabled=True,
     )
     db.add(tunnel)
@@ -63,8 +65,12 @@ def two_servers_with_tunnels(db_session):
     cfg = _make_config(db_session)
     _make_server(db_session, sid="srv-a", name="serverA")
     _make_server(db_session, sid="srv-b", name="serverB")
-    _make_tunnel(db_session, tid="t-a", server_id="srv-a", config_id=cfg.id, name="a-ssh")
-    _make_tunnel(db_session, tid="t-b", server_id="srv-b", config_id=cfg.id, name="b-ssh")
+    _make_tunnel(
+        db_session, tid="t-a", server_id="srv-a", config_id=cfg.id, name="a-ssh", visitor_port=6000
+    )
+    _make_tunnel(
+        db_session, tid="t-b", server_id="srv-b", config_id=cfg.id, name="b-ssh", visitor_port=6001
+    )
     return cfg
 
 

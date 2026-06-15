@@ -70,6 +70,15 @@ class TestConnectionCreate:
         c = ConnectionCreate(name="Test", kind="ssh", customField="value")
         assert c.model_dump()["customField"] == "value"
 
+    def test_known_kinds_accepted(self):
+        for kind in ("ssh", "rdp", "web"):
+            assert ConnectionCreate(name="Test", kind=kind).kind == kind
+
+    def test_unknown_kind_rejected(self):
+        # No client renders anything but ssh/rdp/web — reject at the boundary.
+        with pytest.raises(ValidationError):
+            ConnectionCreate(name="Test", kind="vnc")
+
 
 class TestConnectionUpdate:
     def test_all_optional(self):

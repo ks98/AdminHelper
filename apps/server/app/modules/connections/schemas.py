@@ -28,7 +28,9 @@ class Connection(BaseModel):
 
 class ConnectionCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
-    kind: str = Field(..., min_length=1, max_length=50)
+    # The desktop/web clients only render ssh/rdp/web; reject anything else at
+    # the boundary instead of persisting a kind no consumer can handle.
+    kind: Literal["ssh", "rdp", "web"]
     host: Optional[str] = ""
     port: Optional[int] = Field(None, ge=1, le=65535)
     username: Optional[str] = ""

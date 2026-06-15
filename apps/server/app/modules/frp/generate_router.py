@@ -177,8 +177,11 @@ def gen_bulk_zip(
         for t in all_tunnels:
             by_server.setdefault(t.server_id, []).append(t)
 
+        servers = db.query(Server).filter(Server.id.in_(by_server.keys())).all()
+        servers_by_id = {s.id: s for s in servers}
+
         for server_id, tunnels in by_server.items():
-            server = db.query(Server).filter(Server.id == server_id).first()
+            server = servers_by_id.get(server_id)
             if not server:
                 continue
             allow_users = get_allow_users(db, server_id)
