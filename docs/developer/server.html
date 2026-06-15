@@ -48,7 +48,7 @@
           </table>
 
           <h2>Router-Übersicht</h2>
-          <p>10 Top-Level-Router unter <code>apps/server/app/modules/</code>; jedes Modul kapselt Models, Schemas und Routen.</p>
+          <p>11 Top-Level-Router unter <code>apps/server/app/modules/</code>; jedes Modul kapselt Models, Schemas und Routen.</p>
           <table>
             <thead><tr><th>Prefix</th><th>Modul</th><th>Funktion</th></tr></thead>
             <tbody>
@@ -57,6 +57,7 @@
               <tr><td><code>/api/connections</code></td><td><code>modules/connections/</code></td><td>Verbindungs-CRUD, <code>/touch</code>, <code>/export</code>, <code>/import</code> (replace/merge).</td></tr>
               <tr><td><code>/api/servers</code></td><td><code>modules/servers/</code></td><td>Server-Inventory mit User-Zuordnung; Cleanup-Hook ans Monitoring beim Delete.</td></tr>
               <tr><td><code>/api/api-keys</code></td><td><code>modules/api_keys/</code></td><td>API-Keys mit <code>read</code>- oder <code>read_write</code>-Permission, SHA-256-gehasht.</td></tr>
+              <tr><td><code>/api/audit</code></td><td><code>modules/audit/</code></td><td>Append-only Audit-Trail (admin, read-only): protokollierte Aktionen, paginiert + filterbar. Geschrieben von <code>audit.service.record()</code>, Actor via <code>core/request_context</code>.</td></tr>
               <tr><td><code>/api/hooks</code></td><td><code>modules/hooks/</code></td><td>Hook-CRUD, öffentlicher <code>/trigger/{token}</code>, <code>/run</code> für manuellen Test, <code>/rotate</code> für Webhook-Token.</td></tr>
               <tr><td><code>/api/ansible/playbooks</code></td><td><code>modules/ansible/</code></td><td>Playbook-CRUD mit YAML-Validierung, Disk-Speicherung unter <code>/data/ansible/playbooks/{id}/</code>.</td></tr>
               <tr><td><code>/api/servers/{id}/provision</code></td><td><code>modules/provisioning/</code></td><td>Server-zentrisches Provisioning: Token-Lifecycle und Activate (FRP-unabhaengig). Liefert Server-API-Key, optional Monitor-Key, optional FRP-Bundle.</td></tr>

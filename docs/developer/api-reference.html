@@ -41,7 +41,7 @@
           </ul>
 
           <h2>Pagination (Listen-Endpunkte)</h2>
-          <p>Die Listen-Endpunkte <code>GET /api/servers</code>, <code>GET /api/connections</code>, <code>GET /api/hooks</code> sowie die Monitoring-Listen (<code>/api/monitoring/checks</code>, <code>/api/monitoring/status</code>, <code>/api/monitoring/alerts</code>) akzeptieren optionale Query-Parameter <code>limit</code> (1&ndash;1000) und <code>offset</code> (&ge;&nbsp;0) und liefern im Header <code>X-Total-Count</code> die Gesamtanzahl vor der Pagination (der Monitoring-Proxy reicht den Header durch). Ohne Parameter bleibt das Verhalten unver&auml;ndert: volle Liste.</p>
+          <p>Die Listen-Endpunkte <code>GET /api/servers</code>, <code>GET /api/connections</code>, <code>GET /api/hooks</code>, <code>GET /api/audit</code> sowie die Monitoring-Listen (<code>/api/monitoring/checks</code>, <code>/api/monitoring/status</code>, <code>/api/monitoring/alerts</code>) akzeptieren optionale Query-Parameter <code>limit</code> (1&ndash;1000) und <code>offset</code> (&ge;&nbsp;0) und liefern im Header <code>X-Total-Count</code> die Gesamtanzahl vor der Pagination (der Monitoring-Proxy reicht den Header durch). Ohne Parameter bleibt das Verhalten unver&auml;ndert: volle Liste.</p>
 
           <h2>Auth</h2>
           <div class="endpoint">
@@ -92,6 +92,9 @@
           <div class="endpoint"><span class="method-get">GET</span><code>/api/api-keys</code></div>
           <div class="endpoint"><span class="method-post">POST</span><code>/api/api-keys</code><p>Body: <code>{ name, permission: "read"|"read_write" }</code>. Klartext-Key wird <strong>einmalig</strong> in der Response geliefert; gespeichert wird nur der SHA-256-Hash.</p></div>
           <div class="endpoint"><span class="method-delete">DELETE</span><code>/api/api-keys/{id}</code></div>
+
+          <h2>Audit</h2>
+          <div class="endpoint"><span class="method-get">GET</span><code>/api/audit</code><p>Append-only Audit-Trail (admin), neueste zuerst, paginiert (<code>limit</code>/<code>offset</code>, <code>X-Total-Count</code>). Optionale Filter: <code>action</code>, <code>actor_type</code>, <code>object_type</code>, <code>object_id</code>, <code>status</code>, <code>q</code> (Freitext auf Actor/Objekt-Label). Schreibende Endpunkte gibt es bewusst nicht.</p></div>
 
           <h2>Hooks</h2>
           <div class="endpoint"><span class="method-get">GET</span><code>/api/hooks</code></div>

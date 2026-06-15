@@ -48,7 +48,7 @@
           </table>
 
           <h2>Router Overview</h2>
-          <p>Ten top-level routers under <code>apps/server/app/modules/</code>; each module bundles models, schemas and routes.</p>
+          <p>Eleven top-level routers under <code>apps/server/app/modules/</code>; each module bundles models, schemas and routes.</p>
           <table>
             <thead><tr><th>Prefix</th><th>Module</th><th>Purpose</th></tr></thead>
             <tbody>
@@ -57,6 +57,7 @@
               <tr><td><code>/api/connections</code></td><td><code>modules/connections/</code></td><td>Connection CRUD, <code>/touch</code>, <code>/export</code>, <code>/import</code> (replace/merge).</td></tr>
               <tr><td><code>/api/servers</code></td><td><code>modules/servers/</code></td><td>Server inventory with user assignments; cleanup hook to monitoring on delete.</td></tr>
               <tr><td><code>/api/api-keys</code></td><td><code>modules/api_keys/</code></td><td>API keys with <code>read</code> or <code>read_write</code> permission, SHA-256 hashed.</td></tr>
+              <tr><td><code>/api/audit</code></td><td><code>modules/audit/</code></td><td>Append-only audit trail (admin, read-only): recorded actions, paginated + filterable. Written by <code>audit.service.record()</code>, actor via <code>core/request_context</code>.</td></tr>
               <tr><td><code>/api/hooks</code></td><td><code>modules/hooks/</code></td><td>Hook CRUD, public <code>/trigger/{token}</code>, <code>/run</code> for manual test, <code>/rotate</code> for webhook token.</td></tr>
               <tr><td><code>/api/ansible/playbooks</code></td><td><code>modules/ansible/</code></td><td>Playbook CRUD with YAML validation, disk storage under <code>/data/ansible/playbooks/{id}/</code>.</td></tr>
               <tr><td><code>/api/servers/{id}/provision</code></td><td><code>modules/provisioning/</code></td><td>Server-centric provisioning: token lifecycle and activate (FRP-independent). Returns server API key, optional monitor key, optional FRP bundle.</td></tr>

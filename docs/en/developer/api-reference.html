@@ -41,7 +41,7 @@
           </ul>
 
           <h2>Pagination (list endpoints)</h2>
-          <p>The list endpoints <code>GET /api/servers</code>, <code>GET /api/connections</code>, <code>GET /api/hooks</code> plus the monitoring lists (<code>/api/monitoring/checks</code>, <code>/api/monitoring/status</code>, <code>/api/monitoring/alerts</code>) accept optional <code>limit</code> (1&ndash;1000) and <code>offset</code> (&ge;&nbsp;0) query parameters and return the pre-pagination total in the <code>X-Total-Count</code> header (the monitoring proxy forwards that header). Without parameters the behaviour is unchanged: full list.</p>
+          <p>The list endpoints <code>GET /api/servers</code>, <code>GET /api/connections</code>, <code>GET /api/hooks</code>, <code>GET /api/audit</code> plus the monitoring lists (<code>/api/monitoring/checks</code>, <code>/api/monitoring/status</code>, <code>/api/monitoring/alerts</code>) accept optional <code>limit</code> (1&ndash;1000) and <code>offset</code> (&ge;&nbsp;0) query parameters and return the pre-pagination total in the <code>X-Total-Count</code> header (the monitoring proxy forwards that header). Without parameters the behaviour is unchanged: full list.</p>
 
           <h2>Auth</h2>
           <div class="endpoint">
@@ -92,6 +92,9 @@
           <div class="endpoint"><span class="method-get">GET</span><code>/api/api-keys</code></div>
           <div class="endpoint"><span class="method-post">POST</span><code>/api/api-keys</code><p>Body: <code>{ name, permission: "read"|"read_write" }</code>. Clear-text key is returned <strong>once</strong>; only the SHA-256 hash is persisted.</p></div>
           <div class="endpoint"><span class="method-delete">DELETE</span><code>/api/api-keys/{id}</code></div>
+
+          <h2>Audit</h2>
+          <div class="endpoint"><span class="method-get">GET</span><code>/api/audit</code><p>Append-only audit trail (admin), newest first, paginated (<code>limit</code>/<code>offset</code>, <code>X-Total-Count</code>). Optional filters: <code>action</code>, <code>actor_type</code>, <code>object_type</code>, <code>object_id</code>, <code>status</code>, <code>q</code> (free-text on actor/object label). There are deliberately no write endpoints.</p></div>
 
           <h2>Hooks</h2>
           <div class="endpoint"><span class="method-get">GET</span><code>/api/hooks</code></div>
