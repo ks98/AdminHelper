@@ -18,3 +18,7 @@ func FrpDir() string {
 func MonitorDir() string {
 	return filepath.Join(os.Getenv("ProgramData"), "AdminHelper")
 }
+
+func LogDir() string {
+	return filepath.Join(os.Getenv("ProgramData"), "AdminHelper", "logs")
+}

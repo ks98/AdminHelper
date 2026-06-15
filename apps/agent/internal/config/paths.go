@@ -8,12 +8,14 @@ package config
 // Each file exports:
 //   FrpDir()     — base directory for frpc configuration
 //   MonitorDir() — base directory for monitor configuration
+//   LogDir()     — directory for the rotating agent log file
 
 import "path/filepath"
 
 // Derived paths (platform-independent)
 
 func FrpConfigFile() string      { return filepath.Join(FrpDir(), "frpc.toml") }
+func LogFile() string            { return filepath.Join(LogDir(), "agent.log") }
 func FrpAdminHelperConf() string { return filepath.Join(FrpDir(), "adminhelper.conf") }
 func FrpHashFile() string        { return filepath.Join(FrpDir(), ".config-hash") }
 func FrpPkiDir() string          { return filepath.Join(FrpDir(), "pki") }

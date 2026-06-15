@@ -20,6 +20,13 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
   über den Docker-`json-file`-Treiber (`max-size: 10m`, `max-file: 5` → max. 50 MB/Service)
   via `x-logging`-Anker — verhindert, dass `docker compose logs` ungebremst die Platte
   füllt. `LOG_LEVEL` ist als `.env`-Knopf in der Compose dokumentiert (Default `INFO`).
+- **Agent: strukturiertes Logging mit rotierender Logdatei.** Der Go-Agent nutzt jetzt
+  `log/slog` (Level via `LOG_LEVEL`-Env oder `--log-level`) und schreibt zusätzlich zu
+  stdout/journal in eine größenrotierte Datei (`/var/log/adminhelper/agent.log` bzw.
+  `%ProgramData%\AdminHelper\logs\agent.log`, 10 MB × 5, komprimiert) — eine durchgehende
+  Spur für Fehler-Reports. Die zuvor **doppelte** `logMsg`-Implementierung (frpc + monitor)
+  entfällt; Logzeilen tragen jetzt Level + Komponente. Neue Abhängigkeit:
+  `gopkg.in/natefinch/lumberjack.v2`.
 
 ## [0.34.0] - 2026-06-15
 

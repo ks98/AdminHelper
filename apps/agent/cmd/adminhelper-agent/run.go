@@ -5,7 +5,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -16,10 +15,13 @@ import (
 	"adminhelper-agent/internal/config"
 	"adminhelper-agent/internal/enroll"
 	"adminhelper-agent/internal/frpc"
+	"adminhelper-agent/internal/logging"
 	"adminhelper-agent/internal/monitor"
 )
 
 const defaultInterval = 5 * time.Minute
+
+var logger = logging.For("agent")
 
 func runCmd() *cobra.Command {
 	var once bool
@@ -47,7 +49,7 @@ func runCmd() *cobra.Command {
 }
 
 func runLoop() error {
-	fmt.Println("[adminhelper-agent] Starte Dauerbetrieb (Intervall: 5 Minuten)")
+	logger.Infof("Starte Dauerbetrieb (Intervall: %s)", defaultInterval)
 
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
@@ -62,7 +64,7 @@ func runLoop() error {
 		case <-ticker.C:
 			runOnce()
 		case s := <-sig:
-			fmt.Printf("[adminhelper-agent] Signal %v empfangen, beende...\n", s)
+			logger.Infof("Signal %v empfangen, beende...", s)
 			return nil
 		}
 	}
@@ -74,10 +76,10 @@ func runOnce() {
 	// is past ~50 % of its lifetime, renew it before the pushes.
 	maybeRenewIdentity()
 	if err := frpc.Sync(); err != nil {
-		fmt.Fprintf(os.Stderr, "[adminhelper-agent] FRPC-Sync Fehler: %v\n", err)
+		logger.Errorf("FRPC-Sync Fehler: %v", err)
 	}
 	if err := monitor.Push(); err != nil {
-		fmt.Fprintf(os.Stderr, "[adminhelper-agent] Monitor-Push Fehler: %v\n", err)
+		logger.Errorf("Monitor-Push Fehler: %v", err)
 	}
 }
 
@@ -95,10 +97,10 @@ func maybeRenewIdentity() {
 	}
 	renewed, err := enroll.MaybeRenew(dir, base, 30*time.Second)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "[adminhelper-agent] Cert-Renew Fehler: %v\n", err)
+		logger.Warnf("Cert-Renew Fehler: %v", err)
 		return
 	}
 	if renewed {
-		fmt.Println("[adminhelper-agent] mTLS-Client-Zertifikat erneuert.")
+		logger.Infof("mTLS-Client-Zertifikat erneuert.")
 	}
 }

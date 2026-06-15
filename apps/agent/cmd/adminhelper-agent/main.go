@@ -9,6 +9,8 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+
+	"adminhelper-agent/internal/logging"
 )
 
 var version = "dev"
@@ -17,6 +19,16 @@ func main() {
 	root := &cobra.Command{
 		Use:   "adminhelper-agent",
 		Short: "AdminHelper Agent — FRPC Sync + Monitoring (Linux & Windows)",
+	}
+
+	// Initialise logging before any subcommand runs. Output goes to stdout and a
+	// rotating file (see internal/logging); the level defaults to the LOG_LEVEL
+	// env var, overridable per-invocation with --log-level.
+	var logLevel string
+	root.PersistentFlags().StringVar(&logLevel, "log-level", envOr("LOG_LEVEL", "info"),
+		"Log-Level: debug, info, warn, error")
+	root.PersistentPreRun = func(cmd *cobra.Command, args []string) {
+		logging.Init(logLevel)
 	}
 
 	root.AddCommand(versionCmd())
@@ -30,6 +42,13 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+}
+
+func envOr(key, def string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return def
 }
 
 func versionCmd() *cobra.Command {

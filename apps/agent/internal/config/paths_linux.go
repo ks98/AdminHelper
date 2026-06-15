@@ -8,3 +8,4 @@ package config
 
 func FrpDir() string     { return "/etc/frp" }
 func MonitorDir() string { return "/etc/adminhelper" }
+func LogDir() string     { return "/var/log/adminhelper" }

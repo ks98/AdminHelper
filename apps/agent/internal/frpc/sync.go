@@ -21,7 +21,7 @@ func Sync() error {
 	cfg, err := config.LoadFrpcConfig()
 	if err != nil {
 		if os.IsNotExist(err) {
-			logMsg("Keine Konfiguration gefunden. Ueberspringe.")
+			logger.Infof("Keine Konfiguration gefunden. Ueberspringe.")
 			return nil
 		}
 		return fmt.Errorf("Config laden: %w", err)
@@ -41,7 +41,7 @@ func Sync() error {
 	hashURL := fmt.Sprintf("%s/api/frp/provision/%s/config-hash", cfg.AdminHelperURL, cfg.ServerID)
 	hashBody, err := httpGet(client, hashURL, cfg.APIKey)
 	if err != nil {
-		logMsg("WARNUNG: Config-Hash konnte nicht abgefragt werden: %v", err)
+		logger.Warnf("Config-Hash konnte nicht abgefragt werden: %v", err)
 		return nil
 	}
 	remoteHash, err := parseConfigHash(hashBody)
@@ -58,7 +58,7 @@ func Sync() error {
 	if remoteHash == localHash {
 		return nil
 	}
-	logMsg("Config-Aenderung erkannt. Aktualisiere...")
+	logger.Infof("Config-Aenderung erkannt. Aktualisiere...")
 
 	// Fetch the new config
 	configURL := fmt.Sprintf("%s/api/frp/provision/%s/config", cfg.AdminHelperURL, cfg.ServerID)
@@ -79,7 +79,7 @@ func Sync() error {
 	if err := restartFrpc(); err != nil {
 		return fmt.Errorf("frpc neustarten: %w", err)
 	}
-	logMsg("frpc.toml aktualisiert und frpc neugestartet.")
+	logger.Infof("frpc.toml aktualisiert und frpc neugestartet.")
 	return nil
 }
 

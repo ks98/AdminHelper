@@ -6,10 +6,7 @@
 
 package frpc
 
-import (
-	"fmt"
-	"os/exec"
-)
+import "os/exec"
 
 // enableFrpcService starts the frpc process on Windows.
 // In service mode, frpc is managed by the AdminHelper agent service itself.
@@ -23,7 +20,7 @@ func enableFrpcService() error {
 // restartFrpc restarts frpc on Windows.
 func restartFrpc() error {
 	if err := exec.Command("sc", "stop", "frpc").Run(); err != nil {
-		fmt.Printf("[adminhelper-agent-frpc] WARNUNG: frpc stop: %v\n", err)
+		logger.Warnf("frpc stop: %v", err)
 	}
 	return exec.Command("sc", "start", "frpc").Run()
 }

@@ -39,7 +39,7 @@ func Init(url, apiKey, serverID, services, cacert string, insecure bool) error {
 			return err
 		}
 		storedCACert = dest
-		logMsg("CA-Zertifikat kopiert: %s", dest)
+		logger.Infof("CA-Zertifikat kopiert: %s", dest)
 	}
 
 	// Preserve an existing SERVICES line on re-provisioning: a token rotation
@@ -68,7 +68,7 @@ func Init(url, apiKey, serverID, services, cacert string, insecure bool) error {
 	if err := config.WriteKeyValue(config.MonitorConfFile(), entries); err != nil {
 		return fmt.Errorf("Config schreiben: %w", err)
 	}
-	logMsg("Config geschrieben: %s", config.MonitorConfFile())
+	logger.Infof("Config geschrieben: %s", config.MonitorConfFile())
 
 	// Test push
 	var serviceList []string
@@ -81,16 +81,16 @@ func Init(url, apiKey, serverID, services, cacert string, insecure bool) error {
 	}
 	report := BuildReport(serviceList)
 	if err := PushReport(url, apiKey, serverID, report, storedCACert, insecure); err != nil {
-		logMsg("WARNUNG: Test-Push fehlgeschlagen: %v", err)
-		logMsg("Pruefe URL und API-Key")
+		logger.Warnf("Test-Push fehlgeschlagen: %v", err)
+		logger.Warnf("Pruefe URL und API-Key")
 	} else {
-		logMsg("Test-Push erfolgreich")
+		logger.Infof("Test-Push erfolgreich")
 	}
 
 	// Activate the service (platform-specific)
 	if err := enableMonitorService(); err != nil {
-		logMsg("WARNUNG: Service konnte nicht aktiviert werden: %v", err)
-		logMsg("Bitte manuell aktivieren")
+		logger.Warnf("Service konnte nicht aktiviert werden: %v", err)
+		logger.Warnf("Bitte manuell aktivieren")
 	}
 
 	return nil
@@ -113,16 +113,16 @@ func Push() error {
 	statePath := config.MonitorInventoryStateFile()
 	newState, sentFull := throttleInventory(report, statePath, time.Now())
 	if err := PushReport(cfg.MonitorURL, cfg.APIKey, cfg.ServerID, report, cfg.CACert, cfg.Insecure); err != nil {
-		logMsg("Report senden fehlgeschlagen: %v", err)
+		logger.Errorf("Report senden fehlgeschlagen: %v", err)
 		return err
 	}
 	if sentFull {
 		// A write failure must never block the push flow — the next run then
 		// simply sends the full inventory again.
 		if err := saveInventoryState(statePath, newState); err != nil {
-			logMsg("WARNUNG: Inventory-State speichern fehlgeschlagen: %v", err)
+			logger.Warnf("Inventory-State speichern fehlgeschlagen: %v", err)
 		}
 	}
-	logMsg("Report gesendet")
+	logger.Infof("Report gesendet")
 	return nil
 }

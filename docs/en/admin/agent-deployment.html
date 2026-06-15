@@ -95,6 +95,14 @@ sudo adminhelper-agent provision \
 journalctl -u adminhelper-agent.service -n 50
 adminhelper-agent run --once</code></pre>
 
+          <h3>Logs</h3>
+          <p>The agent <strong>also</strong> writes its logs to a rotating file — independent of the service manager, handy for a bug report:</p>
+          <ul>
+            <li>Linux: <code>/var/log/adminhelper/agent.log</code></li>
+            <li>Windows: <code>%ProgramData%\AdminHelper\logs\agent.log</code></li>
+          </ul>
+          <p>Same format as stdout/journal: <code>time=… level=INFO msg="…" component=frpc</code> (component: <code>agent</code>, <code>frpc</code> or <code>monitor</code>). Rotates at 10&nbsp;MB, 5 compressed archives. Verbosity is set via <code>LOG_LEVEL</code> (env) or <code>--log-level debug|info|warn|error</code>.</p>
+
           <div class="callout callout-tip" data-reveal>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-7 7c0 3 2 5 3 7h8c1-2 3-4 3-7a7 7 0 0 0-7-7z"/></svg>
             <div><div class="callout-title">Migration from legacy agents</div><p>The DEB/RPM packages carry <code>Replaces</code> + <code>Conflicts</code> for <code>srm-frpc-client</code>, <code>srm-monitor-agent</code>, and <code>srm-agent</code>. A single <code>apt install adminhelper-agent</code> removes the old trio and preserves the config.</p></div>

@@ -16,12 +16,6 @@ import (
 	"adminhelper-agent/internal/enroll"
 )
 
-const logTag = "adminhelper-agent-monitor"
-
-func logMsg(format string, args ...any) {
-	fmt.Printf("[%s] %s\n", logTag, fmt.Sprintf(format, args...))
-}
-
 // BuildReport collects all metrics and builds the report.
 func BuildReport(serviceNames []string) map[string]any {
 	resources := map[string]any{
@@ -102,7 +96,7 @@ func PushReport(url, apiKey, serverID string, report map[string]any, cacert stri
 	}
 
 	if err := pushOnce(client, endpoint, apiKey, data); err != nil {
-		logMsg("Push fehlgeschlagen (%v), Retry in %s...", err, pushRetryDelay)
+		logger.Warnf("Push fehlgeschlagen (%v), Retry in %s...", err, pushRetryDelay)
 		time.Sleep(pushRetryDelay)
 		return pushOnce(client, endpoint, apiKey, data)
 	}

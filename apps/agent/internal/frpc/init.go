@@ -71,7 +71,7 @@ func Apply(adminHelperURL, serverID, apiKey, frpConfigB64, pkiBundleB64, cacert 
 	if err := config.WriteKeyValue(config.FrpAdminHelperConf(), entries); err != nil {
 		return fmt.Errorf("Config schreiben: %w", err)
 	}
-	logMsg("Config geschrieben: %s", config.FrpAdminHelperConf())
+	logger.Infof("Config geschrieben: %s", config.FrpAdminHelperConf())
 
 	// Write frpc.toml (base64-decoded)
 	if frpConfigB64 != "" {
@@ -82,29 +82,29 @@ func Apply(adminHelperURL, serverID, apiKey, frpConfigB64, pkiBundleB64, cacert 
 		if err := os.WriteFile(config.FrpConfigFile(), decoded, 0600); err != nil {
 			return fmt.Errorf("frpc.toml schreiben: %w", err)
 		}
-		logMsg("frpc.toml geschrieben")
+		logger.Infof("frpc.toml geschrieben")
 	}
 
 	// Extract the PKI bundle (base64-encoded tar.gz)
 	if pkiBundleB64 != "" {
 		if err := extractPkiBundle(pkiBundleB64, frpDir); err != nil {
-			logMsg("WARNUNG: PKI-Bundle konnte nicht entpackt werden: %v", err)
+			logger.Warnf("PKI-Bundle konnte nicht entpackt werden: %v", err)
 		} else {
-			logMsg("PKI-Zertifikate installiert")
+			logger.Infof("PKI-Zertifikate installiert")
 		}
 	}
 
 	// Compute the initial hash
 	if err := writeConfigHash(); err != nil {
-		logMsg("WARNUNG: Hash konnte nicht geschrieben werden: %v", err)
+		logger.Warnf("Hash konnte nicht geschrieben werden: %v", err)
 	}
 
 	// Activate the service (platform-specific)
 	if err := enableFrpcService(); err != nil {
-		logMsg("WARNUNG: Service konnte nicht aktiviert werden: %v", err)
-		logMsg("Bitte manuell aktivieren")
+		logger.Warnf("Service konnte nicht aktiviert werden: %v", err)
+		logger.Warnf("Bitte manuell aktivieren")
 	} else {
-		logMsg("FRP-Setup abgeschlossen. frpc und sync sind aktiv.")
+		logger.Infof("FRP-Setup abgeschlossen. frpc und sync sind aktiv.")
 	}
 
 	return nil

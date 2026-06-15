@@ -4,10 +4,8 @@
 
 package frpc
 
-import "fmt"
+import "adminhelper-agent/internal/logging"
 
-const logTag = "adminhelper-agent-frpc"
-
-func logMsg(format string, args ...any) {
-	fmt.Printf("[%s] %s\n", logTag, fmt.Sprintf(format, args...))
-}
+// logger tags all frpc operational logs with component=frpc and routes them
+// through the shared rotating-file + stdout handler (see internal/logging).
+var logger = logging.For("frpc")
