@@ -28,6 +28,18 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
   entfällt; Logzeilen tragen jetzt Level + Komponente. Neue Abhängigkeit:
   `gopkg.in/natefinch/lumberjack.v2`.
 
+### Added
+
+- **Audit-Trail (wer hat wann was getan).** Neue **append-only** `audit_log`-Tabelle
+  protokolliert sicherheits- und änderungsrelevante Aktionen mit Actor (User *oder* API-Key),
+  Quell-IP und Zeitstempel: Connections (anlegen/ändern/löschen **und Nutzung** über das
+  `/touch`, das der Desktop beim Verbinden aufruft), Server, Benutzer, API-Keys,
+  FRP-Configs/Tunnel und Ansible-Playbooks sowie Login (Erfolg/Fehlschlag), Logout und
+  Erst-Admin-Bootstrap. Einsehbar über die neue admin-only Web-Ansicht **„Audit-Log"**
+  (filterbar nach Actor/Objekt/Aktion) bzw. `GET /api/audit` (paginiert). Das Schreiben ist
+  best-effort und kann die auditierte Aktion nie brechen; der Actor wird über `request.state`
+  gebunden (nicht contextvars, die in synchronen Endpoints verloren gehen).
+
 ## [0.34.0] - 2026-06-15
 
 ### Changed

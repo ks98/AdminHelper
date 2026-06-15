@@ -599,3 +599,30 @@ export interface MonitoringTemplateInput {
   check_definitions: TemplateCheckDef[];
   alert_definitions: TemplateAlertDef[];
 }
+
+// ── Audit log ───────────────────────────────────────────────────────────
+export interface AuditEntry {
+  id: number;
+  timestamp: string | null;
+  actorType: string;
+  actorId?: string | null;
+  actorLabel?: string | null;
+  action: string;
+  objectType?: string | null;
+  objectId?: string | null;
+  objectLabel?: string | null;
+  sourceIp?: string | null;
+  status: string;
+  detail?: string | null;
+}
+
+export interface AuditQuery {
+  action?: string;
+  actorType?: string;
+  objectType?: string;
+  objectId?: string;
+  status?: string;
+  q?: string;
+  limit?: number;
+  offset?: number;
+}

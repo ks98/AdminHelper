@@ -24,6 +24,7 @@ export const translations: Translations = {
     'nav.frp': 'FRP Tunnels',
     'nav.ansible': 'Ansible',
     'nav.monitoring': 'Monitoring',
+    'nav.audit': 'Audit-Log',
     'nav.logout': 'Abmelden',
 
     // ── Roles ──────────────────────────────────────────────────────────
@@ -179,6 +180,26 @@ export const translations: Translations = {
     'toast.user.created': 'Benutzer erstellt',
     'toast.user.deleted': 'Benutzer gelöscht',
     'confirm.user.delete': 'Benutzer wirklich löschen?',
+
+    // ── Audit ──────────────────────────────────────────────────────────
+    'page.audit.title': 'Audit-Log',
+    'page.audit.subtitle':
+      'Wer hat wann was getan — Verbindungen, Zugriffe, Anmeldungen und Änderungen.',
+    'page.audit.empty': 'Keine Audit-Einträge gefunden.',
+    'page.audit.loading': 'Lädt …',
+    'page.audit.filter.search': 'Suche (Actor/Objekt)',
+    'page.audit.filter.action': 'Aktion (z. B. connection.created)',
+    'page.audit.filter.actorType': 'Actor-Typ',
+    'page.audit.filter.allActors': 'Alle Actors',
+    'page.audit.filter.apply': 'Filtern',
+    'page.audit.filter.reset': 'Zurücksetzen',
+    'page.audit.col.time': 'Zeit',
+    'page.audit.col.actor': 'Actor',
+    'page.audit.col.action': 'Aktion',
+    'page.audit.col.object': 'Objekt',
+    'page.audit.col.ip': 'IP',
+    'page.audit.col.status': 'Status',
+    'page.audit.truncated': 'Nur die neuesten {n} Einträge — Filter verfeinern für ältere.',
 
     // ── API-Keys Page ─────────────────────────────────────────────────
     'page.apikeys.title': 'API-Keys',
@@ -610,6 +631,7 @@ export const translations: Translations = {
     'nav.frp': 'FRP Tunnels',
     'nav.ansible': 'Ansible',
     'nav.monitoring': 'Monitoring',
+    'nav.audit': 'Audit log',
     'nav.logout': 'Sign out',
 
     // ── Roles ──────────────────────────────────────────────────────────
@@ -764,6 +786,25 @@ export const translations: Translations = {
     'toast.user.created': 'User created',
     'toast.user.deleted': 'User deleted',
     'confirm.user.delete': 'Really delete this user?',
+
+    // ── Audit ──────────────────────────────────────────────────────────
+    'page.audit.title': 'Audit log',
+    'page.audit.subtitle': 'Who did what, and when — connections, access, logins and changes.',
+    'page.audit.empty': 'No audit entries found.',
+    'page.audit.loading': 'Loading …',
+    'page.audit.filter.search': 'Search (actor/object)',
+    'page.audit.filter.action': 'Action (e.g. connection.created)',
+    'page.audit.filter.actorType': 'Actor type',
+    'page.audit.filter.allActors': 'All actors',
+    'page.audit.filter.apply': 'Filter',
+    'page.audit.filter.reset': 'Reset',
+    'page.audit.col.time': 'Time',
+    'page.audit.col.actor': 'Actor',
+    'page.audit.col.action': 'Action',
+    'page.audit.col.object': 'Object',
+    'page.audit.col.ip': 'IP',
+    'page.audit.col.status': 'Status',
+    'page.audit.truncated': 'Showing the latest {n} entries — narrow the filters for older ones.',
 
     // ── API-Keys Page ─────────────────────────────────────────────────
     'page.apikeys.title': 'API Keys',

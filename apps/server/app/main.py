@@ -21,6 +21,7 @@ from app.modules.ansible.router import router as ansible_router
 from app.modules.api_keys.models import ApiKey  # noqa: F401
 from app.modules.api_keys.router import router as api_keys_router
 from app.modules.audit.models import AuditLog  # noqa: F401
+from app.modules.audit.router import router as audit_router
 from app.modules.connections.models import Connection  # noqa: F401
 from app.modules.connections.router import router as connections_router
 from app.modules.enrollment.router import router as enrollment_router
@@ -208,6 +209,7 @@ app.include_router(auth_router)
 app.include_router(connections_router, dependencies=_access)
 app.include_router(users_router, dependencies=_access)
 app.include_router(api_keys_router, dependencies=_access)
+app.include_router(audit_router, dependencies=_access)
 app.include_router(hooks_router)
 app.include_router(servers_router, dependencies=_access)
 app.include_router(provisioning_router)
