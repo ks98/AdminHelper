@@ -35,11 +35,13 @@ type SmartDisk struct {
 	ReportedUncorrect  int `json:"reported_uncorrect"`
 	UDMACRCErrors      int `json:"udma_crc_errors"`
 
-	// NVMe-specific
-	AvailableSparePct int `json:"available_spare_pct,omitempty"`
-	PercentageUsed    int `json:"percentage_used,omitempty"`
-	MediaErrors       int `json:"media_errors,omitempty"`
-	CriticalWarning   int `json:"critical_warning,omitempty"`
+	// NVMe-specific. NO omitempty: a critical 0 (e.g. available_spare=0 =
+	// spare exhausted) must stay in the JSON so the server can tell it apart
+	// from "never reported". The protocol field keeps ATA/NVMe distinguishable.
+	AvailableSparePct int `json:"available_spare_pct"`
+	PercentageUsed    int `json:"percentage_used"`
+	MediaErrors       int `json:"media_errors"`
+	CriticalWarning   int `json:"critical_warning"`
 }
 
 // collectSmart collects SMART data of all detected devices via smartctl.

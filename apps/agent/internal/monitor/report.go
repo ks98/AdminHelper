@@ -6,6 +6,7 @@ package monitor
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -79,8 +80,9 @@ var pushRetryDelay = 10 * time.Second
 
 // PushReport sends the report to the monitoring service. A lost push wastes a
 // full 5-minute slot, so a transient failure (server restart, network blip)
-// gets one retry after a short backoff.
-func PushReport(url, apiKey, serverID string, report map[string]any, cacert string, insecure bool) error {
+// gets one retry after a short backoff. The backoff honors ctx so a shutdown
+// (e.g. the Windows SCM stop) aborts the wait instead of blocking up to 10s.
+func PushReport(ctx context.Context, url, apiKey, serverID string, report map[string]any, cacert string, insecure bool) error {
 	endpoint := fmt.Sprintf("%s/agent/%s/report", url, serverID)
 
 	data, err := json.Marshal(report)
@@ -97,7 +99,11 @@ func PushReport(url, apiKey, serverID string, report map[string]any, cacert stri
 
 	if err := pushOnce(client, endpoint, apiKey, data); err != nil {
 		logger.Warnf("Push fehlgeschlagen (%v), Retry in %s...", err, pushRetryDelay)
-		time.Sleep(pushRetryDelay)
+		select {
+		case <-time.After(pushRetryDelay):
+		case <-ctx.Done():
+			return ctx.Err()
+		}
 		return pushOnce(client, endpoint, apiKey, data)
 	}
 	return nil

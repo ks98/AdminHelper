@@ -126,7 +126,7 @@ func collectProxmox() map[string]any {
 	}
 
 	// Build the backup index once for all VMs (O(Storages) instead of O(VMs × Storages))
-	backupIndex := buildBackupIndex()
+	backupIndex := buildBackupIndex(nodeName)
 
 	// VMs + LXC containers
 	var vmList []map[string]any
@@ -164,7 +164,9 @@ func collectProxmox() map[string]any {
 
 // buildBackupIndex fetches all backups of all storages and builds a lookup map
 // vmid -> newest ctime timestamp. Only O(Storages) API calls instead of O(VMs × Storages).
-func buildBackupIndex() map[int]int64 {
+// nodeName is the resolved local node (not the literal "localhost", on which
+// pvesh's implicit mapping is undocumented and could silently break).
+func buildBackupIndex(nodeName string) map[int]int64 {
 	index := make(map[int]int64)
 
 	storagesOut, err := exec.Command("pvesh", "get", "/storage",
@@ -186,7 +188,7 @@ func buildBackupIndex() map[int]int64 {
 
 		// Fetch all backups of this storage at once (without the --vmid filter)
 		backupsOut, err := exec.Command("pvesh", "get",
-			"/nodes/localhost/storage/"+sid+"/content",
+			"/nodes/"+nodeName+"/storage/"+sid+"/content",
 			"--content", "backup", "--output-format", "json").Output()
 		if err != nil {
 			continue

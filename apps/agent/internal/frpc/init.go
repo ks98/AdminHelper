@@ -179,7 +179,18 @@ func extractPkiBundle(b64 string, destDir string) error {
 				return fmt.Errorf("zip bomb erkannt: PKI-Bundle ueberschreitet %d Bytes", maxBundleBytes)
 			}
 			totalBytes += written
-			f.Close()
+			// Sync + checked Close: with a write-back cache the real write
+			// error surfaces only at flush. A truncated .key/.crt written
+			// silently would later fail the mTLS handshake cryptically.
+			if err := f.Sync(); err != nil {
+				f.Close()
+				os.Remove(target)
+				return err
+			}
+			if err := f.Close(); err != nil {
+				os.Remove(target)
+				return err
+			}
 			if strings.HasSuffix(hdr.Name, ".crt") {
 				if err := os.Chmod(target, 0644); err != nil {
 					return err

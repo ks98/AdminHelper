@@ -5,6 +5,7 @@
 package main
 
 import (
+	"context"
 	"os"
 	"os/signal"
 	"syscall"
@@ -32,7 +33,7 @@ func runCmd() *cobra.Command {
 		Long:  "Ohne --once: Dauerbetrieb (alle 5 Minuten). Mit --once: einmaliger Durchlauf (fuer systemd-Timer).",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if once {
-				runOnce()
+				runOnce(context.Background())
 				return nil
 			}
 			// On Windows, run under the SCM when started as a service (reports
@@ -54,15 +55,20 @@ func runLoop() error {
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
 
+	// Cancel the ctx on shutdown so an in-flight push retry backoff aborts
+	// instead of blocking the exit.
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	ticker := time.NewTicker(defaultInterval)
 	defer ticker.Stop()
 
-	runOnce()
+	runOnce(ctx)
 
 	for {
 		select {
 		case <-ticker.C:
-			runOnce()
+			runOnce(ctx)
 		case s := <-sig:
 			logger.Infof("Signal %v empfangen, beende...", s)
 			return nil
@@ -70,7 +76,7 @@ func runLoop() error {
 	}
 }
 
-func runOnce() {
+func runOnce(ctx context.Context) {
 	// The agent runs as a oneshot (systemd timer / scheduled task), so renewal
 	// is a check-at-each-run rather than a background timer: if the enrolled cert
 	// is past ~50 % of its lifetime, renew it before the pushes.
@@ -78,7 +84,7 @@ func runOnce() {
 	if err := frpc.Sync(); err != nil {
 		logger.Errorf("FRPC-Sync Fehler: %v", err)
 	}
-	if err := monitor.Push(); err != nil {
+	if err := monitor.Push(ctx); err != nil {
 		logger.Errorf("Monitor-Push Fehler: %v", err)
 	}
 }

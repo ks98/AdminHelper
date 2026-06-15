@@ -16,7 +16,16 @@ func enableFrpcService() error {
 	if err := exec.Command("systemctl", "daemon-reload").Run(); err != nil {
 		return fmt.Errorf("daemon-reload: %w", err)
 	}
-	return exec.Command("systemctl", "enable", "--now", "frpc.service", "adminhelper-agent.timer").Run()
+	// Enable each unit separately: a combined `enable --now frpc.service
+	// adminhelper-agent.timer` fails atomically if the timer unit is not
+	// installed yet, dragging frpc down with it.
+	if err := exec.Command("systemctl", "enable", "--now", "frpc.service").Run(); err != nil {
+		return fmt.Errorf("enable frpc.service: %w", err)
+	}
+	if err := exec.Command("systemctl", "enable", "--now", "adminhelper-agent.timer").Run(); err != nil {
+		return fmt.Errorf("enable adminhelper-agent.timer: %w", err)
+	}
+	return nil
 }
 
 // restartFrpc restarts the frpc service.

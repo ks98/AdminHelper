@@ -5,6 +5,7 @@
 package monitor
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"sync/atomic"
@@ -67,7 +68,7 @@ func TestPushReportSuccessNoRetry(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	if err := PushReport(srv.URL, "key", "srv-1", map[string]any{"a": 1}, "", false); err != nil {
+	if err := PushReport(context.Background(), srv.URL, "key", "srv-1", map[string]any{"a": 1}, "", false); err != nil {
 		t.Fatalf("PushReport: %v", err)
 	}
 	if got := attempts.Load(); got != 1 {
@@ -87,7 +88,7 @@ func TestPushReportRetriesOnceOnTransientError(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	if err := PushReport(srv.URL, "key", "srv-1", map[string]any{"a": 1}, "", false); err != nil {
+	if err := PushReport(context.Background(), srv.URL, "key", "srv-1", map[string]any{"a": 1}, "", false); err != nil {
 		t.Fatalf("PushReport nach Retry: %v", err)
 	}
 	if got := attempts.Load(); got != 2 {
@@ -104,11 +105,40 @@ func TestPushReportFailsAfterSingleRetry(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	err := PushReport(srv.URL, "key", "srv-1", map[string]any{"a": 1}, "", false)
+	err := PushReport(context.Background(), srv.URL, "key", "srv-1", map[string]any{"a": 1}, "", false)
 	if err == nil {
 		t.Fatal("PushReport erwartete Fehler, bekam keinen")
 	}
 	if got := attempts.Load(); got != 2 {
 		t.Errorf("attempts = %d, erwartet 2 (genau ein Retry, kein Loop)", got)
+	}
+}
+
+func TestPushReportAbortsRetryOnContextCancel(t *testing.T) {
+	// Keep the backoff long: if the ctx were ignored the test would block for
+	// the full delay. A cancelled ctx must abort the wait and skip the retry.
+	orig := pushRetryDelay
+	pushRetryDelay = 30 * time.Second
+	t.Cleanup(func() { pushRetryDelay = orig })
+
+	var attempts atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		attempts.Add(1)
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer srv.Close()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	start := time.Now()
+	if err := PushReport(ctx, srv.URL, "key", "srv-1", map[string]any{"a": 1}, "", false); err == nil {
+		t.Fatal("PushReport erwartete ctx-Fehler nach Cancel")
+	}
+	if elapsed := time.Since(start); elapsed > 5*time.Second {
+		t.Errorf("PushReport blockierte %v trotz abgebrochenem ctx", elapsed)
+	}
+	if got := attempts.Load(); got != 1 {
+		t.Errorf("attempts = %d, erwartet 1 (kein Retry nach ctx-Cancel)", got)
 	}
 }

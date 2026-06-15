@@ -5,6 +5,8 @@
 package main
 
 import (
+	"context"
+
 	"adminhelper-agent/internal/diagnostics"
 	"adminhelper-agent/internal/frpc"
 	"adminhelper-agent/internal/monitor"
@@ -25,7 +27,7 @@ func monitorInitRun(url, apiKey, serverID, services, cacert string, insecure boo
 }
 
 func monitorPushRun() error {
-	return monitor.Push()
+	return monitor.Push(context.Background())
 }
 
 func serviceInstallRun() error {

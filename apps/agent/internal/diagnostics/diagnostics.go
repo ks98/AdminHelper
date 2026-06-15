@@ -18,6 +18,8 @@ import (
 	"strings"
 	"time"
 
+	hostinfo "github.com/shirou/gopsutil/v4/host"
+
 	"adminhelper-agent/internal/config"
 )
 
@@ -41,12 +43,13 @@ func Run(version string) error {
 	fmt.Fprintf(&b, "os/arch : %s/%s\n", runtime.GOOS, runtime.GOARCH)
 	fmt.Fprintf(&b, "host    : %s\n", host)
 
-	if data, err := os.ReadFile("/etc/os-release"); err == nil {
+	// gopsutil works on Linux and Windows alike; /etc/os-release does not exist
+	// on Windows, where the whole OS section used to be silently missing.
+	if info, err := hostinfo.Info(); err == nil {
 		b.WriteString("\n## OS\n")
-		for _, line := range strings.Split(string(data), "\n") {
-			if strings.HasPrefix(line, "PRETTY_NAME=") || strings.HasPrefix(line, "VERSION=") {
-				b.WriteString(line + "\n")
-			}
+		fmt.Fprintf(&b, "platform: %s %s\n", info.Platform, info.PlatformVersion)
+		if info.KernelVersion != "" {
+			fmt.Fprintf(&b, "kernel  : %s\n", info.KernelVersion)
 		}
 	}
 

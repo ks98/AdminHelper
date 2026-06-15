@@ -5,6 +5,7 @@
 package monitor
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -80,7 +81,7 @@ func Init(url, apiKey, serverID, services, cacert string, insecure bool) error {
 		}
 	}
 	report := BuildReport(serviceList)
-	if err := PushReport(url, apiKey, serverID, report, storedCACert, insecure); err != nil {
+	if err := PushReport(context.Background(), url, apiKey, serverID, report, storedCACert, insecure); err != nil {
 		logger.Warnf("Test-Push fehlgeschlagen: %v", err)
 		logger.Warnf("Pruefe URL und API-Key")
 	} else {
@@ -96,8 +97,9 @@ func Init(url, apiKey, serverID, services, cacert string, insecure bool) error {
 	return nil
 }
 
-// Push reads the config and sends a one-off report.
-func Push() error {
+// Push reads the config and sends a one-off report. The ctx aborts the push
+// retry backoff on shutdown so a stopping service is not blocked up to 10s.
+func Push(ctx context.Context) error {
 	cfg, err := config.LoadMonitorConfig()
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -112,7 +114,7 @@ func Push() error {
 	report := BuildReport(cfg.Services)
 	statePath := config.MonitorInventoryStateFile()
 	newState, sentFull := throttleInventory(report, statePath, time.Now())
-	if err := PushReport(cfg.MonitorURL, cfg.APIKey, cfg.ServerID, report, cfg.CACert, cfg.Insecure); err != nil {
+	if err := PushReport(ctx, cfg.MonitorURL, cfg.APIKey, cfg.ServerID, report, cfg.CACert, cfg.Insecure); err != nil {
 		logger.Errorf("Report senden fehlgeschlagen: %v", err)
 		return err
 	}
