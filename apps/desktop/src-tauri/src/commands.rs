@@ -39,6 +39,13 @@ pub async fn check_server_cert(server_url: String) -> Result<bool, AppError> {
     }
 }
 
+/// Build a redacted diagnostics report (version, OS, recent log tail) for a bug
+/// report and return the path of the written file.
+#[tauri::command]
+pub fn generate_diagnostics(app: tauri::AppHandle) -> Result<String, AppError> {
+    crate::diagnostics::generate(&app)
+}
+
 /// Forget the pinned (TOFU) certificate for a server, so the next connection
 /// re-pins on first use. For recovering from a legitimate certificate rotation
 /// after the pin-mismatch error.

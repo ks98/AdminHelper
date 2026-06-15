@@ -13,7 +13,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
     serverLogout,
   } from '$lib/stores/settings';
   import { t } from '$lib/i18n';
-  import { resetServerCertPin, exportBrowserP12 } from '$lib/bridge';
+  import { resetServerCertPin, exportBrowserP12, generateDiagnostics } from '$lib/bridge';
   import { save } from '@tauri-apps/plugin-dialog';
   import {
     RDP_WINDOW_MODES,
@@ -45,6 +45,8 @@ SPDX-License-Identifier: GPL-3.0-or-later
   let browserCertPassword = $state('');
   let browserCertMsg = $state('');
   let browserCertBusy = $state(false);
+  let diagBusy = $state(false);
+  let diagMsg = $state('');
 
   $effect(() => {
     if (!$settingsModalOpen) return;
@@ -64,6 +66,8 @@ SPDX-License-Identifier: GPL-3.0-or-later
     browserCertPassword = '';
     browserCertMsg = '';
     browserCertBusy = false;
+    diagMsg = '';
+    diagBusy = false;
   });
 
   async function onResetPin(): Promise<void> {
@@ -108,6 +112,19 @@ SPDX-License-Identifier: GPL-3.0-or-later
       browserCertMsg = $t('settings.browserCert.error');
     } finally {
       browserCertBusy = false;
+    }
+  }
+
+  async function onGenerateDiagnostics(): Promise<void> {
+    diagBusy = true;
+    diagMsg = $t('settings.diagnostics.working');
+    try {
+      const path = await generateDiagnostics();
+      diagMsg = `${$t('settings.diagnostics.done')} ${path}`;
+    } catch {
+      diagMsg = $t('settings.diagnostics.error');
+    } finally {
+      diagBusy = false;
     }
   }
 
@@ -329,6 +346,17 @@ SPDX-License-Identifier: GPL-3.0-or-later
         </label>
       </div>
 
+      <div class="sm-section">
+        <div class="sm-section-title">{$t('settings.section.diagnostics')}</div>
+        <span class="field-label">{$t('settings.diagnostics.hint')}</span>
+        <div>
+          <button class="btn ghost small" onclick={onGenerateDiagnostics} disabled={diagBusy}>
+            {$t('settings.diagnostics.create')}
+          </button>
+        </div>
+        {#if diagMsg}<span class="sm-diag-msg">{diagMsg}</span>{/if}
+      </div>
+
       <div class="panel-actions">
         <div style="flex: 1;"></div>
         <button class="btn" onclick={closeSettings}>{$t('action.cancel')}</button>
@@ -466,6 +494,11 @@ SPDX-License-Identifier: GPL-3.0-or-later
     outline: 1px solid var(--accent);
   }
   .sm-browser-cert-msg {
+    font-size: 12px;
+    color: var(--accent);
+    word-break: break-all;
+  }
+  .sm-diag-msg {
     font-size: 12px;
     color: var(--accent);
     word-break: break-all;

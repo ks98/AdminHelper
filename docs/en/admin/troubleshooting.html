@@ -93,6 +93,7 @@ docker compose exec monitoring df -h /data/victoria</code></pre>
 <pre><code>./scripts/diagnostics.sh               # writes adminhelper-diagnostics-&lt;ts&gt;.tar.gz
 ./scripts/diagnostics.sh --tail 1000   # more log lines per service</code></pre>
           <p>The bundle contains <code>report.txt</code> (versions, OS, docker, service status), <code>compose.yml</code>, an <code>env.sanitized</code> (secret values masked) and the last log lines per service. Then attach it to a <a href="https://github.com/ks98/AdminHelper/issues/new/choose">GitHub issue</a>.</p>
+          <p>For the <strong>desktop client</strong>: Settings → Diagnostics → "Create diagnostics report". For an <strong>agent</strong> on a managed server: <code>adminhelper-agent diagnostics</code>.</p>
 
           <div class="callout"><div class="callout-title">Skim before sending</div><p>Secrets (SECRET_KEY, passwords, API keys, JWT/Bearer tokens) are masked automatically, but redaction is best-effort — please glance over the bundle before uploading.</p></div>
 

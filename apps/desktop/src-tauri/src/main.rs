@@ -6,6 +6,7 @@ mod ansible;
 mod auth;
 mod commands;
 mod connection;
+mod diagnostics;
 mod enrollment;
 mod error;
 mod frpc;
@@ -21,8 +22,8 @@ mod validation;
 use commands::{
     ansible_generate_inventory, ansible_launch, ansible_write_playbook, api_proxy,
     check_server_cert, delete_password, enroll_device, enroll_with_token, export_browser_p12,
-    fetch_connections_jwt, fetch_tunnels, load_connections, load_settings, login, logout,
-    open_connection, open_connection_stored, password_state, reset_server_cert_pin,
+    fetch_connections_jwt, fetch_tunnels, generate_diagnostics, load_connections, load_settings,
+    login, logout, open_connection, open_connection_stored, password_state, reset_server_cert_pin,
     resolve_connection, save_connections, save_password, save_settings, start_tunnel, stop_tunnel,
     sync_connections, tunnel_status,
 };
@@ -92,6 +93,7 @@ fn main() {
             stop_tunnel,
             tunnel_status,
             fetch_tunnels,
+            generate_diagnostics,
             resolve_connection,
             api_proxy,
             check_server_cert,

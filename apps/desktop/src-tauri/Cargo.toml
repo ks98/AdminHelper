@@ -24,6 +24,8 @@ tauri-plugin-dialog = "2"
 tauri-plugin-log = "2"
 log = "0.4"
 chrono = "0.4"
+# Token redaction in the diagnostics report.
+regex = "1"
 # TLS TOFU pinning (desktop self-signed path): a custom rustls ServerCertVerifier
 # needs rustls + an explicit ring provider (must match the version reqwest's
 # rustls-tls resolves — 0.23 — or use_preconfigured_tls's downcast fails at

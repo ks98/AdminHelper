@@ -45,6 +45,13 @@ export function saveSettings(settings: Settings): Promise<void> {
   return invoke('save_settings', { settings });
 }
 
+// ─────────────────────────── Diagnostics ──────────────────────────
+
+/** Build a redacted diagnostics report and return the path of the written file. */
+export function generateDiagnostics(): Promise<string> {
+  return invoke<string>('generate_diagnostics');
+}
+
 // ─────────────────────────── Auth ─────────────────────────────────
 
 export function login(

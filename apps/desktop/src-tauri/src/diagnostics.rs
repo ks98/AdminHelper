@@ -1,0 +1,92 @@
+// SPDX-FileCopyrightText: 2026 Kevin Stenzel
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+//! Redacted desktop diagnostics report for bug reports: version, OS and the tail
+//! of the rotating log file, with secret-looking tokens masked. Written next to
+//! the log file; the path is returned to the UI for the user to attach to an issue.
+
+use chrono::Utc;
+use regex::Regex;
+use tauri::{AppHandle, Manager};
+
+use crate::error::AppError;
+
+const LOG_TAIL_LINES: usize = 400;
+
+/// Build a redacted report, write it into the app log dir and return its path.
+pub fn generate(app: &AppHandle) -> Result<String, AppError> {
+    let log_dir = app
+        .path()
+        .app_log_dir()
+        .map_err(|e| AppError::Connection(format!("Log-Verzeichnis: {e}")))?;
+    let log_path = log_dir.join("adminhelper.log");
+
+    let mut report = String::new();
+    report.push_str("AdminHelper desktop diagnostics\n");
+    report.push_str("======================================================================\n\n");
+    report.push_str(&format!("version : {}\n", app.package_info().version));
+    report.push_str(&format!(
+        "os/arch : {}/{}\n",
+        std::env::consts::OS,
+        std::env::consts::ARCH
+    ));
+    report.push_str(&format!("log file: {}\n\n", log_path.display()));
+
+    report.push_str(&format!("## Log (last {LOG_TAIL_LINES} lines)\n"));
+    match std::fs::read_to_string(&log_path) {
+        Ok(content) => report.push_str(&tail(&content, LOG_TAIL_LINES)),
+        Err(e) => report.push_str(&format!("(log not available: {e})\n")),
+    }
+
+    let redacted = redact(&report);
+    let out = log_dir.join(format!(
+        "adminhelper-diagnostics-{}.txt",
+        Utc::now().format("%Y%m%dT%H%M%SZ")
+    ));
+    std::fs::write(&out, redacted)?;
+    Ok(out.display().to_string())
+}
+
+fn tail(content: &str, n: usize) -> String {
+    let lines: Vec<&str> = content.lines().collect();
+    let start = lines.len().saturating_sub(n);
+    let mut s = lines[start..].join("\n");
+    s.push('\n');
+    s
+}
+
+/// Mask generic secret token shapes (JWT, Bearer, ah_ API keys).
+fn redact(s: &str) -> String {
+    let jwt = Regex::new(r"eyJ[A-Za-z0-9_-]{6,}\.[A-Za-z0-9_-]{6,}\.[A-Za-z0-9_-]*").unwrap();
+    let bearer = Regex::new(r"(?i)bearer [A-Za-z0-9._-]{8,}").unwrap();
+    let apikey = Regex::new(r"ah_[A-Za-z0-9_-]{8,}").unwrap();
+    let s = jwt.replace_all(s, "<redacted-jwt>");
+    let s = bearer.replace_all(&s, "Bearer <redacted>");
+    let s = apikey.replace_all(&s, "ah_<redacted>");
+    s.into_owned()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn redacts_tokens_but_keeps_plain_text() {
+        let input =
+            "hi Authorization: Bearer abcdef123456 key ah_aBcDeFgH1234 jwt eyJhbGciOiJI.eyJzdWIiOiJ.sig";
+        let out = redact(input);
+        assert!(!out.contains("abcdef123456"), "bearer token leaked: {out}");
+        assert!(!out.contains("ah_aBcDeFgH1234"), "api key leaked: {out}");
+        assert!(out.contains("hi"));
+        assert!(out.contains("Bearer <redacted>"));
+        assert!(out.contains("ah_<redacted>"));
+        assert!(out.contains("<redacted-jwt>"));
+    }
+
+    #[test]
+    fn tail_keeps_last_lines() {
+        assert_eq!(tail("a\nb\nc\nd\n", 2), "c\nd\n");
+        assert_eq!(tail("x\n", 5), "x\n");
+    }
+}

@@ -49,6 +49,8 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
   enthalten; ein hermetischer Redaction-Test läuft im CI. Ersetzt das in der Doku erwähnte,
   nie implementierte `app.cli support-bundle`. Der Go-Agent bringt analog
   `adminhelper-agent diagnostics` mit (Version, OS, Config ohne Secrets, Log-Auszug; redaktiert).
+  Der **Desktop-Client** loggt jetzt in eine rotierende Datei (+ Panic-Hook) und bietet unter
+  Einstellungen → Diagnose einen „Diagnose-Bericht" (Version, OS, Log-Auszug; redaktiert).
 
 ## [0.34.0] - 2026-06-15
 
