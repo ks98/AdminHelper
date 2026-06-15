@@ -1,0 +1,56 @@
+# SPDX-FileCopyrightText: 2026 Kevin Stenzel
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+name: Bug report
+description: Report a problem with AdminHelper / Einen Fehler melden
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Danke für den Report! Wenn möglich, hänge ein **Diagnose-Bundle** an:
+        führe auf dem Server-Host `./scripts/diagnostics.sh` aus, sieh die erzeugte
+        `adminhelper-diagnostics-*.tar.gz` kurz durch (Secrets sind maskiert) und
+        lade sie unten hoch. / Please attach a diagnostics bundle when you can.
+  - type: dropdown
+    id: component
+    attributes:
+      label: Komponente / Component
+      options:
+        - Server
+        - Monitoring
+        - Agent
+        - Desktop
+        - Web-UI
+        - Installation / Ops
+        - Andere / Unknown
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: z. B. Sidebar, `cat VERSION` oder `adminhelper-agent version`
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: Was ist passiert? / What happened?
+      description: Erwartetes vs. tatsächliches Verhalten.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Schritte zur Reproduktion / Steps to reproduce
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+  - type: textarea
+    id: bundle
+    attributes:
+      label: Diagnose-Bundle / Logs
+      description: Bundle per Drag & Drop anhängen oder relevante (redigierte) Logzeilen einfügen.

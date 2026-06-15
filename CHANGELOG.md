@@ -41,6 +41,13 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
   gebunden (nicht contextvars, die in synchronen Endpoints verloren gehen). Ein täglicher
   System-Job löscht Einträge älter als `AUDIT_RETENTION_DAYS` (Default 365, `0` = unbegrenzt) —
   der einzige Löschpfad der append-only Tabelle.
+- **Diagnose-Bundle für Bug-Reports (`scripts/diagnostics.sh`).** Erzeugt auf dem Server-Host
+  ein **redaktiertes** `tar.gz` (Versionen, OS/Docker, `docker compose ps`, pro-Service-Logs,
+  `compose.yml`, sanitisierte `.env`), das der Admin durchsieht und an ein GitHub-Issue hängt.
+  Secret-Werte (SECRET_KEY, Passwörter, API-Keys, JWT-/Bearer-Tokens) werden automatisch
+  maskiert (Best-effort). Dazu ein GitHub-Issue-Template; das Skript ist im Runtime-Bundle
+  enthalten; ein hermetischer Redaction-Test läuft im CI. Ersetzt das in der Doku erwähnte,
+  nie implementierte `app.cli support-bundle`.
 
 ## [0.34.0] - 2026-06-15
 

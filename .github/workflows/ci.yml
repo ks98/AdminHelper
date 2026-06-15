@@ -395,3 +395,5 @@ jobs:
         run: shellcheck --severity=warning scripts/*.sh scripts/tests/*.sh
       - name: update.sh sandbox test
         run: bash scripts/tests/update_test.sh
+      - name: diagnostics.sh redaction test
+        run: bash scripts/tests/diagnostics_test.sh

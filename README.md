@@ -259,6 +259,17 @@ GET    /api/monitoring/templates # Monitoring templates (admin)
 
 API documentation: `https://localhost/api/docs` (Swagger UI) or `/openapi.json`
 
+### Diagnostics & bug reports
+
+Hit a bug? On the server host, generate a **redacted** diagnostics bundle and attach it to a [GitHub issue](https://github.com/ks98/AdminHelper/issues/new/choose):
+
+```bash
+./scripts/diagnostics.sh            # writes adminhelper-diagnostics-<ts>.tar.gz
+./scripts/diagnostics.sh --tail 1000   # more log lines per service
+```
+
+The bundle contains versions, service status, `compose.yml`, a sanitized `.env` (secret values masked) and recent per-service logs. Secrets (SECRET_KEY, passwords, API keys, JWT/Bearer tokens) are masked automatically — still, skim it before sending. Security- and change-relevant actions are additionally recorded in an append-only **audit log** (Web UI → *Audit log*, or `GET /api/audit`).
+
 ---
 
 ## Monitoring

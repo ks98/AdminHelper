@@ -86,17 +86,15 @@ docker compose exec monitoring df -h /data/victoria</code></pre>
             <li>Wrong <code>sk</code> on STCP tunnels – both sides must match.</li>
           </ul>
 
-          <h2>Support Bundle</h2>
-          <p>Collect a reproducible context for support requests:</p>
+          <h2>Diagnostics bundle</h2>
+          <p>Collect a <strong>redacted</strong> diagnostics bundle for a bug report, on the server host:</p>
 
           <div class="code-header"><span>bash</span></div>
-<pre><code>docker compose exec server python -m app.cli support-bundle \
-  --output /tmp/adminhelper-bundle.tgz</code></pre>
+<pre><code>./scripts/diagnostics.sh               # writes adminhelper-diagnostics-&lt;ts&gt;.tar.gz
+./scripts/diagnostics.sh --tail 1000   # more log lines per service</code></pre>
+          <p>The bundle contains <code>report.txt</code> (versions, OS, docker, service status), <code>compose.yml</code>, an <code>env.sanitized</code> (secret values masked) and the last log lines per service. Then attach it to a <a href="https://github.com/ks98/AdminHelper/issues/new/choose">GitHub issue</a>.</p>
 
-          <div class="callout callout-warn" data-reveal>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
-            <div><div class="callout-title">Bundle may contain secrets</div><p>The support bundle includes <code>.env</code>-style config + the last 1000 log lines. Review before sharing – obfuscate API keys, passwords, and IPs that shouldn't leave the org.</p></div>
-          </div>
+          <div class="callout"><div class="callout-title">Skim before sending</div><p>Secrets (SECRET_KEY, passwords, API keys, JWT/Bearer tokens) are masked automatically, but redaction is best-effort — please glance over the bundle before uploading.</p></div>
 
           <div class="page-nav">
             <a class="prev" href="./frp-tunnel.html"><span class="label">← Previous chapter</span><span class="title">FRP Tunnel</span></a>

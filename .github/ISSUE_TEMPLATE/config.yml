@@ -1,0 +1,9 @@
+# SPDX-FileCopyrightText: 2026 Kevin Stenzel
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+blank_issues_enabled: true
+contact_links:
+  - name: Dokumentation / Documentation
+    url: https://github.com/ks98/AdminHelper/tree/main/docs
+    about: Admin- und Entwickler-Doku (Betrieb, Troubleshooting, Architektur).
