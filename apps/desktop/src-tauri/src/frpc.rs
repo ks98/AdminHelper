@@ -171,13 +171,13 @@ pub fn start_frpc(
         while let Some(event) = rx.recv().await {
             match event {
                 CommandEvent::Stdout(line) => {
-                    eprintln!("[frpc stdout] {}", String::from_utf8_lossy(&line));
+                    log::info!("[frpc stdout] {}", String::from_utf8_lossy(&line));
                 }
                 CommandEvent::Stderr(line) => {
-                    eprintln!("[frpc stderr] {}", String::from_utf8_lossy(&line));
+                    log::warn!("[frpc stderr] {}", String::from_utf8_lossy(&line));
                 }
                 CommandEvent::Terminated(payload) => {
-                    eprintln!("[frpc] Prozess beendet: {:?}", payload);
+                    log::warn!("[frpc] Prozess beendet: {:?}", payload);
                     // Reconcile the shared state so a stale `child` doesn't block a
                     // later restart with "frpc laeuft bereits". The lock waits for
                     // start_frpc to finish its own guard first (same mutex).
@@ -189,7 +189,7 @@ pub fn start_frpc(
                     let _ = app_handle.emit("frpc-terminated", payload.code);
                 }
                 CommandEvent::Error(err) => {
-                    eprintln!("[frpc error] {}", err);
+                    log::error!("[frpc error] {}", err);
                     let _ = app_handle.emit("frpc-error", err);
                 }
                 _ => {}

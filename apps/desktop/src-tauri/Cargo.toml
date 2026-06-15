@@ -19,6 +19,10 @@ keyring = { version = "3", default-features = false, features = ["apple-native",
 tauri-plugin-shell = "2"
 # Native "save as" dialog so the user picks where the browser .p12 is written.
 tauri-plugin-dialog = "2"
+# Desktop logging: stdout + a size-rotated file in the app log dir; the file is
+# the source for the diagnostics report.
+tauri-plugin-log = "2"
+log = "0.4"
 chrono = "0.4"
 # TLS TOFU pinning (desktop self-signed path): a custom rustls ServerCertVerifier
 # needs rustls + an explicit ring provider (must match the version reqwest's

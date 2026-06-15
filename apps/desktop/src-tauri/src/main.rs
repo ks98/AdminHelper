@@ -29,10 +29,34 @@ use commands::{
 use tauri::Manager;
 
 fn main() {
+    // Route panics through the log sink (file + stdout) so a crash leaves a
+    // trace in the diagnostics log, while keeping the default stderr/backtrace.
+    let default_panic = std::panic::take_hook();
+    std::panic::set_hook(Box::new(move |info| {
+        log::error!("panic: {info}");
+        default_panic(info);
+    }));
+
     let frpc_state = frpc::new_frpc_state();
     let frpc_state_exit = frpc_state.clone();
 
     tauri::Builder::default()
+        .plugin(
+            // stdout + a size-rotated file (adminhelper.log) in the OS app-log
+            // dir — the diagnostics report reads it back.
+            tauri_plugin_log::Builder::new()
+                .target(tauri_plugin_log::Target::new(
+                    tauri_plugin_log::TargetKind::Stdout,
+                ))
+                .target(tauri_plugin_log::Target::new(
+                    tauri_plugin_log::TargetKind::LogDir {
+                        file_name: Some("adminhelper".into()),
+                    },
+                ))
+                .level(log::LevelFilter::Info)
+                .max_file_size(10_000_000)
+                .build(),
+        )
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .manage(frpc_state)
