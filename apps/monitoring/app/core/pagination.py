@@ -31,12 +31,11 @@ def paginate(query: Query, response: Response, limit: int | None, offset: int):
     set, not the full table) and after order_by (pages are only stable with a
     deterministic ordering).
     """
-    if limit is None:
-        # No pagination: the body already carries every row, so a separate
+    if limit is None and not offset:
+        # No pagination at all: the body carries every row, so a separate
         # COUNT(*) would just double the query. Derive the total from the
-        # materialized rows instead and keep X-Total-Count present.
-        if offset:
-            query = query.offset(offset)
+        # materialized rows. (With an offset the body is a slice, so the total
+        # still needs a real count — fall through.)
         rows = query.all()
         response.headers["X-Total-Count"] = str(len(rows))
         return _MaterializedPage(rows)
@@ -44,4 +43,6 @@ def paginate(query: Query, response: Response, limit: int | None, offset: int):
     response.headers["X-Total-Count"] = str(query.order_by(None).count())
     if offset:
         query = query.offset(offset)
-    return query.limit(limit)
+    if limit is not None:
+        query = query.limit(limit)
+    return query
