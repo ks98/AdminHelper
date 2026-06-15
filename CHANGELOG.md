@@ -44,10 +44,9 @@ abgesichert.
   Release-`SHA256SUMS` werden mit minisign signiert (`SHA256SUMS.minisig`);
   `install.sh`/`update.sh` prüfen die Signatur gegen einen im Skript gepinnten
   Public Key, bevor sie den Checksummen vertrauen — die `curl|bash`-Kette belegt
-  jetzt Authentizität, nicht nur Transport-Integrität. *Scharf geschaltet, sobald
-  der Maintainer den minisign-Key erzeugt (`minisign -G -W`), das Secret
-  `MINISIGN_SECRET_KEY` hinterlegt und den Public Key in beiden Skripten pinnt;
-  bis dahin Fallback auf Checksummen-Prüfung (mit Warnung).*
+  jetzt Authentizität, nicht nur Transport-Integrität. Scharf geschaltet (Public
+  Key gepinnt, Signing-Secret hinterlegt); greift ab dem nächsten Release. Der
+  hermetische Update-Sandbox-Test verifiziert den signierten Pfad end-to-end.
 
 ### Fixed
 

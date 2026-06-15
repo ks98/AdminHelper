@@ -27,6 +27,17 @@ bad() { echo "  FAIL $*"; FAIL=$((FAIL + 1)); }
 WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT
 
+# Sign the fake releases with a throwaway key so update.sh's now-armed signature
+# verification runs end-to-end against the real (pinned-key) logic. If minisign
+# is unavailable, neutralize the pinned key in the fixture copies instead, so the
+# rest of the flow still runs (checksum-only path).
+SIGN=0; TEST_PUBKEY=""
+if command -v minisign >/dev/null 2>&1 && minisign -G -W -p "$WORK/test.pub" -s "$WORK/test.key" >/dev/null 2>&1; then
+  SIGN=1; TEST_PUBKEY=$(sed -n '2p' "$WORK/test.pub")
+else
+  echo "  note: minisign nicht verfuegbar — Signaturpfad im Fixture neutralisiert"
+fi
+
 # --- a docker stub: succeeds at everything; health probe honours AH_TEST_HEALTH -
 BIN="$WORK/bin"
 mkdir -p "$BIN"
@@ -50,6 +61,14 @@ make_src() {
   local ver="$1" dir="$2"
   mkdir -p "$dir/scripts"
   cp "$REAL_UPDATE" "$dir/scripts/update.sh"
+  # Point the fixture's update.sh at the throwaway test key (or disable
+  # verification when unsigned) so its pinned production key doesn't reject the
+  # locally-built fake release.
+  if [ "$SIGN" = 1 ]; then
+    sed -i "s|^MINISIGN_PUBKEY=.*|MINISIGN_PUBKEY=\"$TEST_PUBKEY\"|" "$dir/scripts/update.sh"
+  else
+    sed -i 's|^MINISIGN_PUBKEY=.*|MINISIGN_PUBKEY=""|' "$dir/scripts/update.sh"
+  fi
   for s in install backup restore uninstall init-secrets; do
     cp "$REPO_ROOT/scripts/$s.sh" "$dir/scripts/$s.sh" 2>/dev/null || true
   done
@@ -78,6 +97,8 @@ make_release() {
   ( cd "$stage" && find docker-compose.yml .env.example scripts -type f | sort | xargs sha256sum > MANIFEST.sha256 )
   tar czf "$assetdir/adminhelper-runtime-$tag.tar.gz" -C "$stage" .
   ( cd "$assetdir" && sha256sum "adminhelper-runtime-$tag.tar.gz" > SHA256SUMS )
+  [ "$SIGN" = 1 ] && minisign -S -s "$WORK/test.key" -m "$assetdir/SHA256SUMS" \
+    -x "$assetdir/SHA256SUMS.minisig" </dev/null >/dev/null 2>&1
   [ -n "$latest" ] && printf '{"tag_name": "%s", "prerelease": false, "draft": false}\n' "$latest" \
     > "$apiroot/repos/$REPO/releases/latest"
   rm -rf "$stage"
