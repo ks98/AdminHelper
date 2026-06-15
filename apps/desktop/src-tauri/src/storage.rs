@@ -170,7 +170,10 @@ pub fn harden_permissions(path: &Path) {
     use std::process::Command;
     if let Ok(user) = std::env::var("USERNAME") {
         let path_str = path.to_string_lossy();
-        let _ = Command::new("icacls")
+        // A silent failure here would leave the .p12 with inherited ACLs (broader
+        // than the owner) — log it so it does not stay invisible. The blob is also
+        // password-encrypted, so this stays best-effort, not fatal.
+        match Command::new("icacls")
             .args([
                 path_str.as_ref(),
                 "/inheritance:r",
@@ -179,7 +182,16 @@ pub fn harden_permissions(path: &Path) {
             ])
             .stdout(std::process::Stdio::null())
             .stderr(std::process::Stdio::null())
-            .status();
+            .status()
+        {
+            Ok(status) if !status.success() => {
+                log::warn!("icacls konnte {path_str} nicht haerten: Status {status}");
+            }
+            Err(e) => {
+                log::warn!("icacls fuer {path_str} nicht ausfuehrbar: {e}");
+            }
+            Ok(_) => {}
+        }
     }
 }
 

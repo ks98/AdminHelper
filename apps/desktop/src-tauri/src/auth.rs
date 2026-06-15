@@ -74,7 +74,7 @@ pub async fn login(
 
     if !response.status().is_success() {
         let status = response.status();
-        let text = response.text().await.unwrap_or_default();
+        let text = crate::diagnostics::redact_body(&response.text().await.unwrap_or_default());
         return Err(AppError::Validation(format!(
             "Login fehlgeschlagen ({}): {}",
             status, text
@@ -158,6 +158,13 @@ pub async fn authenticated_get(
     path: &str,
     allow_self_signed: bool,
 ) -> Result<reqwest::Response, AppError> {
+    // Same token-destination pin as api_proxy: refuse to send the JWT if the
+    // FINAL composed URL (a `path` with a leading `@`/`\`/`://` can rewrite the
+    // authority) drifts off the logged-in server. server_url and token both
+    // originate from frontend commands, so this is a real boundary.
+    if let Some(stored) = stored_server_url() {
+        crate::validation::validate_proxy_path(server_url, path, &stored)?;
+    }
     let client = build_client(server_url, allow_self_signed)?;
     let url = format!("{}{}", server_url.trim_end_matches('/'), path);
 

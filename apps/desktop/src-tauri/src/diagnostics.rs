@@ -56,6 +56,25 @@ fn tail(content: &str, n: usize) -> String {
     s
 }
 
+/// Max length of a raw server error body surfaced in a user-facing error/log.
+/// A misbehaving (or hostile) server must not be able to flood the UI or the log
+/// with an arbitrarily long body.
+const MAX_BODY_CHARS: usize = 500;
+
+/// Sanitize a raw server error body before it lands in a user-facing error or the
+/// log: truncate to `MAX_BODY_CHARS` and mask secret-looking tokens with the same
+/// `redact()` the diagnostics report uses. Token-bearing endpoints can echo the
+/// Bearer/JWT back in their error body, so an unfiltered body is a leak vector.
+pub fn redact_body(s: &str) -> String {
+    let truncated: String = if s.chars().count() > MAX_BODY_CHARS {
+        let head: String = s.chars().take(MAX_BODY_CHARS).collect();
+        format!("{head}… (gekürzt)")
+    } else {
+        s.to_string()
+    };
+    redact(&truncated)
+}
+
 /// Mask generic secret token shapes (JWT, Bearer, ah_ API keys).
 fn redact(s: &str) -> String {
     let jwt = Regex::new(r"eyJ[A-Za-z0-9_-]{6,}\.[A-Za-z0-9_-]{6,}\.[A-Za-z0-9_-]*").unwrap();

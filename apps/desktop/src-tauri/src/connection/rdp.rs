@@ -402,8 +402,21 @@ fn spawn_rdp_with_password(
     let mut child = command.spawn()?;
 
     if let Some(mut stdin) = child.stdin.take() {
-        let payload = format!("{password}\n");
-        stdin.write_all(payload.as_bytes())?;
+        let mut payload = format!("{password}\n");
+        let write_result = stdin.write_all(payload.as_bytes());
+        // Scrub the password copy regardless of the write outcome (parity with the
+        // Windows credential path in password.rs).
+        unsafe {
+            for byte in payload.as_bytes_mut() {
+                *byte = 0;
+            }
+        }
+        if let Err(e) = write_result {
+            // A BrokenPipe (child already exited / refused stdin) would otherwise
+            // leave the spawned process around — reap it before propagating.
+            let _ = child.kill();
+            return Err(e.into());
+        }
     }
 
     let emitted = Arc::new(AtomicBool::new(false));
@@ -539,8 +552,21 @@ pub fn check_rdp_auth(
     let mut child = command.spawn()?;
 
     if let Some(mut stdin) = child.stdin.take() {
-        let payload = format!("{password}\n");
-        stdin.write_all(payload.as_bytes())?;
+        let mut payload = format!("{password}\n");
+        let write_result = stdin.write_all(payload.as_bytes());
+        // Scrub the password copy regardless of the write outcome (parity with the
+        // Windows credential path in password.rs).
+        unsafe {
+            for byte in payload.as_bytes_mut() {
+                *byte = 0;
+            }
+        }
+        if let Err(e) = write_result {
+            // A BrokenPipe (child already exited / refused stdin) would otherwise
+            // leave the spawned process around — reap it before propagating.
+            let _ = child.kill();
+            return Err(e.into());
+        }
     }
 
     let output = child.wait_with_output()?;

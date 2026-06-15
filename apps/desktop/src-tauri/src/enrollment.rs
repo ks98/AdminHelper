@@ -317,7 +317,7 @@ async fn mint_token(
         .await?;
     if !resp.status().is_success() {
         let status = resp.status();
-        let text = resp.text().await.unwrap_or_default();
+        let text = crate::diagnostics::redact_body(&resp.text().await.unwrap_or_default());
         return Err(AppError::Validation(format!(
             "Enrollment-Token anfordern fehlgeschlagen ({status}): {text}"
         )));
@@ -345,7 +345,7 @@ async fn redeem(
         .await?;
     if !resp.status().is_success() {
         let status = resp.status();
-        let text = resp.text().await.unwrap_or_default();
+        let text = crate::diagnostics::redact_body(&resp.text().await.unwrap_or_default());
         return Err(AppError::Validation(format!(
             "Enrollment am ca-issuer fehlgeschlagen ({status}): {text}"
         )));
@@ -407,7 +407,7 @@ async fn renew(server_url: &str) -> Result<(), AppError> {
         .await?;
     if !resp.status().is_success() {
         let status = resp.status();
-        let text = resp.text().await.unwrap_or_default();
+        let text = crate::diagnostics::redact_body(&resp.text().await.unwrap_or_default());
         return Err(AppError::Validation(format!(
             "Zertifikat-Renew fehlgeschlagen ({status}): {text}"
         )));

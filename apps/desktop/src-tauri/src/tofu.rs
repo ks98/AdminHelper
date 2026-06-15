@@ -94,6 +94,20 @@ fn decide(pinned: Option<&str>, presented: &str) -> PinDecision {
 trait PinStore: Send + Sync {
     fn load(&self, identity: &str) -> Option<String>;
     fn store(&self, identity: &str, fingerprint: &str);
+
+    /// Atomically decide the TOFU outcome for `presented` and, on first use,
+    /// capture it — the whole read→decide→store sequence under ONE lock. The
+    /// split `load()` then `store()` is racy: two concurrent first connections
+    /// can both observe "no pin" and pin different certs. The default impl is the
+    /// non-atomic fallback (fine for the single-threaded in-memory test store);
+    /// the keyring store overrides it to hold its cache lock across the decision.
+    fn load_or_store(&self, identity: &str, presented: &str) -> PinDecision {
+        let decision = decide(self.load(identity).as_deref(), presented);
+        if decision == PinDecision::Capture {
+            self.store(identity, presented);
+        }
+        decision
+    }
 }
 
 /// Production store: OS keyring (same secure store as the JWT tokens) backed by
@@ -135,6 +149,31 @@ impl PinStore for KeyringPinStore {
             .lock()
             .unwrap_or_else(|e| e.into_inner())
             .insert(identity.to_string(), fingerprint.to_string());
+    }
+
+    fn load_or_store(&self, identity: &str, presented: &str) -> PinDecision {
+        // Hold the cache lock across the entire read→decide→capture so two
+        // parallel first connections cannot both read "no pin" and pin different
+        // certs. On a cache miss the (slow) keyring read happens under the lock —
+        // acceptable because it only fires on the first use per identity; every
+        // later request is a pure in-memory cache hit.
+        let mut guard = cache().lock().unwrap_or_else(|e| e.into_inner());
+        let pinned = match guard.get(identity) {
+            Some(hit) => Some(hit.clone()),
+            None => {
+                let stored = keyring_read(identity);
+                if let Some(ref fingerprint) = stored {
+                    guard.insert(identity.to_string(), fingerprint.clone());
+                }
+                stored
+            }
+        };
+        let decision = decide(pinned.as_deref(), presented);
+        if decision == PinDecision::Capture {
+            keyring_write(identity, presented);
+            guard.insert(identity.to_string(), presented.to_string());
+        }
+        decision
     }
 }
 
@@ -239,13 +278,11 @@ impl ServerCertVerifier for TofuVerifier {
     ) -> Result<ServerCertVerified, TlsError> {
         // Pin the leaf only; hostname/expiry are intentionally not checked here —
         // the fingerprint match *is* the identity check (SSH known_hosts model).
+        // Read→decide→capture is atomic (one lock) so two parallel first
+        // connections cannot pin different certs.
         let presented = fingerprint(end_entity.as_ref());
-        match decide(self.store.load(&self.identity).as_deref(), &presented) {
-            PinDecision::Trust => Ok(ServerCertVerified::assertion()),
-            PinDecision::Capture => {
-                self.store.store(&self.identity, &presented);
-                Ok(ServerCertVerified::assertion())
-            }
+        match self.store.load_or_store(&self.identity, &presented) {
+            PinDecision::Trust | PinDecision::Capture => Ok(ServerCertVerified::assertion()),
             PinDecision::Reject => Err(TlsError::General(format!(
                 "AdminHelper TOFU: Das Server-Zertifikat für {} hat sich seit dem \
                  ersten Verbinden geändert (mögliche MITM-Attacke). War der Wechsel \
@@ -369,6 +406,19 @@ mod tests {
         assert_eq!(decide(None, FP_A), PinDecision::Capture);
         assert_eq!(decide(Some(FP_A), FP_A), PinDecision::Trust);
         assert_eq!(decide(Some(FP_A), FP_B), PinDecision::Reject);
+    }
+
+    #[test]
+    fn load_or_store_captures_then_trusts_and_rejects() {
+        let store = InMemoryPinStore::default();
+        // First use: capture and persist.
+        assert_eq!(store.load_or_store("h:8443", FP_A), PinDecision::Capture);
+        assert_eq!(store.load("h:8443").as_deref(), Some(FP_A));
+        // Same cert later: trust, no change.
+        assert_eq!(store.load_or_store("h:8443", FP_A), PinDecision::Trust);
+        // Changed cert: reject, pin unchanged.
+        assert_eq!(store.load_or_store("h:8443", FP_B), PinDecision::Reject);
+        assert_eq!(store.load("h:8443").as_deref(), Some(FP_A));
     }
 
     #[test]

@@ -124,6 +124,37 @@ pub fn same_server_destination(requested: &str, stored: &str) -> bool {
     }
 }
 
+/// Validates a request `path` coming from the frontend and confirms that the URL
+/// composed as `server_url + path` still targets `stored` (the logged-in server).
+///
+/// `api_proxy`/`authenticated_get` build the request URL by naive string
+/// concatenation (`format!("{server_url}{path}")`). A frontend-supplied `path`
+/// could break out of that: a leading `@` shoves the host into the userinfo
+/// (RFC 3986: `https://server@evil.com/`), a `\` or `://` injects a new
+/// authority, so the Bearer token would travel to a foreign host even though
+/// `server_url` alone passed `same_server_destination`. Guard both: reject path
+/// shapes that can rewrite the authority, then re-parse the FINAL URL and pin its
+/// origin to the logged-in server.
+pub fn validate_proxy_path(server_url: &str, path: &str, stored: &str) -> Result<(), AppError> {
+    if !path.starts_with('/') {
+        return Err(AppError::Validation(
+            "Ungueltiger Anfrage-Pfad (muss mit / beginnen)".to_string(),
+        ));
+    }
+    if path.contains('@') || path.contains('\\') || path.contains("://") {
+        return Err(AppError::Validation("Ungueltiger Anfrage-Pfad".to_string()));
+    }
+    let composed = format!("{}{}", server_url.trim_end_matches('/'), path);
+    let parsed = Url::parse(&composed)
+        .map_err(|_| AppError::Validation("Ungueltige Ziel-URL".to_string()))?;
+    if !same_server_destination(parsed.as_str(), stored) {
+        return Err(AppError::Validation(
+            "Anfrage-Ziel weicht von der angemeldeten Server-URL ab".to_string(),
+        ));
+    }
+    Ok(())
+}
+
 /// Sanitizes a connection name for safe use as an RDP window title
 /// (xfreerdp `/title:`). Defense-in-depth: passing via argv already prevents
 /// argument splitting, but sanitization guards against control characters,
@@ -311,6 +342,32 @@ mod tests {
             assert!(
                 !same_server_destination(requested, stored),
                 "{requested} must NOT match {stored}"
+            );
+        }
+    }
+
+    #[test]
+    fn validate_proxy_path_accepts_plain_path() {
+        let stored = "https://adminhelper.example:8443";
+        assert!(validate_proxy_path(stored, "/api/auth/me", stored).is_ok());
+        // trailing slash on server_url must not matter
+        assert!(validate_proxy_path("https://adminhelper.example:8443/", "/api/x", stored).is_ok());
+    }
+
+    #[test]
+    fn validate_proxy_path_rejects_authority_rewrite() {
+        let stored = "https://adminhelper.example:8443";
+        // A leading '@' pushes the real host into userinfo (RFC 3986), so the
+        // composed URL would target evil.com; '\' and '://' inject an authority.
+        for path in [
+            "@evil.com/api/auth/me",
+            "/\\evil.com/api",
+            "/x://evil.com",
+            "api/no-leading-slash",
+        ] {
+            assert!(
+                validate_proxy_path(stored, path, stored).is_err(),
+                "path {path:?} must be rejected"
             );
         }
     }

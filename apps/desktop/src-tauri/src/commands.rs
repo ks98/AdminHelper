@@ -133,14 +133,12 @@ pub async fn api_proxy(
     });
     // Token-destination pin: the session JWT must only be sent to the server the
     // user logged into. A (compromised) frontend that passes a foreign server_url
-    // alongside the real token would otherwise leak it — TOFU would happily pin
-    // the attacker's cert on first use for that new host.
+    // — or a `path` that rewrites the URL authority (leading `@`, `\`, `://`) —
+    // alongside the real token would otherwise leak it; TOFU would happily pin the
+    // attacker's cert on first use for that new host. Pin the FINAL composed URL's
+    // origin, not just server_url.
     if let Some(stored) = auth::stored_server_url() {
-        if !validation::same_server_destination(&server_url, &stored) {
-            return Err(AppError::Validation(
-                "Anfrage-Ziel weicht von der angemeldeten Server-URL ab".to_string(),
-            ));
-        }
+        validation::validate_proxy_path(&server_url, &path, &stored)?;
     }
     let client = auth::build_client(&server_url, self_signed)?;
     let url = format!("{}{}", server_url.trim_end_matches('/'), path);
@@ -166,7 +164,7 @@ pub async fn api_proxy(
     }
 
     if !status.is_success() {
-        let text = response.text().await.unwrap_or_default();
+        let text = crate::diagnostics::redact_body(&response.text().await.unwrap_or_default());
         return Err(AppError::Validation(format!(
             "HTTP {}: {}",
             status.as_u16(),
