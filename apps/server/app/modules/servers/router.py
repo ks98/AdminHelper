@@ -7,7 +7,7 @@ import logging
 import uuid
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_admin
@@ -16,6 +16,8 @@ from app.core.database import get_db
 from app.core.events import fire_event
 from app.core.identity import SCOPE_AGENT
 from app.core.pagination import paginate
+from app.core.request_context import actor_from_request
+from app.modules.audit import service as audit
 from app.modules.enrollment.models import revoke_identity
 from app.modules.servers.models import Server
 from app.modules.servers.schemas import ServerCreate, ServerUpdate
@@ -41,7 +43,10 @@ def list_servers(
 
 @router.post("", status_code=status.HTTP_201_CREATED)
 def create_server(
-    data: ServerCreate, db: Session = Depends(get_db), _admin=Depends(get_current_admin)
+    data: ServerCreate,
+    request: Request,
+    db: Session = Depends(get_db),
+    _admin=Depends(get_current_admin),
 ):
     server = Server(
         id=str(uuid.uuid4()),
@@ -56,6 +61,14 @@ def create_server(
     db.refresh(server)
     fire_event(
         "server.created", {"id": server.id, "name": server.name, "hostname": server.hostname}
+    )
+    audit.record(
+        db,
+        "server.created",
+        actor=actor_from_request(request),
+        object_type="server",
+        object_id=server.id,
+        object_label=server.name,
     )
     return server.to_dict()
 
@@ -72,6 +85,7 @@ def get_server(server_id: str, db: Session = Depends(get_db), _admin=Depends(get
 def update_server(
     server_id: str,
     data: ServerUpdate,
+    request: Request,
     db: Session = Depends(get_db),
     _admin=Depends(get_current_admin),
 ):
@@ -88,20 +102,42 @@ def update_server(
     db.commit()
     db.refresh(server)
     fire_event("server.updated", {"id": server.id, "name": server.name})
+    audit.record(
+        db,
+        "server.updated",
+        actor=actor_from_request(request),
+        object_type="server",
+        object_id=server.id,
+        object_label=server.name,
+    )
     return server.to_dict()
 
 
 @router.delete("/{server_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_server(server_id: str, db: Session = Depends(get_db), _admin=Depends(get_current_admin)):
+def delete_server(
+    server_id: str,
+    request: Request,
+    db: Session = Depends(get_db),
+    _admin=Depends(get_current_admin),
+):
     server = db.query(Server).filter(Server.id == server_id).first()
     if not server:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Server nicht gefunden")
     fire_event("server.deleted", {"id": server.id, "name": server.name})
+    server_name = server.name
     # Deprovision the agent's mTLS identity (CN = stable server_id, tunnel scope):
     # the ca-issuer stops renewing its cert and the data plane rejects it (F1).
     revoke_identity(db, server.id, SCOPE_AGENT)
     db.delete(server)
     db.commit()
+    audit.record(
+        db,
+        "server.deleted",
+        actor=actor_from_request(request),
+        object_type="server",
+        object_id=server_id,
+        object_label=server_name,
+    )
 
     # Monitoring cleanup: delete all checks/alerts/assignments of this server
     try:

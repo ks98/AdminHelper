@@ -9,15 +9,17 @@ import uuid
 from pathlib import Path
 
 import yaml
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_admin
 from app.core.config import DATA_DIR
 from app.core.database import get_db
 from app.core.events import fire_event
+from app.core.request_context import actor_from_request
 from app.modules.ansible.models import Playbook
 from app.modules.ansible.schemas import PlaybookCreate, PlaybookUpdate
+from app.modules.audit import service as audit
 
 logger = logging.getLogger("adminhelper.ansible")
 
@@ -42,7 +44,10 @@ def list_playbooks(db: Session = Depends(get_db), _admin=Depends(get_current_adm
 
 @router.post("", status_code=status.HTTP_201_CREATED)
 def create_playbook(
-    data: PlaybookCreate, db: Session = Depends(get_db), _admin=Depends(get_current_admin)
+    data: PlaybookCreate,
+    request: Request,
+    db: Session = Depends(get_db),
+    _admin=Depends(get_current_admin),
 ):
     # Validate YAML
     try:
@@ -74,6 +79,14 @@ def create_playbook(
         raise
     db.refresh(playbook)
     fire_event("playbook.created", {"id": playbook.id, "name": playbook.name})
+    audit.record(
+        db,
+        "playbook.created",
+        actor=actor_from_request(request),
+        object_type="playbook",
+        object_id=playbook.id,
+        object_label=playbook.name,
+    )
     return playbook.to_dict()
 
 
@@ -109,6 +122,7 @@ def get_playbook_content(
 def update_playbook(
     playbook_id: str,
     data: PlaybookUpdate,
+    request: Request,
     db: Session = Depends(get_db),
     _admin=Depends(get_current_admin),
 ):
@@ -153,12 +167,23 @@ def update_playbook(
     db.commit()
     db.refresh(playbook)
     fire_event("playbook.updated", {"id": playbook.id, "name": playbook.name})
+    audit.record(
+        db,
+        "playbook.updated",
+        actor=actor_from_request(request),
+        object_type="playbook",
+        object_id=playbook.id,
+        object_label=playbook.name,
+    )
     return playbook.to_dict()
 
 
 @router.delete("/{playbook_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_playbook(
-    playbook_id: str, db: Session = Depends(get_db), _admin=Depends(get_current_admin)
+    playbook_id: str,
+    request: Request,
+    db: Session = Depends(get_db),
+    _admin=Depends(get_current_admin),
 ):
     playbook = db.query(Playbook).filter(Playbook.id == playbook_id).first()
     if not playbook:
@@ -175,3 +200,11 @@ def delete_playbook(
     if playbook_dir.exists():
         shutil.rmtree(playbook_dir, ignore_errors=True)
     fire_event("playbook.deleted", {"id": pb_id, "name": pb_name})
+    audit.record(
+        db,
+        "playbook.deleted",
+        actor=actor_from_request(request),
+        object_type="playbook",
+        object_id=pb_id,
+        object_label=pb_name,
+    )

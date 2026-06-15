@@ -6,12 +6,14 @@ import json
 import secrets
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_admin
 from app.core.database import get_db
 from app.core.events import fire_event
+from app.core.request_context import actor_from_request
+from app.modules.audit import service as audit
 from app.modules.frp.docker_manager import remove_frps_config, write_frps_config
 from app.modules.frp.models import FrpServerConfig
 from app.modules.frp.schemas import FrpServerConfigCreate, FrpServerConfigUpdate
@@ -27,7 +29,10 @@ def list_server_configs(db: Session = Depends(get_db), _admin=Depends(get_curren
 
 @router.post("/server-config", status_code=status.HTTP_201_CREATED)
 def create_server_config(
-    data: FrpServerConfigCreate, db: Session = Depends(get_db), _admin=Depends(get_current_admin)
+    data: FrpServerConfigCreate,
+    request: Request,
+    db: Session = Depends(get_db),
+    _admin=Depends(get_current_admin),
 ):
     config = FrpServerConfig(
         id=str(uuid.uuid4()),
@@ -48,6 +53,14 @@ def create_server_config(
     db.refresh(config)
     write_frps_config(config)
     fire_event("frp.config.created", {"id": config.id, "name": config.name})
+    audit.record(
+        db,
+        "frp.config.created",
+        actor=actor_from_request(request),
+        object_type="frp_config",
+        object_id=config.id,
+        object_label=config.name,
+    )
     return config.to_dict()
 
 
@@ -65,6 +78,7 @@ def get_server_config(
 def update_server_config(
     config_id: str,
     data: FrpServerConfigUpdate,
+    request: Request,
     db: Session = Depends(get_db),
     _admin=Depends(get_current_admin),
 ):
@@ -95,17 +109,37 @@ def update_server_config(
     db.refresh(config)
     write_frps_config(config)
     fire_event("frp.config.updated", {"id": config.id, "name": config.name})
+    audit.record(
+        db,
+        "frp.config.updated",
+        actor=actor_from_request(request),
+        object_type="frp_config",
+        object_id=config.id,
+        object_label=config.name,
+    )
     return config.to_dict()
 
 
 @router.delete("/server-config/{config_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_server_config(
-    config_id: str, db: Session = Depends(get_db), _admin=Depends(get_current_admin)
+    config_id: str,
+    request: Request,
+    db: Session = Depends(get_db),
+    _admin=Depends(get_current_admin),
 ):
     config = db.query(FrpServerConfig).filter(FrpServerConfig.id == config_id).first()
     if not config:
         raise HTTPException(status_code=404, detail="FRP-Config nicht gefunden")
     fire_event("frp.config.deleted", {"id": config.id, "name": config.name})
+    config_name = config.name
     db.delete(config)
     db.commit()
     remove_frps_config()
+    audit.record(
+        db,
+        "frp.config.deleted",
+        actor=actor_from_request(request),
+        object_type="frp_config",
+        object_id=config_id,
+        object_label=config_name,
+    )

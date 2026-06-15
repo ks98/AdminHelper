@@ -4,13 +4,15 @@
 
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_admin, get_current_user, hash_password
 from app.core.database import get_db
 from app.core.events import fire_event
 from app.core.identity import SCOPE_ACCESS
+from app.core.request_context import actor_from_request
+from app.modules.audit import service as audit
 from app.modules.enrollment.models import clear_revocation, revoke_identity
 from app.modules.servers.models import Server
 from app.modules.users.models import User
@@ -36,7 +38,12 @@ def list_users(db: Session = Depends(get_db), _admin=Depends(get_current_admin))
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
-def create_user(data: UserCreate, db: Session = Depends(get_db), _admin=Depends(get_current_admin)):
+def create_user(
+    data: UserCreate,
+    request: Request,
+    db: Session = Depends(get_db),
+    _admin=Depends(get_current_admin),
+):
     if db.query(User).filter(User.username == data.username).first():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Benutzername bereits vergeben"
@@ -58,12 +65,24 @@ def create_user(data: UserCreate, db: Session = Depends(get_db), _admin=Depends(
     fire_event(
         "user.created", {"id": user.id, "username": user.username, "is_admin": user.is_admin}
     )
+    audit.record(
+        db,
+        "user.created",
+        actor=actor_from_request(request),
+        object_type="user",
+        object_id=user.id,
+        object_label=user.username,
+    )
     return _user_response(user)
 
 
 @router.put("/{user_id}")
 def update_user(
-    user_id: int, data: UserUpdate, db: Session = Depends(get_db), _admin=Depends(get_current_admin)
+    user_id: int,
+    data: UserUpdate,
+    request: Request,
+    db: Session = Depends(get_db),
+    _admin=Depends(get_current_admin),
 ):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
@@ -89,11 +108,24 @@ def update_user(
         user.servers = servers
     db.commit()
     db.refresh(user)
+    audit.record(
+        db,
+        "user.updated",
+        actor=actor_from_request(request),
+        object_type="user",
+        object_id=user.id,
+        object_label=user.username,
+    )
     return _user_response(user)
 
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_user(user_id: int, db: Session = Depends(get_db), admin=Depends(get_current_admin)):
+def delete_user(
+    user_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    admin=Depends(get_current_admin),
+):
     if admin.id == user_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -103,11 +135,20 @@ def delete_user(user_id: int, db: Session = Depends(get_db), admin=Depends(get_c
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Benutzer nicht gefunden")
     fire_event("user.deleted", {"id": user.id, "username": user.username})
+    username = user.username
     # Deprovision the mTLS identity: the ca-issuer stops renewing this user's cert
     # and the data plane rejects it on sight (ADR 0001 §3.4 / F1).
     revoke_identity(db, user.username, SCOPE_ACCESS)
     db.delete(user)
     db.commit()
+    audit.record(
+        db,
+        "user.deleted",
+        actor=actor_from_request(request),
+        object_type="user",
+        object_id=user_id,
+        object_label=username,
+    )
 
 
 @router.get("/me/servers")

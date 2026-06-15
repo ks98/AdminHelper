@@ -287,6 +287,14 @@ def bootstrap(
     db.add(user)
     db.commit()
     db.refresh(user)
+    audit.record(
+        db,
+        "auth.bootstrap",
+        actor=Actor("user", str(user.id), user.username, ip),
+        object_type="user",
+        object_id=user.id,
+        object_label=user.username,
+    )
 
     # Consume the token — even if deleting the file fails, the 'count() > 0'
     # check above remains the effective protection.

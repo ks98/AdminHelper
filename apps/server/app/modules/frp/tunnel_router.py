@@ -5,12 +5,14 @@
 import json
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_admin
 from app.core.database import get_db
 from app.core.events import fire_event
+from app.core.request_context import actor_from_request
+from app.modules.audit import service as audit
 from app.modules.frp._helpers import create_auto_connection, next_visitor_port
 from app.modules.frp.models import FrpServerConfig, FrpTunnel
 from app.modules.frp.schemas import FrpTunnelCreate, FrpTunnelUpdate
@@ -37,7 +39,10 @@ def list_tunnels(
 
 @router.post("/tunnels", status_code=status.HTTP_201_CREATED)
 def create_tunnel(
-    data: FrpTunnelCreate, db: Session = Depends(get_db), _admin=Depends(get_current_admin)
+    data: FrpTunnelCreate,
+    request: Request,
+    db: Session = Depends(get_db),
+    _admin=Depends(get_current_admin),
 ):
     server = db.query(Server).filter(Server.id == data.server_id).first()
     if not server:
@@ -113,6 +118,14 @@ def create_tunnel(
     db.commit()
     db.refresh(tunnel)
     fire_event("frp.tunnel.created", {"id": tunnel.id, "name": tunnel.name, "serverId": server.id})
+    audit.record(
+        db,
+        "frp.tunnel.created",
+        actor=actor_from_request(request),
+        object_type="frp_tunnel",
+        object_id=tunnel.id,
+        object_label=tunnel.name,
+    )
     return tunnel.to_dict()
 
 
@@ -128,6 +141,7 @@ def get_tunnel(tunnel_id: str, db: Session = Depends(get_db), _admin=Depends(get
 def update_tunnel(
     tunnel_id: str,
     data: FrpTunnelUpdate,
+    request: Request,
     db: Session = Depends(get_db),
     _admin=Depends(get_current_admin),
 ):
@@ -203,14 +217,36 @@ def update_tunnel(
     db.commit()
     db.refresh(tunnel)
     fire_event("frp.tunnel.updated", {"id": tunnel.id, "name": tunnel.name})
+    audit.record(
+        db,
+        "frp.tunnel.updated",
+        actor=actor_from_request(request),
+        object_type="frp_tunnel",
+        object_id=tunnel.id,
+        object_label=tunnel.name,
+    )
     return tunnel.to_dict()
 
 
 @router.delete("/tunnels/{tunnel_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_tunnel(tunnel_id: str, db: Session = Depends(get_db), _admin=Depends(get_current_admin)):
+def delete_tunnel(
+    tunnel_id: str,
+    request: Request,
+    db: Session = Depends(get_db),
+    _admin=Depends(get_current_admin),
+):
     tunnel = db.query(FrpTunnel).filter(FrpTunnel.id == tunnel_id).first()
     if not tunnel:
         raise HTTPException(status_code=404, detail="Tunnel nicht gefunden")
     fire_event("frp.tunnel.deleted", {"id": tunnel.id, "name": tunnel.name})
+    tunnel_name = tunnel.name
     db.delete(tunnel)
     db.commit()
+    audit.record(
+        db,
+        "frp.tunnel.deleted",
+        actor=actor_from_request(request),
+        object_type="frp_tunnel",
+        object_id=tunnel_id,
+        object_label=tunnel_name,
+    )

@@ -102,3 +102,47 @@ def test_successful_login_is_audited(test_client, db_session, admin_user):
     assert len(rows) == 1
     assert rows[0].actor_label == "admin"
     assert rows[0].actor_type == "user"
+
+
+def test_server_create_is_audited(test_client, db_session, admin_user):
+    token = _login(test_client, "admin", "adminpass")
+    r = test_client.post(
+        "/api/servers",
+        json={"name": "audit-srv", "hostname": "host.example"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert r.status_code == 201, r.text
+    rows = _rows(db_session, "server.created")
+    assert len(rows) == 1
+    assert rows[0].object_type == "server"
+    assert rows[0].object_label == "audit-srv"
+    assert rows[0].actor_label == "admin"
+
+
+def test_user_create_is_audited(test_client, db_session, admin_user):
+    token = _login(test_client, "admin", "adminpass")
+    r = test_client.post(
+        "/api/users",
+        json={"username": "audituser", "password": "password123"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert r.status_code == 201, r.text
+    rows = _rows(db_session, "user.created")
+    assert len(rows) == 1
+    assert rows[0].object_label == "audituser"
+    assert rows[0].actor_label == "admin"
+
+
+def test_apikey_create_is_audited(test_client, db_session, admin_user):
+    token = _login(test_client, "admin", "adminpass")
+    r = test_client.post(
+        "/api/api-keys",
+        json={"name": "audit-key2", "permission": "read"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert r.status_code == 201, r.text
+    rows = _rows(db_session, "apikey.created")
+    assert len(rows) == 1
+    assert rows[0].object_type == "api_key"
+    assert rows[0].object_label == "audit-key2"
+    assert rows[0].actor_label == "admin"
