@@ -12,12 +12,13 @@ import math
 import re
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.alerter import process_alert
 from app.check_engine import effective_status, is_suppressed, next_fail_count
 from app.checkers.agent import EXCLUDED_FSTYPES
+from app.core import database
 from app.core.auth import require_agent
 from app.core.database import get_db
 from app.core.victoria import format_line, victoria
@@ -26,6 +27,30 @@ from app.models import MonitorCheck, MonitorState
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+def _dispatch_alert_bg(check_id: str, old_status: str, new_status: str) -> None:
+    """Dispatch one alert (webhook/SMTP) off the agent push request path.
+
+    Scheduled via BackgroundTasks so it runs AFTER the response: a slow or hung
+    webhook/SMTP server can no longer stall the agent's request thread (at
+    250-500 agents that would saturate the pool and slow the push for everyone).
+    Uses its own session — the request session is already closed by the time
+    this runs. Errors are contained: a failed dispatch must never surface to the
+    agent. Referenced via ``database.SessionLocal`` so tests can patch it.
+    """
+    db = database.SessionLocal()
+    try:
+        check = db.query(MonitorCheck).filter(MonitorCheck.id == check_id).first()
+        if check is None:
+            return
+        process_alert(db, check, old_status, new_status)
+        db.commit()
+    except Exception:
+        db.rollback()
+        logger.exception("Alert-Dispatch fuer Check '%s' fehlgeschlagen", check_id)
+    finally:
+        db.close()
 
 
 def _num(v):
@@ -54,6 +79,7 @@ def _num(v):
 def agent_report(
     server_id: str,
     report: dict,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     auth_server_id: str = Depends(require_agent),
 ):
@@ -124,6 +150,9 @@ def agent_report(
 
     # Evaluate agent-based checks for this server
     checks_updated = 0
+    # (check_id, old_status, new_status) for each status change; dispatched in
+    # the background after the response so webhook/SMTP never block the request.
+    pending_alerts: list[tuple[str, str, str]] = []
     agent_checks = (
         db.query(MonitorCheck)
         .filter(
@@ -220,13 +249,11 @@ def agent_report(
                 state.message = message
                 state.details = details_json
 
-            # Alerting on status change — process_alert only flushes the alert
-            # log; the commit below makes both state + log durable atomically.
+            # Alerting on status change: collect now, dispatch after the commit
+            # in a background task (blocking webhook/SMTP must not stall this
+            # request — see _dispatch_alert_bg).
             if old_status != eff_status:
-                try:
-                    process_alert(db, check, old_status, eff_status)
-                except Exception:
-                    logger.exception("Alerting fuer Check '%s' fehlgeschlagen", check.name)
+                pending_alerts.append((check.id, old_status, eff_status))
 
             checks_updated += 1
         except Exception:
@@ -243,5 +270,9 @@ def agent_report(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Speichern der Check-Auswertung fehlgeschlagen",
             )
+
+    # Only after the state is durably committed: dispatch alerts off-request.
+    for check_id, old_s, new_s in pending_alerts:
+        background_tasks.add_task(_dispatch_alert_bg, check_id, old_s, new_s)
 
     return {"status": "ok", "metricsWritten": len(lines), "checksUpdated": checks_updated}

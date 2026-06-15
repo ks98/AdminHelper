@@ -16,7 +16,7 @@ from sqlalchemy.pool import StaticPool
 
 from app.core.auth import require_agent
 from app.core.database import get_db
-from app.models import Base, MonitorCheck, MonitorState
+from app.models import Base, MonitorAlertRule, MonitorCheck, MonitorState
 
 
 @pytest.fixture()
@@ -41,6 +41,11 @@ def client_db(monkeypatch):
 
     app.dependency_overrides[get_db] = override_get_db
     app.dependency_overrides[require_agent] = lambda: "srv-1"
+    # Background alert dispatch opens its own session via database.SessionLocal;
+    # point it at the same sqlite so post-response tasks hit the test DB.
+    import app.core.database as database_mod
+
+    monkeypatch.setattr(database_mod, "SessionLocal", factory)
     monkeypatch.setattr(victoria_mod.victoria, "write", lambda lines: None)
     monkeypatch.setattr(victoria_mod.victoria, "write_check_result", lambda **kw: None)
 
@@ -106,3 +111,34 @@ def test_report_rejects_foreign_server_key(client_db):
     # server id must be rejected (key/server binding).
     r = client.post("/agent/srv-2/report", json=_report(cpu=5))
     assert r.status_code == 403
+
+
+def test_status_change_dispatches_alert_in_background(client_db, monkeypatch):
+    """H6: a status change schedules the alert dispatch as a background task
+    (off the request path). TestClient runs background tasks after the response,
+    so the recorded dispatch proves the wiring without blocking the request."""
+    client, factory = client_db
+    _add_resources_check(factory, consecutive_fails=1)  # flips on the first fail
+    with factory() as db:
+        db.add(
+            MonitorAlertRule(
+                id="r1",
+                name="rule",
+                channel="webhook",
+                channel_config=json.dumps({"url": "https://hooks.example/x"}),
+            )
+        )
+        db.commit()
+
+    from app import alerter
+
+    dispatched: list[tuple] = []
+    monkeypatch.setattr(
+        alerter,
+        "_dispatch",
+        lambda rule, check, old, new: dispatched.append((check.id, old, new)) or (True, None),
+    )
+
+    r = client.post("/agent/srv-1/report", json=_report(cpu=99))
+    assert r.status_code == 200
+    assert dispatched == [("chk-1", "pending", "critical")]
