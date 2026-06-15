@@ -30,7 +30,24 @@ PROJECT="${COMPOSE_PROJECT_NAME:-$(basename "$PWD" | tr 'A-Z' 'a-z' | sed 's/[^a
 
 STAGE=$(mktemp -d)
 trap 'rm -rf "$STAGE"' EXIT
-tar xzf "$ARCHIVE" -C "$STAGE"
+
+# A backup is operator-supplied data. Before extracting it onto the host, reject
+# a crafted archive that could escape $STAGE: absolute paths, ../ escapes, or
+# sym/hardlink members (a symlink member can make tar write through it, out of
+# $STAGE, on some tar versions). A genuine backup.sh archive has none of these.
+# List to files (not a tar|grep pipeline, which pipefail+SIGPIPE could mask).
+tar tzf  "$ARCHIVE" > "$STAGE/.names"
+tar tzvf "$ARCHIVE" > "$STAGE/.verbose"
+if grep -Eq '^/|(^|/)\.\.(/|$)' "$STAGE/.names"; then
+    echo "[restore] FEHLER: Backup enthaelt absolute oder ../-Pfade — abgebrochen." >&2
+    exit 1
+fi
+if grep -Eq '^[lh]' "$STAGE/.verbose"; then
+    echo "[restore] FEHLER: Backup enthaelt Sym-/Hardlinks — abgebrochen." >&2
+    exit 1
+fi
+rm -f "$STAGE/.names" "$STAGE/.verbose"
+tar xzf "$ARCHIVE" -C "$STAGE" --no-same-owner --no-same-permissions
 
 [ -f "$STAGE/MANIFEST.txt" ] && { echo "--- MANIFEST ---"; cat "$STAGE/MANIFEST.txt"; echo "----------------"; }
 
