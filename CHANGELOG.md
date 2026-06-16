@@ -5,7 +5,7 @@ Alle nennenswerten Aenderungen an diesem Projekt werden hier dokumentiert.
 Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
-## [Unreleased]
+## [0.37.1] - 2026-06-16
 
 ### Fixed
 
@@ -16,6 +16,12 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
   zeigt jetzt bei einem Pin-/Identitäts-Fehler einen passenden Reset-Button direkt unter
   der Fehlermeldung („Gepinntes Server-Zertifikat zurücksetzen" bzw. — bei registriertem
   Gerät — „Geräte-Registrierung zurücksetzen"); danach neu verbinden.
+- **Release-Signatur funktionsfähig (Key-Rotation).** Der minisign-Signing-Key wurde durch
+  einen **passwortlosen** Key ersetzt — der bisherige war passwortgeschützt, was den CI-Schritt
+  `Sign SHA256SUMS` scheitern ließ (kein interaktives Passwort möglich; 0.36.0/0.37.0 blieben
+  daher unsigniert/ohne Release). Der gepinnte `MINISIGN_PUBKEY` in `scripts/install.sh` und
+  `scripts/update.sh` wurde entsprechend rotiert. Der vollständige Signier-Pfad (base64-Dekodierung
+  → `minisign -S` ohne Prompt → Verify gegen den gepinnten Pubkey) wurde lokal nachgestellt.
 
 ## [0.37.0] - 2026-06-16
 
@@ -1556,6 +1562,7 @@ ueber einen Multi-Stage-Build ausgeliefert.
 
 Aeltere Releases siehe Git-Tags `v0.7.0` bis `v0.16.0`.
 
+[0.37.1]: https://github.com/ks98/AdminHelper/releases/tag/v0.37.1
 [0.37.0]: https://github.com/ks98/AdminHelper/releases/tag/v0.37.0
 [0.36.0]: https://github.com/ks98/AdminHelper/releases/tag/v0.36.0
 [0.35.0]: https://github.com/ks98/AdminHelper/releases/tag/v0.35.0
