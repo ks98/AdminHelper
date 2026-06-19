@@ -9,6 +9,16 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Added
 
+- **Desktop: Komponententests für den „Verbindung-mit-Tunnel-anlegen"-Flow.**
+  `TunnelModal` und `ServerConnectionModal` werden jetzt als echte Komponenten
+  gemountet (`@testing-library/svelte`), das Formular ausgefüllt und abgesendet,
+  und das an den Server gehende API-Payload sowie die bedingten Felder geprüft
+  (STCP↔HTTPS bzw. SSH↔Web — inkl. Validierungs-Abbruch). Der IPC-/Server-Rand
+  ist gemockt, also ohne Tauri-Runtime/Server/frpc lauffähig im bestehenden
+  `desktop-ui`-Job. Deckt die „anlegen"-Logik ab; das tatsächliche Öffnen/
+  Verbinden bleibt plattformspezifisch (manuell verifiziert) bzw. ist über die
+  Rust-Tunnel-Auflösungs-Tests und den From-outside-Integrationstest abgedeckt.
+
 - **From-outside-Integrationstest gegen das echte Gateway.** Bisher fuhr kein
   Test den echten Multi-Container-Stack hoch — CI baute nur Images und prüfte
   Komponenten isoliert (gemockt bzw. mit DB-Override). Neu schließt
