@@ -371,4 +371,33 @@ mod tests {
             );
         }
     }
+
+    #[test]
+    fn same_server_destination_handles_ipv6_and_unparseable_fallback() {
+        // IPv6 literal hosts compare by origin like any other host.
+        assert!(same_server_destination(
+            "https://[::1]:8443/api",
+            "https://[::1]:8443"
+        ));
+        assert!(!same_server_destination(
+            "https://[::2]:8443",
+            "https://[::1]:8443"
+        ));
+        // If a side doesn't parse as a URL, fall back to a trailing-slash-
+        // insensitive exact match rather than silently treating them as equal.
+        assert!(same_server_destination("not a url/", "not a url"));
+        assert!(!same_server_destination("not a url", "other"));
+    }
+
+    #[test]
+    fn validate_proxy_path_rejects_a_foreign_server_url() {
+        // Even with a clean path, a frontend-supplied server_url that differs
+        // from the logged-in origin must not receive the token.
+        let stored = "https://adminhelper.example:8443";
+        assert!(
+            validate_proxy_path("https://attacker.example:8443", "/api/auth/me", stored).is_err()
+        );
+        // scheme downgrade is also a different origin
+        assert!(validate_proxy_path("http://adminhelper.example:8443", "/api/x", stored).is_err());
+    }
 }
