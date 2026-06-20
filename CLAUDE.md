@@ -138,6 +138,12 @@ Rust, TypeScript, Python, Go, verteilten Systemen und Cross-Platform-Desktop-App
   `desktop_e2e_live.sh`, `desktop_e2e_tunnel.sh`) laufen lokal/manuell (nicht im
   PR-CI) — bei Änderungen am jeweiligen Pfad (Gateway/Server-API bzw.
   Desktop-Connect/Tunnel/Enrollment) ausführen und das Ergebnis berichten.
+- **CI-Jobs nach dem Auslösen immer überwachen.** Sobald ein Push oder ein
+  Release-Tag CI-Workflows triggert, die Läufe bis zum Abschluss verfolgen
+  (`gh run watch`), das Ergebnis berichten und transiente Fehler (z. B.
+  Netzwerk/DNS beim Registry-Login) per gezieltem Re-Run der fehlgeschlagenen
+  Jobs (`gh run rerun <id> --failed`) beheben. Nicht „fertig" melden, solange CI
+  noch läuft oder rot ist.
 - **Plattform-spezifisches Verhalten wird manuell verifiziert.** Bei
   Änderungen an Plattform-Code (Linux / macOS / Windows) in der Antwort
   bzw. PR dokumentieren: was wurde getestet, auf welcher Plattform, mit
