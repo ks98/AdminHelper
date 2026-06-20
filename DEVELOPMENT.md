@@ -319,6 +319,9 @@ bash scripts/tests/desktop_e2e_live.sh
 
 # Desktop-Live-E2E: Tunnel STARTEN + verbinden (enrollt, +frps, prueft frps-Login)
 bash scripts/tests/desktop_e2e_tunnel.sh
+
+# Desktop-Live-E2E: GUI-CRUD (Connection/Tunnel/Server anlegen/umbenennen/loeschen)
+bash scripts/tests/desktop_e2e_crud.sh
 ```
 
 Gemeinsamer Boot/Seed-Code liegt in `scripts/tests/lib_e2e_stack.sh`

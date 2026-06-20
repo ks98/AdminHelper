@@ -24,6 +24,12 @@ webview; the Vitest component tests in `../ui` stop at the IPC boundary.
   **`../../../scripts/tests/desktop_e2e_tunnel.sh`** then independently checks the
   `frps` log for the desktop's `frpc` login — proving the full PKI + mTLS +
   enrollment chain.
+- **`test/specs/*-crud.live.js`** — GUI CRUD journeys against a real stack:
+  create/rename/delete a connection, create/rename/delete a tunnel, and
+  create/delete a server. Each step is verified by the reloaded list (the
+  GUI → gateway → server → DB round-trip). Shared login/navigation helpers live
+  in `test/lib/`; orchestrated by
+  **`../../../scripts/tests/desktop_e2e_crud.sh`**.
 
 ## Prerequisites (Linux)
 

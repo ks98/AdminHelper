@@ -9,6 +9,13 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Added
 
+- **Desktop: Live-E2E für die GUI-CRUD-Journeys** (`scripts/tests/desktop_e2e_crud.sh`
+  + `*-crud.live.js`). Die echte App legt über die GUI gegen den echten Stack eine
+  Verbindung an, benennt sie um und löscht sie; legt einen Tunnel an, benennt ihn um
+  und löscht ihn; legt einen Server an und löscht ihn. Jeder Schritt wird durch die
+  neu geladene Liste verifiziert (GUI → `api_proxy` → Gateway → Server → Postgres →
+  GUI). Geteilte Login-/Navigations-Helfer unter `apps/desktop/e2e/test/lib/`.
+
 - **Test-Abdeckung der bisher ungetesteten Server-Module `ansible` und
   `hooks`.** Ansible (vorher 0 Tests): Admin-Authz, der Dateinamen-Allowlist als
   Path-Traversal-Guard, YAML-Validierung beim Schreiben, und der
