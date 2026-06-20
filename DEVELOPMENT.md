@@ -333,6 +333,10 @@ bash scripts/tests/desktop_e2e_monitoring.sh
 # Desktop-Live-E2E: Verbindung oeffnen gegen echte Ziel-Container
 # (SSH -> sshd-Log, Web -> nginx-Log, RDP -> xrdp-Log)
 bash scripts/tests/desktop_e2e_connect.sh
+
+# Desktop-Live-E2E: SSH ueber FRP-Tunnel, voller Durchstich
+# (Desktop-Visitor -> frps -> agent-frpc -> sshd)
+bash scripts/tests/desktop_e2e_connect_tunnel.sh
 ```
 
 Gemeinsamer Boot/Seed-Code liegt in `scripts/tests/lib_e2e_stack.sh`

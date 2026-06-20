@@ -9,6 +9,13 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Added
 
+- **Desktop: Live-E2E für „SSH über FRP-Tunnel" (voller End-to-End-Durchstich)**
+  (`desktop_e2e_connect_tunnel.sh`, `ssh-tunnel-connect.live.js`). Die App enrollt,
+  der Tunnel connected, und das Öffnen der per `connection_id` verknüpften
+  Connection schickt `ssh` über die **ganze FRP-Strecke**: Desktop-frpc-Visitor →
+  frps → **agent-frpc-STCP-Server** → echter `sshd`-Container (verifiziert im
+  sshd-Log). Der STCP-Server ist ein echter Agent, der via Provisioning seine
+  `frpc.toml` + enrollte mTLS-Identität bekommt und mit `snowdreamtech/frpc` läuft.
 - **Desktop: Live-E2E für „Verbindung öffnen" gegen echte Ziel-Container**
   (`desktop_e2e_connect.sh`). Die App öffnet über die GUI eine **SSH**-Verbindung
   (`openssh-server`), eine **Web**-Verbindung (`nginx`) und eine **RDP**-Verbindung

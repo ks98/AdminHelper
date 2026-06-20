@@ -78,6 +78,27 @@ def main(argv):
         (server_id,) = rest
         tunnels = _call(base, token, "GET", "/api/frp/tunnels")
         print(sum(1 for t in tunnels if server_id in (t.get("serverId"), t.get("server_id"))))
+    elif op == "tunnel-conn":
+        # STCP tunnel linked to a connection (so the desktop resolves the
+        # connection through it). protocol is ssh/rdp/web.
+        server_id, config_id, name, local_port, protocol, connection_id = rest
+        print(
+            _call(
+                base,
+                token,
+                "POST",
+                "/api/frp/tunnels",
+                {
+                    "server_id": server_id,
+                    "frp_config_id": config_id,
+                    "name": name,
+                    "tunnel_type": "stcp",
+                    "protocol": protocol,
+                    "local_port": int(local_port),
+                    "connection_id": connection_id,
+                },
+            )["id"]
+        )
     elif op == "provision-token":
         (server_id,) = rest
         print(_call(base, token, "POST", f"/api/servers/{server_id}/provision/token", {})["token"])

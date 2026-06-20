@@ -45,6 +45,11 @@ webview; the Vitest component tests in `../ui` stop at the IPC boundary.
   **`../../../scripts/tests/desktop_e2e_connect.sh`** verifies from the target
   side: the sshd log / the nginx access log (via an `xdg-open` shim on PATH) / the
   xrdp log.
+- **`test/specs/ssh-tunnel-connect.live.js`** — open an SSH connection that
+  resolves THROUGH an FRP STCP tunnel: enroll → tunnel connects → ssh traverses
+  desktop visitor → frps → a real agent's frpc server → sshd. Orchestrated by
+  **`../../../scripts/tests/desktop_e2e_connect_tunnel.sh`** (provisions a real
+  agent for the server side, runs its frpc.toml under `snowdreamtech/frpc`).
 
 ## Prerequisites (Linux)
 
