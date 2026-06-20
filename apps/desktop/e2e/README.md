@@ -8,12 +8,19 @@ webview; the Vitest component tests in `../ui` stop at the IPC boundary.
 
 - **`test/specs/smoke.e2e.js`** — the app launches, the window is titled
   `AdminHelper`, and the Svelte frontend mounts. No backend required (launch +
-  render happen before any server call). This is the harness's foundation.
+  render happen before any server call). This is the harness's foundation. Run
+  it standalone with `npm test`.
+- **`test/specs/tunnel-create.live.js`** — drives the app against a REAL backend:
+  log in through the nginx gateway, then create a connection tunnel via the
+  Infrastructure UI. The full path GUI → `api_proxy` → gateway → server →
+  Postgres is exercised. This spec is NOT run by `npm test`; it is orchestrated
+  by **`../../../scripts/tests/desktop_e2e_live.sh`**, which boots + seeds the
+  stack, isolates the app config + keyring, runs the spec, and independently
+  re-checks the created tunnel via the server API.
 
-The live **"create a connection with a tunnel and test it"** flow needs the full
-backend stack (`../../../scripts/tests/integration_stack_test.sh` boots it) plus
-a running `frpc`, and a way to seed an authenticated session. It builds on this
-harness and is the planned next increment — see the repo CHANGELOG.
+The remaining step — **starting** the tunnel ("test it": `frpc` connects to
+`frps`) — needs enrollment (a client cert) and a running `frps`; it builds on the
+live harness and is the next increment (see the repo CHANGELOG).
 
 ## Prerequisites (Linux)
 

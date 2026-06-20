@@ -9,6 +9,19 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Added
 
+- **Desktop: Live-E2E „Verbindung mit Tunnel über die GUI anlegen" gegen einen
+  echten Stack.** `scripts/tests/desktop_e2e_live.sh` fährt den realen Backend-
+  Stack permissiv hoch, seedet Admin + Server + FRP-Config per Admin-API, und
+  treibt die **echte** Desktop-App (WebdriverIO + tauri-driver): Login durch das
+  nginx-Gateway (TOFU, self-signed vertraut), dann im Infrastruktur-Hub einen
+  Tunnel anlegen. Damit ist erstmals der volle Pfad GUI → `api_proxy` → Gateway →
+  Server → Postgres abgedeckt (vorher endeten die Tests an der IPC-Grenze). Doppelt
+  verifiziert: der Tunnel erscheint in der GUI **und** wird unabhängig per
+  Server-API gegengeprüft. Der App-Keyring wird über eine frische
+  D-Bus-Session + leeres `gnome-keyring` isoliert (sonst bricht eine real
+  enrollte Identität den Login). Das tatsächliche **Starten** des Tunnels
+  (`frpc`→`frps`) ist der nächste Schritt.
+
 - **Desktop: echtes End-to-End-Test-Harness (WebdriverIO + tauri-driver).** Neu
   unter `apps/desktop/e2e/`: treibt die gebaute Tauri-App über eine echte
   WebDriver-Session (auf Linux via `tauri-driver` → `WebKitWebDriver`). Erster
