@@ -20,7 +20,8 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
   Desktop-Rust: die RDP-Credential-Cache-Key-Helfer (`rdp_storage_key`,
   case-insensitiv, Port-Default). Monitoring: Ping-RTT-Parsing + Target-Hardening
   (Command-Injection-Guard) und `format_line`-Abweisung nicht-finiter Werte
-  (inf/nan würden den Batch vergiften).
+  (inf/nan würden den Batch vergiften). Web: der `apikeys`-Store (das Einmal-Secret
+  aus `create()` wird zurückgegeben, landet aber nie in der sichtbaren Liste).
 
 - **Desktop: Live-E2E „Verbindung mit Tunnel über die GUI anlegen" gegen einen
   echten Stack.** `scripts/tests/desktop_e2e_live.sh` fährt den realen Backend-
