@@ -30,6 +30,9 @@ webview; the Vitest component tests in `../ui` stop at the IPC boundary.
   GUI → gateway → server → DB round-trip). Shared login/navigation helpers live
   in `test/lib/`; orchestrated by
   **`../../../scripts/tests/desktop_e2e_crud.sh`**.
+- **`test/specs/provisioning.live.js`** — mint an agent-enrollment token through
+  the GUI; the server issues it and the GUI lists it (round-trip). Runs in the
+  same `desktop_e2e_crud.sh` boot.
 
 ## Prerequisites (Linux)
 

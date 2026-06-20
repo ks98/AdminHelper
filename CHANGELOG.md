@@ -9,6 +9,10 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Added
 
+- **Desktop: Live-E2E für die Provisioning-Journey** (`provisioning.live.js`).
+  Die echte App fordert über die GUI einen Agent-Enrollment-Token an; der Server
+  stellt ihn aus, die GUI listet ihn (Round-Trip). Läuft im selben
+  `desktop_e2e_crud.sh`-Boot wie die GUI-CRUD-Journeys.
 - **Web: Playwright-CRUD für API-Keys** (gegen die stateful Mocks) — anlegen →
   der Secret-Key wird **genau einmal** im Reveal-Dialog gezeigt → erscheint in der
   Liste → löschen. Der `mocks.ts`-In-Memory-Store ist dafür um `/api/api-keys`

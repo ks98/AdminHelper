@@ -50,8 +50,9 @@ dbus-run-session -- bash -c '
     cd "$E2E_DIR" && xvfb-run -a npx wdio run wdio.conf.js \
         --spec test/specs/connection-crud.live.js \
         --spec test/specs/tunnel-crud.live.js \
+        --spec test/specs/provisioning.live.js \
         --spec test/specs/server-crud.live.js
-' && ok "GUI CRUD specs (connection / tunnel / server) passed" || bad "GUI CRUD specs failed"
+' && ok "GUI specs (connection / tunnel / provisioning / server) passed" || bad "GUI specs failed"
 
 echo ""
 echo "desktop_e2e_crud: $PASS passed, $FAIL failed"
