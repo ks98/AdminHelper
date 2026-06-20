@@ -56,6 +56,11 @@ Xvfb) is set by the config automatically.
 
 ## CI
 
-Runs in the `desktop-e2e` job (GitHub Actions), gated to `main` pushes + manual
-dispatch — it builds the app and drives a real window, so it is deliberately not
-a per-PR gate. See `.github/workflows/ci.yml`.
+Only the **smoke** spec runs in CI: the `desktop-e2e` job (GitHub Actions) runs
+`npm test`, gated to `main` pushes + manual dispatch — it builds the app and
+drives a real window, so it is deliberately not a per-PR gate. See
+`.github/workflows/ci.yml`.
+
+The **live** specs (`*.live.js`, orchestrated by `scripts/tests/desktop_e2e_*.sh`)
+are NOT wired into CI — they boot a full stack + frps and need a secret-service;
+run them locally/manually (e.g. before a release).

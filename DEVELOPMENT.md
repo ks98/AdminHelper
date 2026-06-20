@@ -324,8 +324,13 @@ bash scripts/tests/desktop_e2e_tunnel.sh
 Gemeinsamer Boot/Seed-Code liegt in `scripts/tests/lib_e2e_stack.sh`
 (+ `e2e_api.py`). Die Desktop-E2E brauchen zusaetzlich `webkit2gtk-driver`,
 `xvfb`, `tauri-driver`, `tauri-cli` und `gnome-keyring`/`dbus`
-(siehe `apps/desktop/e2e/README.md`). In CI laufen beide nur auf
-`main`-Push/manuell (kein PR-Gate, da Image-Build + Stack-Boot).
+(siehe `apps/desktop/e2e/README.md`).
+
+In CI laeuft (jeweils nur auf `main`-Push/manuell, kein PR-Gate) der
+From-outside-Test (`integration-stack`) und der Desktop-Smoke-E2E
+(`desktop-e2e`, `npm test`). Die **Desktop-Live-E2E** (`desktop_e2e_live.sh`
++ `desktop_e2e_tunnel.sh`) laufen bewusst **nur lokal/manuell** — vor Releases
+von Hand ausfuehren.
 
 ---
 
