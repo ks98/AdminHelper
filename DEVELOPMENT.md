@@ -329,6 +329,10 @@ bash scripts/tests/agent_monitoring_test.sh
 
 # Desktop-Live-E2E: Monitoring-Check ueber die GUI anlegen (echte Agent-Daten)
 bash scripts/tests/desktop_e2e_monitoring.sh
+
+# Desktop-Live-E2E: Verbindung oeffnen gegen echte Ziel-Container
+# (SSH; verifiziert ueber das sshd-Log)
+bash scripts/tests/desktop_e2e_connect.sh
 ```
 
 Gemeinsamer Boot/Seed-Code liegt in `scripts/tests/lib_e2e_stack.sh`

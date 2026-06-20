@@ -14,6 +14,8 @@ ops:
     tunnel <server_id> <config_id> <name> <port>   -> prints the new tunnel id
     count-tunnels <server_id>                       -> prints the tunnel count
     provision-token <server_id>                    -> prints a fresh provision token
+    connection <name> <kind> <host> <port> <user>  -> prints the new connection id
+    web-connection <name> <url>                    -> prints the new web connection id
 """
 
 import json
@@ -79,6 +81,24 @@ def main(argv):
     elif op == "provision-token":
         (server_id,) = rest
         print(_call(base, token, "POST", f"/api/servers/{server_id}/provision/token", {})["token"])
+    elif op == "connection":
+        name, kind, host, port, user = rest
+        print(
+            _call(
+                base,
+                token,
+                "POST",
+                "/api/connections",
+                {"name": name, "kind": kind, "host": host, "port": int(port), "username": user},
+            )["id"]
+        )
+    elif op == "web-connection":
+        name, url = rest
+        print(
+            _call(base, token, "POST", "/api/connections", {"name": name, "kind": "web", "url": url})[
+                "id"
+            ]
+        )
     else:
         sys.exit(f"unknown op: {op}")
 
