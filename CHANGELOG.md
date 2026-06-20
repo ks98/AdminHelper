@@ -9,6 +9,14 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Added
 
+- **Test-Abdeckung der bisher ungetesteten Server-Module `ansible` und
+  `hooks`.** Ansible (vorher 0 Tests): Admin-Authz, der Dateinamen-Allowlist als
+  Path-Traversal-Guard, YAML-Validierung beim Schreiben, und der
+  Create→Content-lesen→Update→Delete-Roundtrip (Inhalt auf Disk). Hooks:
+  Admin-Authz, die typ-spezifische Create-Validierung (webhook/event/schedule),
+  und — bisher ungeprüft — dass der Event-Dispatch (`_run_event`) wirklich nur die
+  passenden, aktivierten Event-Hooks auslöst.
+
 - **Erweiterte Unit-Test-Abdeckung an den von CLAUDE.md priorisierten Stellen.**
   Gezielt die echten Lücken geschlossen (vorhandene Abdeckung — FRP-Config-
   Generierung, `require_scope`-Enforcement, Tunnel-Auflösung — blieb unangetastet):
