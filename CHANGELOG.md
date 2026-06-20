@@ -9,6 +9,15 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Added
 
+- **Erweiterte Unit-Test-Abdeckung an den von CLAUDE.md priorisierten Stellen.**
+  Gezielt die echten Lücken geschlossen (vorhandene Abdeckung — FRP-Config-
+  Generierung, `require_scope`-Enforcement, Tunnel-Auflösung — blieb unangetastet):
+  Server-Authz für das `servers`-Modul (non-admin → 403, ergänzt das Struktur-Gate
+  semantisch), die reinen Schema-Validatoren `_validate_server_name`
+  (Pfad-/TOML-Injection-Guard) und `_validate_tags`, sowie IP-Filter-Proxy-Header-
+  Spoofing (`resolve_client_ip` mit `TRUSTED_PROXIES`). Go-Agent: `round1`/`round2`
+  (Metrik-Rundung, betrifft jeden Push) und `baseURL` (mTLS-Origin-Ableitung).
+
 - **Desktop: Live-E2E „Verbindung mit Tunnel über die GUI anlegen" gegen einen
   echten Stack.** `scripts/tests/desktop_e2e_live.sh` fährt den realen Backend-
   Stack permissiv hoch, seedet Admin + Server + FRP-Config per Admin-API, und

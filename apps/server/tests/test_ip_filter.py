@@ -4,6 +4,7 @@
 
 """Tests for the IP filter middleware: network parsing and resolve_client_ip."""
 
+import app.core.middleware as mw
 from app.core.middleware import _in_networks, _parse_networks, resolve_client_ip
 
 
@@ -82,3 +83,39 @@ class TestResolveClientIp:
         # So it should return direct IP
         ip = resolve_client_ip(req)
         assert ip == "1.2.3.4"
+
+
+class TestResolveClientIpTrustedProxies:
+    """The secure proxy path (TRUSTED_PROXIES set): forwarding headers are honored
+    ONLY when the direct connection itself comes from a trusted proxy — so a client
+    cannot spoof its source IP by sending X-Forwarded-For directly."""
+
+    class _Req:
+        def __init__(self, client_ip, headers=None):
+            self.client = type("C", (), {"host": client_ip})()
+            self.headers = headers or {}
+
+    def _trust(self, monkeypatch, raw):
+        monkeypatch.setattr(mw, "_TRUSTED_PROXIES", _parse_networks(raw, "TRUSTED_PROXIES"))
+
+    def test_headers_honored_from_a_trusted_proxy(self, monkeypatch):
+        self._trust(monkeypatch, "10.0.0.5")
+        req = self._Req("10.0.0.5", {"X-Forwarded-For": "1.1.1.1"})
+        assert resolve_client_ip(req) == "1.1.1.1"
+
+    def test_spoofed_headers_from_untrusted_direct_ip_ignored(self, monkeypatch):
+        # Client connects directly (not via the proxy) and forges X-Forwarded-For;
+        # its real (direct) IP must win.
+        self._trust(monkeypatch, "10.0.0.5")
+        req = self._Req("203.0.113.9", {"X-Forwarded-For": "10.0.0.1"})
+        assert resolve_client_ip(req) == "203.0.113.9"
+
+    def test_x_real_ip_preferred_over_forwarded_for(self, monkeypatch):
+        self._trust(monkeypatch, "10.0.0.0/24")
+        req = self._Req("10.0.0.7", {"X-Real-IP": "9.9.9.9", "X-Forwarded-For": "1.1.1.1"})
+        assert resolve_client_ip(req) == "9.9.9.9"
+
+    def test_first_of_multiple_forwarded_for_used(self, monkeypatch):
+        self._trust(monkeypatch, "10.0.0.5")
+        req = self._Req("10.0.0.5", {"X-Forwarded-For": "1.1.1.1, 2.2.2.2, 3.3.3.3"})
+        assert resolve_client_ip(req) == "1.1.1.1"
