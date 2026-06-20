@@ -34,5 +34,12 @@ services:
     build:
       context: apps/ca-issuer
 
+  # Built locally too, so the monitoring-pipeline tests (agent push -> check
+  # evaluation) run THIS checkout's monitoring service, not a published tag.
+  monitoring:
+    image: adminhelper-test/monitoring:latest
+    build:
+      context: apps/monitoring
+
 volumes:
   test-data:

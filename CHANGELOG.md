@@ -9,6 +9,13 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Added
 
+- **Integrations-E2E: echter Agent → Monitoring-Pipeline**
+  (`scripts/tests/agent_monitoring_test.sh`). Mehrere echte Go-Agenten (in
+  Wegwerf-Containern) provisionieren gegen den Test-Stack, **enrollen ein
+  mTLS-Client-Zertifikat** und pushen Metriken; verifiziert beidseitig (Agent-Log
+  „Report gesendet" + `POST /agent/{id}/report 200` im Monitoring-/Server-Log).
+  Deckt die bisher nur unit-getestete Provision→Enroll→Push-Kette real ab. Das
+  Test-Overlay baut den Monitoring-Dienst jetzt ebenfalls lokal.
 - **Desktop: Live-E2E für die Provisioning-Journey** (`provisioning.live.js`).
   Die echte App fordert über die GUI einen Agent-Enrollment-Token an; der Server
   stellt ihn aus, die GUI listet ihn (Round-Trip). Läuft im selben

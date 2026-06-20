@@ -13,6 +13,7 @@ ops:
     config <name> <server_addr> <bind_port>        -> prints the new FRP config id
     tunnel <server_id> <config_id> <name> <port>   -> prints the new tunnel id
     count-tunnels <server_id>                       -> prints the tunnel count
+    provision-token <server_id>                    -> prints a fresh provision token
 """
 
 import json
@@ -75,6 +76,9 @@ def main(argv):
         (server_id,) = rest
         tunnels = _call(base, token, "GET", "/api/frp/tunnels")
         print(sum(1 for t in tunnels if server_id in (t.get("serverId"), t.get("server_id"))))
+    elif op == "provision-token":
+        (server_id,) = rest
+        print(_call(base, token, "POST", f"/api/servers/{server_id}/provision/token", {})["token"])
     else:
         sys.exit(f"unknown op: {op}")
 
