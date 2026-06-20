@@ -9,6 +9,10 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Added
 
+- **Web: Unit-Tests für die Stores `users`, `hooks`, `frpConfig`** (analog
+  `apikeys`). Der fehleranfällige Kern: optimistische Listen-Updates **per ID**
+  (nicht per Index), `hooks.toggle` als Partial-Merge nur auf den passenden Hook,
+  und `frpConfig.save`, das je nach vorhandener Config auf create vs. update routet.
 - **Monitoring: Alert-Korrektheit** — die Schwellwert-Logik der Checker
   (`AgentResourcesChecker`/`SmartHealthChecker` `evaluate`: ok→warning→critical-
   Eskalation, `>=`-Grenze, Pseudo-FS-Filter, Temp-Overrides bzw. Disk-Typ-Temp,
