@@ -54,6 +54,12 @@ class TestFormatLine:
         with pytest.raises(TypeError):
             format_line("m", {"host": "srv"}, True, 100)
 
+    @pytest.mark.parametrize("bad", [float("inf"), float("-inf"), float("nan")])
+    def test_non_finite_values_rejected(self, bad):
+        # inf/nan written verbatim would poison the whole batch — must be rejected.
+        with pytest.raises(ValueError):
+            format_line("m", {"host": "srv"}, bad, 100)
+
     def test_multiple_tags_joined_with_comma(self):
         line = format_line("m", {"a": "1", "b": "2"}, 7, 100)
         assert line == "m,a=1,b=2 value=7i 100"

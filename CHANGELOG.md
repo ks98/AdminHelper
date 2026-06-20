@@ -17,6 +17,10 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
   (Pfad-/TOML-Injection-Guard) und `_validate_tags`, sowie IP-Filter-Proxy-Header-
   Spoofing (`resolve_client_ip` mit `TRUSTED_PROXIES`). Go-Agent: `round1`/`round2`
   (Metrik-Rundung, betrifft jeden Push) und `baseURL` (mTLS-Origin-Ableitung).
+  Desktop-Rust: die RDP-Credential-Cache-Key-Helfer (`rdp_storage_key`,
+  case-insensitiv, Port-Default). Monitoring: Ping-RTT-Parsing + Target-Hardening
+  (Command-Injection-Guard) und `format_line`-Abweisung nicht-finiter Werte
+  (inf/nan würden den Batch vergiften).
 
 - **Desktop: Live-E2E „Verbindung mit Tunnel über die GUI anlegen" gegen einen
   echten Stack.** `scripts/tests/desktop_e2e_live.sh` fährt den realen Backend-
