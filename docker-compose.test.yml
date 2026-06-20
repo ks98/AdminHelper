@@ -1,0 +1,37 @@
+# Test overlay on docker-compose.yml. Layered ON TOP of the production compose
+# (never a standalone copy) so the tests exercise the real shipped topology — a
+# separate file would drift. Used by scripts/tests/*.sh via
+#   docker compose -f docker-compose.yml -f docker-compose.test.yml ...
+#
+# It does three things, all test-only:
+#   - build the three first-party images from THIS checkout (so tests run the
+#     current code, not a published tag) under throwaway local tags;
+#   - publish the gateway on high, per-run host ports (ITEST_*_PORT) instead of
+#     the fixed 443/8444 — `!override` REPLACES the base ports (a plain merge
+#     keeps 443 and collides with a real stack or a parallel run);
+#   - swap the server's ./data host bind for a named volume, so `down -v` cleans
+#     it and no container-UID-owned files are left in the repo.
+services:
+  server:
+    image: adminhelper-test/server:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - test-data:/app/data
+
+  gateway:
+    image: adminhelper-test/gateway:latest
+    build:
+      context: apps/gateway
+    ports: !override
+      - "${ITEST_HTTPS_PORT:-18443}:443"
+      - "${ITEST_ENROLL_PORT:-18444}:8444"
+
+  ca-issuer:
+    image: adminhelper-test/ca-issuer:latest
+    build:
+      context: apps/ca-issuer
+
+volumes:
+  test-data:

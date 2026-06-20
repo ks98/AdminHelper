@@ -303,6 +303,27 @@ Vollstaendige Integration mit dem AdminHelper-Server:
 - Verbindungen mit Tunnel zeigen ein gruenes "via Tunnel"-Badge
 - SSH/RDP-Verbindungen werden automatisch ueber `127.0.0.1:<visitor_port>` aufgeloest
 
+### Automatisierte Integrations-/E2E-Tests (Docker)
+
+Ergaenzend zu den Komponenten-Unit-Tests fahren diese Tests den **echten** Stack
+hoch — `docker-compose.yml` plus das Test-Overlay `docker-compose.test.yml`, das
+die First-Party-Images aus dem Checkout baut, die Gateway-Ports auf hohe
+Per-Run-Ports umlegt und das `./data`-Volume isoliert:
+
+```bash
+# From-outside: mTLS-Enrollment (CSR -> :8444) + JWT von aussen durchs Gateway
+bash scripts/tests/integration_stack_test.sh
+
+# Desktop-Live-E2E: die echte App (tauri-driver) legt ueber die GUI einen Tunnel an
+bash scripts/tests/desktop_e2e_live.sh
+```
+
+Gemeinsamer Boot/Seed-Code liegt in `scripts/tests/lib_e2e_stack.sh`
+(+ `e2e_api.py`). Die Desktop-E2E brauchen zusaetzlich `webkit2gtk-driver`,
+`xvfb`, `tauri-driver`, `tauri-cli` und `gnome-keyring`/`dbus`
+(siehe `apps/desktop/e2e/README.md`). In CI laufen beide nur auf
+`main`-Push/manuell (kein PR-Gate, da Image-Build + Stack-Boot).
+
 ---
 
 ## Typische Workflows
@@ -406,10 +427,11 @@ curl -sk https://localhost/api/frp/tunnels \
 │        │  └─ pages/            # 4 Pages (Dashboard, Connections, Ansible, Monitoring)
 │        └─ vitest.setup.ts      # ~41 Vitest-Unit-Tests
 ├─ docs/                     # Dokumentation (DE + EN, statisches HTML)
-├─ scripts/                  # Ops-/DB-Skripte (postgres-init, init-secrets, pg-backup)
+├─ scripts/                  # Ops-/DB-Skripte (+ tests/: integration_stack_test, desktop_e2e_live, lib_e2e_stack)
 ├─ data/                     # Server-Daten (gitignored, Bind-Mount)
 ├─ Dockerfile                # Multi-Stage: Vite-Build (apps/web) → Python-Runtime (Server-Image)
 ├─ docker-compose.yml
+├─ docker-compose.test.yml      # Test-Overlay (build aus Checkout, Ports/Volume isoliert)
 ├─ docker-compose.override.yml  # Lokale Dev-Overrides (gitignored)
 ├─ .github/workflows/        # CI/CD (GitHub Actions): ci, docker, release
 └─ .env.example
