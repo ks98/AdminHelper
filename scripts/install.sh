@@ -116,6 +116,28 @@ fetch_bundle_into() {
     rm -rf "$tmp"
 }
 
+# Best-effort: fetch + verify this release's agent-repo asset into ./repo so the
+# gateway serves the package repo right after a fresh install. A release without
+# the asset (signing key not configured / pre-repo) simply leaves ./repo absent —
+# the gateway 404s on /repo until a later update ships it. A present-but-tampered
+# asset aborts. Needs REF (a release tag); a local checkout (REF empty) skips.
+fetch_repo_into() {
+    local asset="adminhelper-agent-repo-${REF}.tar.gz" dl="${DL_BASE}/${REPO}/releases/download/${REF}" tmp exp
+    [ -n "$REF" ] || return 0
+    tmp=$(mktemp -d)
+    curl -fsSL --retry 3 -o "${tmp}/${asset}" "${dl}/${asset}" 2>/dev/null || { rm -rf "$tmp"; return 0; }
+    curl -fsSL --retry 3 -o "${tmp}/SHA256SUMS" "${dl}/SHA256SUMS" 2>/dev/null || { rm -rf "$tmp"; return 0; }
+    verify_sums_signature "$tmp" "$dl"
+    exp=$(awk -v a="$asset" '$2==a {print $1; exit}' "${tmp}/SHA256SUMS")
+    { [ -n "$exp" ] && echo "${exp}  ${tmp}/${asset}" | sha256sum -c - >/dev/null 2>&1; } \
+        || { echo "FEHLER: Agent-Repo-Asset-Checksumme stimmt nicht — Abbruch (moegliche Manipulation)." >&2; rm -rf "$tmp"; exit 1; }
+    echo "[install] Verifiziere und entpacke Agent-Repo nach ./repo ..." >&2
+    mkdir -p repo
+    find repo -mindepth 1 -delete 2>/dev/null || true
+    tar xzf "${tmp}/${asset}" -C repo
+    rm -rf "$tmp"
+}
+
 # --- Bootstrap: fetch the runtime files when run without a local checkout -----
 # Mirrors scripts/update.sh: a release tag pulls ONE verified runtime bundle
 # (atomic + checksum); a branch ref or a pre-bundle release falls back to raw.
@@ -196,6 +218,9 @@ if [ "$ASSUME_YES" != 1 ]; then
     [ -n "$TTY" ] || { echo "FEHLER: Kein Terminal fuer die Rueckfrage. Uebergib --yes fuer einen nicht-interaktiven Lauf." >&2; exit 1; }
     printf "Fortfahren? [y/N] "; read -r a <"$TTY"; case "$a" in y|Y|j|J) ;; *) echo Abgebrochen.; exit 0 ;; esac
 fi
+
+# Populate ./repo before first boot so the gateway's repo mount is non-empty.
+fetch_repo_into
 
 # --- Stack hoch (enforced per Default) --------------------------------------
 # Pull first so a stale locally-cached :latest (or a pinned tag) is refreshed —

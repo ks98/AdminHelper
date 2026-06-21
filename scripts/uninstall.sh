@@ -108,7 +108,7 @@ if ! ask "1) Stack stoppen — Container + Netzwerk entfernen?" j; then
     exit 0
 fi
 DEL_VOLUMES=0;  if ask "2) Daten-Volumes löschen (DB, Root-CA, Metriken — UNWIEDERBRINGLICH)?" j; then DEL_VOLUMES=1; fi
-DEL_HOSTDATA=0; if ask "3) Host-Daten ./data + ./certs löschen?" j; then DEL_HOSTDATA=1; fi
+DEL_HOSTDATA=0; if ask "3) Host-Daten ./data + ./certs + ./repo löschen?" j; then DEL_HOSTDATA=1; fi
 DEL_ENV=0;      if ask "4) Secrets-Datei .env löschen?" j; then DEL_ENV=1; fi
 DEL_BACKUPS=0;  if [ -d backups ] && ask "5) Backups ./backups/ löschen?" "$BK_DEFAULT"; then DEL_BACKUPS=1; fi
 DEL_IMAGES=0;   if ask "6) Docker-Images des Stacks löschen?" "$IM_DEFAULT"; then DEL_IMAGES=1; fi
@@ -150,7 +150,7 @@ nuke_path() {
     fi
 }
 
-if [ "$DEL_HOSTDATA" = 1 ]; then nuke_path data; nuke_path certs; fi
+if [ "$DEL_HOSTDATA" = 1 ]; then nuke_path data; nuke_path certs; nuke_path repo; fi
 if [ "$DEL_ENV" = 1 ]; then nuke_path .env; nuke_path .env.restored; fi
 if [ "$DEL_BACKUPS" = 1 ]; then nuke_path backups; fi
 
@@ -161,7 +161,7 @@ echo "==========================================================================
 echo "  Deinstallation abgeschlossen."
 echo "  Entfernt:   Container + Netzwerk"
 if [ "$DEL_VOLUMES" = 1 ];  then echo "              Named Volumes (inkl. Root-CA, DB, Metriken)"; else echo "              [behalten] Named Volumes — Daten bleiben erhalten"; fi
-if [ "$DEL_HOSTDATA" = 1 ]; then echo "              ./data + ./certs"; else echo "              [behalten] ./data + ./certs"; fi
+if [ "$DEL_HOSTDATA" = 1 ]; then echo "              ./data + ./certs + ./repo"; else echo "              [behalten] ./data + ./certs + ./repo"; fi
 if [ "$DEL_ENV" = 1 ];      then echo "              .env (Secrets)"; else echo "              [behalten] .env (Secrets)"; fi
 if [ "$DEL_BACKUPS" = 1 ];  then echo "              ./backups/"; elif [ -d backups ]; then echo "              [behalten] ./backups/  (löschen: --purge-backups)"; fi
 if [ "$DEL_IMAGES" = 1 ];   then echo "              Docker-Images"; else echo "              [behalten] Docker-Images  (löschen: --rmi)"; fi

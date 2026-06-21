@@ -54,6 +54,65 @@ sudo apt install "./adminhelper-agent_${VERSION}_amd64.deb"</code></pre>
           <div class="code-header"><span>bash</span></div>
 <pre><code>sudo dnf install ./adminhelper-agent-*.x86_64.rpm</code></pre>
 
+          <h2>Aus dem AdminHelper-Paket-Repo (<code>apt upgrade</code> / <code>dnf upgrade</code>)</h2>
+          <p>Der AdminHelper-Server stellt selbst ein <strong>GPG-signiertes</strong> apt-/rpm-Repo auf der Repo-Plane des Gateways bereit (Port <code>REPO_PORT</code>, Default <code>8445</code>, certless). Damit bekommen Agent-Hosts neue Versionen &uuml;ber den normalen Paketmanager statt per manuellem Download &mdash; gedacht vor allem f&uuml;r <strong>laufende Updates</strong> auf vielen Servern. <em>Voraussetzung:</em> der Server l&auml;uft mit konfiguriertem Repo-Signaturschl&uuml;ssel (siehe <a href="../developer/cicd.html">CI/CD &amp; Release</a>); sonst liefert <code>/repo</code> nur <code>404</code>.</p>
+          <p><strong>Vertrauenswurzel ist der GPG-Fingerprint</strong>, nicht der Transport: die Paket-Authentizit&auml;t h&auml;ngt an der Signatur (wie bei jedem Distro-Mirror). Pr&uuml;fe den Fingerprint des geladenen Schl&uuml;ssels gegen den ver&ouml;ffentlichten Wert (<code>&lt;REPO-GPG-FINGERPRINT&gt;</code>), bevor du fortf&auml;hrst.</p>
+
+          <h3>Debian/Ubuntu (apt)</h3>
+          <div class="code-header"><span>bash</span></div>
+<pre><code>SERVER=srm.example.com                 # dein AdminHelper-Server
+REPO="https://${SERVER}:8445/repo"
+
+# 1) Signaturschluessel holen + Fingerprint pruefen (Vertrauenswurzel!)
+sudo install -d -m 0755 /usr/share/keyrings
+curl -fsSL "${REPO}/apt/adminhelper-archive-keyring.gpg" \
+  | sudo tee /usr/share/keyrings/adminhelper-archive-keyring.gpg &gt;/dev/null
+gpg --show-keys --with-fingerprint /usr/share/keyrings/adminhelper-archive-keyring.gpg
+
+# 2) Repo-Quelle (deb822); Signed-By bindet das Repo an genau diesen Schluessel
+sudo tee /etc/apt/sources.list.d/adminhelper.sources &gt;/dev/null &lt;&lt;EOF
+Types: deb
+URIs: ${REPO}/apt
+Suites: stable
+Components: main
+Signed-By: /usr/share/keyrings/adminhelper-archive-keyring.gpg
+EOF
+
+# 3) TLS gegen das interne Server-Cert. Variante A (gehaertet, Host bereits
+#    enrollt -> die interne CA liegt unter /etc/adminhelper/identity/ca.crt):
+echo 'Acquire::https::'"${SERVER}"'::CAInfo "/etc/adminhelper/identity/ca.crt";' \
+  | sudo tee /etc/apt/apt.conf.d/99adminhelper-ca &gt;/dev/null
+#    Variante B (einfachster Bootstrap, ohne CA-Datei) — die GPG-Signatur traegt
+#    weiterhin die Authentizitaet:
+# echo 'Acquire::https::'"${SERVER}"'::Verify-Peer "false";' \
+#   | sudo tee /etc/apt/apt.conf.d/99adminhelper-ca &gt;/dev/null
+
+sudo apt update
+sudo apt install adminhelper-agent     # spaetere Updates: apt upgrade</code></pre>
+
+          <h3>Rocky/Alma/RHEL (dnf)</h3>
+          <div class="code-header"><span>bash</span></div>
+<pre><code>SERVER=srm.example.com
+REPO="https://${SERVER}:8445/repo"
+sudo tee /etc/yum.repos.d/adminhelper.repo &gt;/dev/null &lt;&lt;EOF
+[adminhelper]
+name=AdminHelper Agent
+baseurl=${REPO}/rpm
+enabled=1
+gpgcheck=1
+repo_gpgcheck=1
+gpgkey=${REPO}/rpm/RPM-GPG-KEY-adminhelper
+# Variante A (gehaertet): sslcacert=/etc/adminhelper/identity/ca.crt
+# Variante B (einfach, ohne CA-Datei):
+sslverify=0
+EOF
+sudo dnf install adminhelper-agent     # spaetere Updates: dnf upgrade</code></pre>
+
+          <div class="callout callout-tip" data-reveal>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-7 7c0 3 2 5 3 7h8c1-2 3-4 3-7a7 7 0 0 0-7-7z"/></svg>
+            <div><div class="callout-title">CA-Pinning vs. Erst-Install</div><p>Variante&nbsp;A setzt voraus, dass der Host bereits provisioniert/enrollt ist (dann liegt die interne CA unter <code>/etc/adminhelper/identity/ca.crt</code>). F&uuml;r den allerersten Install eines noch nicht enrollten Hosts nimm Variante&nbsp;B oder den lokalen <code>.deb</code>/<code>.rpm</code>-Download oben; nach dem Provisioning kannst du auf CA-Pinning umstellen. Die Paket-Integrit&auml;t ist in beiden F&auml;llen durch die GPG-Signatur gedeckt.</p></div>
+          </div>
+
           <h2>Erst-Provisionierung</h2>
           <p>Nach Installation läuft der Agent noch nicht produktiv – er hat weder einen Server-URL noch ein FRP-Client-Zertifikat. Provisionierung in zwei Schritten:</p>
           <ol>

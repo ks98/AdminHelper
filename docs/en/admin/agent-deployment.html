@@ -47,6 +47,65 @@ sudo apt install "./adminhelper-agent_${VERSION}_amd64.deb"</code></pre>
           <div class="code-header"><span>bash</span></div>
 <pre><code>sudo dnf install ./adminhelper-agent-*.x86_64.rpm</code></pre>
 
+          <h2>From the AdminHelper package repo (<code>apt upgrade</code> / <code>dnf upgrade</code>)</h2>
+          <p>The AdminHelper server itself hosts a <strong>GPG-signed</strong> apt/rpm repo on the gateway's repo plane (port <code>REPO_PORT</code>, default <code>8445</code>, certless). Agent hosts then pull new versions through the normal package manager instead of a manual download &mdash; meant mainly for <strong>ongoing updates</strong> across many servers. <em>Prerequisite:</em> the server runs with a configured repo signing key (see <a href="../developer/cicd.html">CI/CD &amp; Release</a>); otherwise <code>/repo</code> just returns <code>404</code>.</p>
+          <p><strong>The trust root is the GPG fingerprint</strong>, not the transport: package authenticity rests on the signature (like any distro mirror). Check the fingerprint of the fetched key against the published value (<code>&lt;REPO-GPG-FINGERPRINT&gt;</code>) before you continue.</p>
+
+          <h3>Debian/Ubuntu (apt)</h3>
+          <div class="code-header"><span>bash</span></div>
+<pre><code>SERVER=srm.example.com                 # your AdminHelper server
+REPO="https://${SERVER}:8445/repo"
+
+# 1) Fetch the signing key + verify the fingerprint (trust root!)
+sudo install -d -m 0755 /usr/share/keyrings
+curl -fsSL "${REPO}/apt/adminhelper-archive-keyring.gpg" \
+  | sudo tee /usr/share/keyrings/adminhelper-archive-keyring.gpg &gt;/dev/null
+gpg --show-keys --with-fingerprint /usr/share/keyrings/adminhelper-archive-keyring.gpg
+
+# 2) Repo source (deb822); Signed-By binds the repo to exactly this key
+sudo tee /etc/apt/sources.list.d/adminhelper.sources &gt;/dev/null &lt;&lt;EOF
+Types: deb
+URIs: ${REPO}/apt
+Suites: stable
+Components: main
+Signed-By: /usr/share/keyrings/adminhelper-archive-keyring.gpg
+EOF
+
+# 3) TLS against the internal server cert. Option A (hardened, host already
+#    enrolled -> the internal CA sits at /etc/adminhelper/identity/ca.crt):
+echo 'Acquire::https::'"${SERVER}"'::CAInfo "/etc/adminhelper/identity/ca.crt";' \
+  | sudo tee /etc/apt/apt.conf.d/99adminhelper-ca &gt;/dev/null
+#    Option B (simplest bootstrap, no CA file) — the GPG signature still carries
+#    authenticity:
+# echo 'Acquire::https::'"${SERVER}"'::Verify-Peer "false";' \
+#   | sudo tee /etc/apt/apt.conf.d/99adminhelper-ca &gt;/dev/null
+
+sudo apt update
+sudo apt install adminhelper-agent     # later updates: apt upgrade</code></pre>
+
+          <h3>Rocky/Alma/RHEL (dnf)</h3>
+          <div class="code-header"><span>bash</span></div>
+<pre><code>SERVER=srm.example.com
+REPO="https://${SERVER}:8445/repo"
+sudo tee /etc/yum.repos.d/adminhelper.repo &gt;/dev/null &lt;&lt;EOF
+[adminhelper]
+name=AdminHelper Agent
+baseurl=${REPO}/rpm
+enabled=1
+gpgcheck=1
+repo_gpgcheck=1
+gpgkey=${REPO}/rpm/RPM-GPG-KEY-adminhelper
+# Option A (hardened): sslcacert=/etc/adminhelper/identity/ca.crt
+# Option B (simple, no CA file):
+sslverify=0
+EOF
+sudo dnf install adminhelper-agent     # later updates: dnf upgrade</code></pre>
+
+          <div class="callout callout-tip" data-reveal>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-7 7c0 3 2 5 3 7h8c1-2 3-4 3-7a7 7 0 0 0-7-7z"/></svg>
+            <div><div class="callout-title">CA pinning vs. first install</div><p>Option&nbsp;A requires the host to be provisioned/enrolled already (then the internal CA sits at <code>/etc/adminhelper/identity/ca.crt</code>). For the very first install of a not-yet-enrolled host use Option&nbsp;B or the local <code>.deb</code>/<code>.rpm</code> download above; after provisioning you can switch to CA pinning. Package integrity is covered by the GPG signature either way.</p></div>
+          </div>
+
           <h2>Windows</h2>
           <p>Grab the latest MSI from the <a href="https://github.com/ks98/AdminHelper/releases" rel="noopener">GitHub releases page</a> (the Windows MSI is built best-effort and may lag behind the Linux packages). Install with elevated privileges – the installer registers the Windows service.</p>
 

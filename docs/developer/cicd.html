@@ -74,6 +74,7 @@ ghcr.io/ks98/adminhelper/server:sha-abc1234 # pro Commit
           <ul>
             <li>Desktop-Client: <code>.deb</code> + <code>.rpm</code> (Tauri) + ELF-Binary</li>
             <li>Go-Agent: <code>.deb</code> + <code>.rpm</code> + <code>linux</code>/<code>windows</code>-Binaries</li>
+            <li>Agent-Paket-Repo: <code>adminhelper-agent-repo-&lt;tag&gt;.tar.gz</code> (GPG-signiertes apt+rpm-Repo, sobald <code>REPO_GPG_PRIVATE_KEY</code> gesetzt)</li>
             <li>Desktop-Client Windows-<code>.msi</code> (best-effort &ndash; blockiert das Release nicht, wenn der Windows-Build fehlschlägt)</li>
             <li><code>SHA256SUMS</code> über alle Assets &ndash; plus <code>SHA256SUMS.minisig</code> (minisign-Signatur), sobald scharf geschaltet</li>
           </ul>
@@ -97,6 +98,25 @@ ghcr.io/ks98/adminhelper/server:sha-abc1234 # pro Commit
 #    base64 -w0 minisign.key | gh secret set MINISIGN_SECRET_KEY
 # 2) Public Key (die "RW…"-Zeile aus minisign.pub) in
 #    MINISIGN_PUBKEY in scripts/install.sh UND scripts/update.sh pinnen</code></pre>
+            </div>
+          </div>
+
+          <h2>Repo-Signatur (Agent-Paket-Repo)</h2>
+          <p><code>release.yml</code> baut zus&auml;tzlich ein <strong>GPG-signiertes</strong> apt-/rpm-Repo (<code>apps/agent/build-repo.sh</code>: <code>InRelease</code>/<code>Release.gpg</code>, <code>rpm --addsign</code> + <code>repomd.xml.asc</code>) und h&auml;ngt es als ein Asset <code>adminhelper-agent-repo-&lt;tag&gt;.tar.gz</code> ans Release &ndash; in <code>SHA256SUMS</code> + minisign mit abgedeckt. Der Server liefert es &uuml;ber die certless Repo-Plane des Gateways (<code>:8445</code>) aus; <code>install.sh</code>/<code>update.sh</code> ziehen das Asset nach <code>./repo</code>. Agent-Hosts vertrauen dem <strong>GPG-Fingerprint</strong> (Vertrauenswurzel), nicht dem Transport (siehe <a href="../admin/agent-deployment.html">Agent-Deployment</a>).</p>
+          <div class="callout">
+            <div><div class="callout-title">Scharfschalten (Maintainer, einmalig)</div>
+            <p>Ohne konfigurierten Schl&uuml;ssel &uuml;berspringt <code>release.yml</code> das Repo-Asset (mit Warnung) und <code>/repo</code> liefert <code>404</code> &ndash; kein Bruch. Zum Aktivieren einen <strong>passwortlosen</strong> GPG-Schl&uuml;ssel erzeugen:</p>
+<pre><code># 1) Passwortlosen Signaturschluessel erzeugen
+gpg --batch --passphrase '' \
+    --quick-generate-key "AdminHelper Repo &lt;repo@adminhelper.de&gt;" rsa3072 sign 0
+
+# 2) Geheimen Schluessel base64-kodiert als GitHub-Actions-Secret hinterlegen
+#    (eine Zeile, paste-sicher):
+gpg --export-secret-keys --armor &lt;KEYID&gt; | base64 -w0 | gh secret set REPO_GPG_PRIVATE_KEY
+
+# 3) Fingerprint pinnen: in agent-deployment.html (DE+EN) den Platzhalter
+#    &lt;REPO-GPG-FINGERPRINT&gt; durch diesen Wert ersetzen:
+gpg --fingerprint &lt;KEYID&gt;</code></pre>
             </div>
           </div>
 

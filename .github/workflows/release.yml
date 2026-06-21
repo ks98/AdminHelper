@@ -230,6 +230,36 @@ jobs:
               | xargs sha256sum > MANIFEST.sha256 )
           tar czf "release/adminhelper-runtime-${TAG}.tar.gz" -C stage .
           echo "=== runtime bundle ==="; tar tzf "release/adminhelper-runtime-${TAG}.tar.gz"
+      # The agent package repo (GPG-signed apt + rpm) as ONE asset the updater
+      # drops into the gateway's ./repo. Built BEFORE "Flatten and checksum" so it
+      # lands in SHA256SUMS (and thus the minisign signature). Skips with a warning
+      # until REPO_GPG_PRIVATE_KEY is configured — like MINISIGN_SECRET_KEY it must
+      # never block a release. Generate a PASSPHRASE-LESS key once, store
+      # `gpg --export-secret-keys --armor <KEYID> | base64 -w0` as the secret, and
+      # pin the public key in the docs + client setup snippet (docs/.../cicd).
+      - name: Build signed agent repo (apt + rpm)
+        env:
+          REPO_GPG_PRIVATE_KEY: ${{ secrets.REPO_GPG_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${REPO_GPG_PRIVATE_KEY:-}" ]; then
+            echo "::warning::REPO_GPG_PRIVATE_KEY not set — agent apt/rpm repo asset skipped (see docs/developer/cicd)."
+            exit 0
+          fi
+          TAG="${GITHUB_REF_NAME}"; VER="${TAG#v}"
+          mkdir -p release
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq dpkg-dev apt-utils createrepo-c rpm gnupg
+          export GNUPGHOME="$(mktemp -d)"; chmod 700 "$GNUPGHOME"
+          printf '%s' "$REPO_GPG_PRIVATE_KEY" | base64 -d | gpg --batch --import 2>/dev/null \
+            || { echo "::error::REPO_GPG_PRIVATE_KEY must be base64 of an exported secret key: gpg --export-secret-keys --armor <KEYID> | base64 -w0"; exit 1; }
+          KEY_ID="$(gpg --list-secret-keys --with-colons | awk -F: '/^fpr:/{print $10; exit}')"
+          DEB="$(ls artifacts/agent/adminhelper-agent_*_amd64.deb | head -1)"
+          RPM="$(ls artifacts/agent/adminhelper-agent-*.x86_64.rpm | head -1)"
+          VERSION="$VER" REPO_GPG_KEY_ID="$KEY_ID" OUT_DIR=repo DEB="$DEB" RPM="$RPM" \
+            bash apps/agent/build-repo.sh
+          tar czf "release/adminhelper-agent-repo-${TAG}.tar.gz" -C repo .
+          echo "=== agent repo bundle ==="; tar tzf "release/adminhelper-agent-repo-${TAG}.tar.gz" | head
       - name: Flatten and checksum
         run: |
           find artifacts -type f -exec cp {} release/ \;

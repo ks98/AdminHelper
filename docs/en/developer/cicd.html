@@ -74,6 +74,7 @@ ghcr.io/ks98/adminhelper/server:sha-abc1234 # per commit
           <ul>
             <li>Desktop client: <code>.deb</code> + <code>.rpm</code> (Tauri) + ELF binary</li>
             <li>Go agent: <code>.deb</code> + <code>.rpm</code> + <code>linux</code>/<code>windows</code> binaries</li>
+            <li>Agent package repo: <code>adminhelper-agent-repo-&lt;tag&gt;.tar.gz</code> (GPG-signed apt+rpm repo, once <code>REPO_GPG_PRIVATE_KEY</code> is set)</li>
             <li>Desktop client Windows <code>.msi</code> (best-effort &ndash; does not block the release if the Windows build fails)</li>
             <li><code>SHA256SUMS</code> over all assets &ndash; plus <code>SHA256SUMS.minisig</code> (minisign signature) once armed</li>
           </ul>
@@ -97,6 +98,25 @@ ghcr.io/ks98/adminhelper/server:sha-abc1234 # per commit
 #    base64 -w0 minisign.key | gh secret set MINISIGN_SECRET_KEY
 # 2) pin the public key (the "RW…" line from minisign.pub) into
 #    MINISIGN_PUBKEY in scripts/install.sh AND scripts/update.sh</code></pre>
+            </div>
+          </div>
+
+          <h2>Repo signing (agent package repo)</h2>
+          <p><code>release.yml</code> also builds a <strong>GPG-signed</strong> apt/rpm repo (<code>apps/agent/build-repo.sh</code>: <code>InRelease</code>/<code>Release.gpg</code>, <code>rpm --addsign</code> + <code>repomd.xml.asc</code>) and attaches it as one asset <code>adminhelper-agent-repo-&lt;tag&gt;.tar.gz</code> &ndash; covered by <code>SHA256SUMS</code> + minisign. The server serves it over the gateway's certless repo plane (<code>:8445</code>); <code>install.sh</code>/<code>update.sh</code> pull the asset into <code>./repo</code>. Agent hosts trust the <strong>GPG fingerprint</strong> (trust root), not the transport (see <a href="../admin/agent-deployment.html">Agent deployment</a>).</p>
+          <div class="callout">
+            <div><div class="callout-title">Arming (maintainer, one-time)</div>
+            <p>Without a configured key, <code>release.yml</code> skips the repo asset (with a warning) and <code>/repo</code> returns <code>404</code> &ndash; no breakage. To arm, generate a <strong>passphrase-less</strong> GPG key:</p>
+<pre><code># 1) Generate a passphrase-less signing key
+gpg --batch --passphrase '' \
+    --quick-generate-key "AdminHelper Repo &lt;repo@adminhelper.de&gt;" rsa3072 sign 0
+
+# 2) Store the secret key base64-encoded as the GitHub Actions secret
+#    (single line, paste-safe):
+gpg --export-secret-keys --armor &lt;KEYID&gt; | base64 -w0 | gh secret set REPO_GPG_PRIVATE_KEY
+
+# 3) Pin the fingerprint: replace the &lt;REPO-GPG-FINGERPRINT&gt; placeholder in
+#    agent-deployment.html (DE+EN) with this value:
+gpg --fingerprint &lt;KEYID&gt;</code></pre>
             </div>
           </div>
 

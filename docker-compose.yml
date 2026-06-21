@@ -94,13 +94,17 @@ services:
     # The single public TLS/mTLS edge for the HTTP planes (ADR 0001 D11).
     #   :443   data plane  -> server  (permissive mTLS this phase; CERT_REQUIRED in A8)
     #   :8444  enroll plane -> ca-issuer (certless, token-gated)
+    #   :8445  repo plane   -> static GPG-signed apt/rpm repo (certless, ./repo)
     # TLS material (access-signed leaf + CA bundle) is provisioned by the
     # ca-issuer into the shared gateway-certs volume; the entrypoint waits for it.
     ports:
       - "443:443"
       - "${ENROLL_PORT:-8444}:8444"
+      - "${REPO_PORT:-8445}:8445"
     volumes:
       - gateway-certs:/etc/nginx/certs:ro
+      # Agent package repo the updater populates host-side (empty/absent → 404).
+      - ./repo:/usr/share/nginx/repo:ro
     environment:
       - TZ=${TZ:-Europe/Berlin}
       # Default true → data plane :443 is CERT_REQUIRED (ssl_verify_client on);

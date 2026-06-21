@@ -163,6 +163,30 @@ fetch_bundle() {
     printf '%s' "${tmp}/extract"
 }
 
+# Refresh the host ./repo (the gateway's apt/rpm repo mount) from this release's
+# agent-repo asset. Best-effort: a release WITHOUT the asset (signing key not
+# configured, or a pre-repo release) leaves ./repo untouched and never fails the
+# update — but an asset that IS present with a wrong checksum aborts (tampering).
+# Reuses the already-downloaded, signature-verified ${tmp}/SHA256SUMS. Updates the
+# tree IN PLACE (keeps the dir inode) so the gateway's live bind mount stays valid.
+update_agent_repo() {
+    local tag="$1" tmp="$2" asset dl expected
+    asset="adminhelper-agent-repo-${tag}.tar.gz"
+    dl="${DL_BASE}/${REPO}/releases/download/${tag}"
+    if ! curl -fsSL --retry 3 --retry-connrefused -o "${tmp}/${asset}" "${dl}/${asset}" 2>/dev/null; then
+        log "Kein Agent-Repo-Asset in ${tag} — ueberspringe Repo-Update (Paket-Repo unveraendert)."
+        return 0
+    fi
+    expected=$(awk -v a="$asset" '$2==a {print $1; exit}' "${tmp}/SHA256SUMS" 2>/dev/null || true)
+    [ -n "$expected" ] || { log "Keine Checksumme fuer ${asset} — ueberspringe Repo-Update."; return 0; }
+    echo "${expected}  ${tmp}/${asset}" | sha256sum -c - >/dev/null 2>&1 \
+        || die "Checksumme des Agent-Repo-Assets stimmt nicht — Abbruch (moegliche Manipulation)."
+    log "Aktualisiere Paket-Repo unter ./repo ..."
+    mkdir -p repo
+    find repo -mindepth 1 -delete 2>/dev/null || true
+    tar xzf "${tmp}/${asset}" -C repo
+}
+
 # Wait until the server accepts connections (migrations done, uvicorn up).
 # Retries/interval are tunable (default 120×2s = 240s) for slow hosts and tests.
 wait_for_server() {
@@ -304,6 +328,9 @@ upsert_env CA_ISSUER_IMAGE  "ghcr.io/ks98/adminhelper/ca-issuer:${TARGET_VER}"
 upsert_env MONITORING_IMAGE "ghcr.io/ks98/adminhelper/monitoring:${TARGET_VER}"
 chmod 600 .env 2>/dev/null || true
 log "Images gepinnt auf :${TARGET_VER}"
+
+# --- Refresh the gateway's agent package repo (best-effort) -----------------
+update_agent_repo "$TARGET" "$TMP"
 
 # --- Deploy + health check, with automatic rollback on failure --------------
 rollback() {

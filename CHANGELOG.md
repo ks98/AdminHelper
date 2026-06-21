@@ -7,6 +7,23 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Added
+
+- **Agent-Paket-Repo (apt/dnf-Update-Kanal).** Der AdminHelper-Server stellt selbst
+  ein **GPG-signiertes** apt-/rpm-Repo über eine neue **certless Repo-Plane des
+  Gateways** bereit (`REPO_PORT`, Default `8445`), sodass Agent-Hosts neue Versionen
+  über `apt upgrade` / `dnf upgrade` beziehen statt per manuellem Download — gedacht
+  für laufende Updates auf vielen Servern. `release.yml` baut das Repo
+  (`apps/agent/build-repo.sh`: `InRelease`/`Release.gpg`, `rpm --addsign` +
+  `repomd.xml.asc`, je ein de-/armored Public-Key) und veröffentlicht es als ein in
+  `SHA256SUMS` + minisign abgedecktes Asset `adminhelper-agent-repo-<tag>.tar.gz`.
+  `install.sh`/`update.sh` ziehen das Asset best-effort nach `./repo` (in-place, der
+  Live-Bind-Mount bleibt gültig). Signatur via neuem Secret `REPO_GPG_PRIVATE_KEY`:
+  ohne Schlüssel wird das Asset mit Warnung übersprungen und `/repo` liefert `404` —
+  kein Bruch. Onboarding (apt `deb822`/`signed-by` + dnf `.repo`, GPG-Fingerprint als
+  Vertrauenswurzel, TLS via CA-Pinning oder `Verify-Peer`) unter *Agent-Deployment*;
+  Maintainer-Setup unter *CI/CD & Release*. Test: `scripts/tests/repo_build_test.sh`.
+
 ## [0.37.2] - 2026-06-20
 
 ### Added

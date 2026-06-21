@@ -7,6 +7,6 @@ FROM nginx:1.27-alpine@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef
 COPY nginx.conf /etc/nginx/nginx.conf
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 
-EXPOSE 443 8444
+EXPOSE 443 8444 8445
 
 ENTRYPOINT ["/bin/sh", "/docker-entrypoint.sh"]
