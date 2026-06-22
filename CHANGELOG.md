@@ -29,6 +29,11 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
   `MONITOR_API_KEY` als `X-Internal-Key`, best-effort). Die Event-Severity ist der
   schlimmere der beiden Zustände, damit eine Entwarnung (`warning→ok`) auch
   Abonnenten mit Schwelle „warning" erreicht.
+- **Server-interne Events speisen den Hub (Phase B2).** Der In-Process-Event-Bus
+  (`fire_event`) bridged eine kuratierte Auswahl in den Hub: neuer Admin-Benutzer
+  (`security`), Server entfernt und FRP-Tunnel angelegt (`lifecycle`). Reine
+  CRUD-Events, die der Auslöser selbst verursacht, werden bewusst nicht gespiegelt
+  (kein Noise).
 
 ## [0.37.2] - 2026-06-20
 

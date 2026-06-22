@@ -48,6 +48,16 @@ def _run_event(event_type: str, event_data: Any) -> None:
     finally:
         db.close()
 
+    # Notification bridge: fan notification-worthy events out to users. Runs
+    # after (and independently of) the hook dispatch, on its own session, so a
+    # hook DB error cannot suppress notifications and vice versa.
+    try:
+        from app.modules.notifications.event_bridge import handle_event
+
+        handle_event(event_type, event_data)
+    except Exception:
+        logger.exception("Notification-Bridge fehlgeschlagen (event=%s)", event_type)
+
 
 def fire_event(event_type: str, event_data: Any) -> None:
     """Dispatch the event to all matching event hooks in the thread pool."""
