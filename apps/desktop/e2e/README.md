@@ -9,7 +9,14 @@ webview; the Vitest component tests in `../ui` stop at the IPC boundary.
 - **`test/specs/smoke.e2e.js`** — the app launches, the window is titled
   `AdminHelper`, and the Svelte frontend mounts. No backend required (launch +
   render happen before any server call). This is the harness's foundation. Run
-  it standalone with `npm test`.
+  it standalone with `npm test` (headless: `xvfb-run -a npm test`).
+
+> **Not a CI job.** The whole desktop E2E layer — smoke included — runs
+> locally/manually, never in CI. The headless WebKit chain (tauri-driver →
+> WebKitWebDriver → WebKit under xvfb) drifts with the GitHub runner image and
+> ungated upstream tool versions, so it flaked and reddened `main` without
+> signalling a real defect. Run it before a release / after touching the desktop
+> window or webview.
 - **`test/specs/tunnel-create.live.js`** — drives the app against a REAL backend:
   log in through the nginx gateway, then create a connection tunnel via the
   Infrastructure UI. The full path GUI → `api_proxy` → gateway → server →

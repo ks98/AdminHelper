@@ -24,6 +24,25 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
   Vertrauenswurzel, TLS via CA-Pinning oder `Verify-Peer`) unter *Agent-Deployment*;
   Maintainer-Setup unter *CI/CD & Release*. Test: `scripts/tests/repo_build_test.sh`.
 
+### Changed
+
+- **Server-Auth-Gate-Test robust gegen FastAPI-Versionssprünge.**
+  `test_route_auth_gate.py` nahm an, `app.routes` liste eingebundene Router flach
+  als `APIRoute`. FastAPI 0.138 kapselt jedes `include_router()` in ein opakes
+  `_IncludedRouter` → der Test sammelte 0 Routen (false-positive „route no longer
+  exists", und schlimmer: der Guard-Test wäre still leergelaufen). Jetzt rekursiver
+  `_collect_api_routes()` für beide Strukturen (≤0.136 flach + ≥0.138 verschachtelt)
+  plus Emptiness-Guard. Trat nur in CI auf, weil der Test-Job über `requirements.in`
+  die *neueste* FastAPI zieht, nicht die gehashte Lock.
+
+### Removed
+
+- **Desktop-E2E (tauri-driver-Smoke) aus der CI entfernt.** Die headless-WebKit-Kette
+  (tauri-driver → WebKitWebDriver → WebKit unter xvfb) driftet mit dem GitHub-Runner-
+  Image + ungepinnten Upstream-Tools und färbte `main` rot ohne echten Defekt — und
+  überdeckte dabei einen realen Bug. Der Smoke-Test läuft jetzt wie die Desktop-
+  `*.live.js`-Journeys **lokal/manuell** (`cd apps/desktop/e2e && xvfb-run -a npm test`).
+
 ## [0.37.2] - 2026-06-20
 
 ### Added
