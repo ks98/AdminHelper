@@ -15,6 +15,13 @@ DATA_DIR.mkdir(parents=True, exist_ok=True)
 # VictoriaMetrics
 VICTORIA_METRICS_URL = os.environ.get("VICTORIA_METRICS_URL", "http://victoria:8428")
 
+# AdminHelper server = the notification hub. Check-status transitions are pushed
+# here so the server can resolve which users to notify (monitoring has no user
+# data). Authenticated with the shared INTERNAL_API_KEY via X-Internal-Key, the
+# reverse direction of the server's monitoring proxy. Empty disables the push
+# (tests set it empty); compose points it at the internal server URL.
+SERVER_HUB_URL = os.environ.get("SERVER_HUB_URL", "http://server:8080").rstrip("/")
+
 # Internal API key for service-to-service communication (AdminHelper -> Monitoring)
 INTERNAL_API_KEY = os.environ.get("MONITOR_API_KEY", "").strip()
 if not INTERNAL_API_KEY:

@@ -15,3 +15,6 @@ import os
 import tempfile
 
 os.environ.setdefault("DATA_DIR", os.path.join(tempfile.gettempdir(), "adminhelper-monitor-test"))
+# Disable the notification-hub push by default — these are pure-logic tests with
+# no server to reach; the hub-emit tests set the URL explicitly.
+os.environ.setdefault("SERVER_HUB_URL", "")

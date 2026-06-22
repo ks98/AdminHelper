@@ -23,6 +23,12 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
   (Self-Service-Einstellungen). Das Monitoring bleibt reine Event-Quelle; die
   Empfänger-Auflösung liegt nur im Server, wo die User↔Server-Zuordnung existiert.
   Noch ohne UI und ohne tatsächlichen Versand (folgt in späteren Phasen).
+- **Monitoring speist den Hub (Phase B1).** Jeder Check-Statuswechsel wird
+  zusätzlich zum regelbasierten Webhook-/E-Mail-Versand an `POST
+  /api/internal/events` des Servers gepusht (`SERVER_HUB_URL`, Auth via
+  `MONITOR_API_KEY` als `X-Internal-Key`, best-effort). Die Event-Severity ist der
+  schlimmere der beiden Zustände, damit eine Entwarnung (`warning→ok`) auch
+  Abonnenten mit Schwelle „warning" erreicht.
 
 ## [0.37.2] - 2026-06-20
 

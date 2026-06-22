@@ -22,10 +22,18 @@ from email.mime.text import MIMEText
 import httpx
 from sqlalchemy.orm import Session
 
+from app.core.config import INTERNAL_API_KEY, SERVER_HUB_URL
 from app.core.ssrf import is_private_url
 from app.models import MonitorAlertLog, MonitorAlertRule, MonitorCheck, MonitorState
 
 logger = logging.getLogger("monitor.alerter")
+
+# Hub severity of a transition = the worse of the two states (info<warning<
+# critical). A recovery (warning->ok) therefore keeps the "warning" level so it
+# still reaches subscribers with a warning threshold; an escalation
+# (ok->critical) is "critical". unknown is treated as warning-level.
+_STATUS_LEVEL = {"ok": 0, "info": 0, "unknown": 1, "warning": 1, "critical": 2}
+_LEVEL_SEVERITY = {0: "info", 1: "warning", 2: "critical"}
 
 # SMTP configuration from environment variables
 SMTP_HOST = os.environ.get("SMTP_HOST", "")
@@ -77,6 +85,46 @@ def process_alert(
         db.add(log_entry)
 
     db.flush()
+
+    # Independently of the rule-based webhook/email dispatch above, push every
+    # status transition to the server's notification hub for per-user routing.
+    _emit_to_hub(check, old_status, new_status)
+
+
+def _hub_severity(old_status: str, new_status: str) -> str:
+    """Severity of a transition for the hub = the worse of the two states."""
+    level = max(_STATUS_LEVEL.get(old_status, 1), _STATUS_LEVEL.get(new_status, 1))
+    return _LEVEL_SEVERITY[level]
+
+
+def _emit_to_hub(check: MonitorCheck, old_status: str, new_status: str) -> None:
+    """Push the status transition to the server's notification hub (best-effort).
+
+    The server owns the user<->server mapping and decides who gets notified;
+    monitoring stays a pure event source. A failed push must never break the
+    alert path, so errors are logged, not raised."""
+    if not SERVER_HUB_URL or not INTERNAL_API_KEY:
+        return
+    msg = _build_message(check, old_status, new_status)
+    payload = {
+        "event_type": "monitoring.check.transition",
+        "severity": _hub_severity(old_status, new_status),
+        "category": "monitoring",
+        "title": msg["subject"],
+        "body": msg["text"],
+        "source_type": "server",
+        "source_id": check.server_id,
+    }
+    try:
+        httpx.post(
+            f"{SERVER_HUB_URL}/api/internal/events",
+            json=payload,
+            headers={"X-Internal-Key": INTERNAL_API_KEY},
+            timeout=5,
+            follow_redirects=False,
+        )
+    except Exception as exc:
+        logger.warning("Hub-Emit fehlgeschlagen (%s): %s", check.name, exc)
 
 
 def _rule_matches(rule: MonitorAlertRule, check: MonitorCheck) -> bool:
