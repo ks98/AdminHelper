@@ -1,6 +1,6 @@
 [package]
 name = "adminhelper"
-version = "0.37.2"
+version = "0.38.0"
 description = "AdminHelper Desktop-Client — Remote-Verwaltung mit FRP-Tunneln"
 authors = ["Kevin Stenzel <kevin@ks98.de>"]
 edition = "2021"
@@ -12,13 +12,20 @@ tauri-build = { version = "2", features = [] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tauri = { version = "2", features = ["image-png"] }
-reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+# `stream` enables Response::bytes_stream() for the long-lived SSE client.
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "stream"] }
+# StreamExt::next() over the SSE byte stream.
+futures-util = { version = "0.3", default-features = false }
+# Reconnect backoff (sleep) for the SSE client; tauri provides the runtime.
+tokio = { version = "1", default-features = false, features = ["time"] }
 url = "2"
 open = "5"
 keyring = { version = "3", default-features = false, features = ["apple-native", "windows-native", "async-secret-service", "async-io", "crypto-rust"] }
 tauri-plugin-shell = "2"
 # Native "save as" dialog so the user picks where the browser .p12 is written.
 tauri-plugin-dialog = "2"
+# Native OS notifications: the bell feed also surfaces as desktop notifications.
+tauri-plugin-notification = "2"
 # Desktop logging: stdout + a size-rotated file in the app log dir; the file is
 # the source for the diagnostics report.
 tauri-plugin-log = "2"

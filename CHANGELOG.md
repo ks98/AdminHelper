@@ -5,10 +5,69 @@ Alle nennenswerten Aenderungen an diesem Projekt werden hier dokumentiert.
 Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
-## [Unreleased]
+## [0.38.0] - 2026-06-23
 
 ### Added
 
+- **Server: Multi-Worker-Tauglichkeit (Skalierungs-Fundament).** Der Server kann nun
+  mit mehreren Uvicorn-Workern laufen (`WEB_CONCURRENCY`, Default 1 = unverändert).
+  Damit die periodischen Jobs (E-Mail-Outbox, Aufbewahrungs-Cleanups, Scheduled
+  Hooks) genau einmal laufen, ist der **APScheduler in einen dedizierten
+  `scheduler`-Dienst** ausgelagert (im Compose enthalten, genau eine Instanz,
+  `RUN_MODE=scheduler`); die Web-Worker führen nur noch `uvicorn` aus. Scheduled
+  Hooks werden vom Scheduler-Prozess periodisch aus der DB rekonziliert statt direkt
+  von den Routern registriert. Das Rate-Limit warnt bei Multi-Worker ohne Redis; der
+  DB-Pool ist pro Worker konfigurierbar (`DB_POOL_SIZE`/`DB_MAX_OVERFLOW`).
+- **Server: SSE-Push für die Benachrichtigungs-Glocke (Push statt Polling).** Neuer
+  Stream-Endpoint `GET /api/notifications/stream` (Server-Sent Events): sobald ein
+  Nutzer eine neue Benachrichtigung bekommt, pusht der Server ein leichtes
+  „Refresh"-Signal, woraufhin die Glocke sofort lädt — statt bis zu 30&nbsp;s zu
+  warten. Worker-übergreifend via Redis Pub/Sub (`stream_hub`, eine Subscription pro
+  Web-Worker); der Handler ist async und DB-frei und hält keine DB-Connection über
+  die Stream-Dauer. Das Gateway (nginx) proxyt den Stream ungepuffert mit langem
+  Read-Timeout. Polling bleibt als Fallback.
+- **Server: Fundament für ein Benachrichtigungssystem (Phase A).** Der Server wird
+  zum Notification-Hub. Neue Tabellen: `notification_subscription` (pro-User-Regeln
+  — Scope *alle Server* / *Tag* / *einzelner Server*, Mindest-Severity, optionaler
+  Kategorie-Filter, externe Kanäle E-Mail/Telegram), `notification` (Glocken-Feed
+  mit gelesen/ungelesen) und `notification_outbox` (Versand-Queue für externe
+  Kanäle, mit Retry-Feldern), plus `email`/`telegram_chat_id` am User. Ein
+  Recipient-Resolver fächert Events least-privilege auf — ein Nutzer wird nur über
+  Server benachrichtigt, die er sehen darf (Admin oder via `user_servers`
+  zugeordnet). Neue Endpoints: `POST /api/internal/events` (Event-Ingress vom
+  Monitoring-Dienst, `X-Internal-Key`), `GET /api/notifications` (+ `/unread-count`,
+  `/read`) als eigener Feed, und `GET`/`PUT /api/users/me/notification-prefs`
+  (Self-Service-Einstellungen). Das Monitoring bleibt reine Event-Quelle; die
+  Empfänger-Auflösung liegt nur im Server, wo die User↔Server-Zuordnung existiert.
+  Noch ohne UI und ohne tatsächlichen Versand (folgt in späteren Phasen).
+- **Monitoring speist den Hub (Phase B1).** Jeder Check-Statuswechsel wird
+  zusätzlich zum regelbasierten Webhook-/E-Mail-Versand an `POST
+  /api/internal/events` des Servers gepusht (`SERVER_HUB_URL`, Auth via
+  `MONITOR_API_KEY` als `X-Internal-Key`, best-effort). Die Event-Severity ist der
+  schlimmere der beiden Zustände, damit eine Entwarnung (`warning→ok`) auch
+  Abonnenten mit Schwelle „warning" erreicht.
+- **Server-interne Events speisen den Hub (Phase B2).** Der In-Process-Event-Bus
+  (`fire_event`) bridged eine kuratierte Auswahl in den Hub: neuer Admin-Benutzer
+  (`security`), Server entfernt und FRP-Tunnel angelegt (`lifecycle`). Reine
+  CRUD-Events, die der Auslöser selbst verursacht, werden bewusst nicht gespiegelt
+  (kein Noise).
+- **Desktop: Benachrichtigungs-Glocke, Desktop-Notifications und Self-Service-
+  Einstellungen (Phase C).** Eine Glocke mit Ungelesen-Badge im Header öffnet ein
+  Panel mit dem Benachrichtigungs-Feed (app-weites Polling, solange eine
+  Server-Session aktiv ist). Neue Feed-Einträge erscheinen optional als native
+  **OS-Benachrichtigungen** (`tauri-plugin-notification`, opt-in mit
+  Permission-Abfrage; ein „Priming"-Schritt verhindert eine Flut beim Start). In
+  den Einstellungen kann jeder Nutzer seine **Kontakt-E-Mail** und beliebig viele
+  **Regeln** verwalten — Geltungsbereich (alle Server / Tag / einzelner Server),
+  Mindest-Schweregrad und Kanal (Glocke immer, E-Mail optional). Telegram ist im
+  Datenmodell vorgesehen, aber noch nicht in der Oberfläche.
+- **E-Mail-Versand der Benachrichtigungen (Phase D).** Ein APScheduler-System-Job
+  (Muster wie der Audit-Retention-Job) leert die `notification_outbox` minütlich
+  aus dem Request-Pfad heraus und stellt E-Mails über einen externen SMTP-Relay
+  zu (`SMTP_HOST`/`PORT`/`USER`/`PASSWORD`/`FROM`, 587 STARTTLS oder 465 SMTPS).
+  Fehlversuche werden mit linearem Backoff bis `NOTIFICATION_MAX_ATTEMPTS` (Default
+  5) wiederholt und danach als fehlgeschlagen markiert. Damit ist der MVP-Umfang
+  (Glocke + Desktop-Notification + E-Mail) vollständig.
 - **Agent-Paket-Repo (apt/dnf-Update-Kanal).** Der AdminHelper-Server stellt selbst
   ein **GPG-signiertes** apt-/rpm-Repo über eine neue **certless Repo-Plane des
   Gateways** bereit (`REPO_PORT`, Default `8445`), sodass Agent-Hosts neue Versionen

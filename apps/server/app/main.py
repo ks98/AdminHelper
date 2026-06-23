@@ -30,6 +30,15 @@ from app.modules.frp.router import router as frp_router
 from app.modules.hooks.models import Hook  # noqa: F401
 from app.modules.hooks.router import router as hooks_router
 from app.modules.monitoring_proxy import router as monitoring_proxy_router
+from app.modules.notifications.models import (  # noqa: F401
+    Notification,
+    NotificationOutbox,
+    NotificationSubscription,
+)
+from app.modules.notifications.router import feed_router as notifications_feed_router
+from app.modules.notifications.router import internal_router as notifications_internal_router
+from app.modules.notifications.router import prefs_router as notifications_prefs_router
+from app.modules.notifications.stream import stream_router as notifications_stream_router
 from app.modules.provisioning.models import ProvisionToken  # noqa: F401
 from app.modules.provisioning.router import router as provisioning_router
 from app.modules.servers.models import Server  # noqa: F401
@@ -146,25 +155,21 @@ def _run_startup_tasks():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    from app.core.config import REDIS_URL
     from app.core.events import fire_event
-    from app.modules.hooks.scheduler import (
-        load_all_scheduled_hooks,
-        schedule_audit_cleanup,
-        schedule_blacklist_cleanup,
-        schedule_enrollment_token_cleanup,
-        scheduler,
-    )
+    from app.modules.notifications import stream_hub
 
     _run_startup_tasks()
-
-    load_all_scheduled_hooks()
-    schedule_blacklist_cleanup()
-    schedule_enrollment_token_cleanup()
-    schedule_audit_cleanup()
-    scheduler.start()
+    # The APScheduler runs in a DEDICATED process (app.scheduler_main), NOT in the
+    # web workers: with uvicorn --workers N each worker would start its own
+    # scheduler and every job would run N times (duplicate e-mails from the outbox
+    # drain, duplicate scheduled-hook runs). docker-entrypoint.sh starts exactly
+    # one scheduler process (RUN_MODE=scheduler); the web workers run uvicorn only.
+    # The SSE fan-out subscription IS per web worker (each holds its own streams).
+    await stream_hub.start(REDIS_URL)
     fire_event("server.startup", {})
     yield
-    scheduler.shutdown(wait=False)
+    await stream_hub.stop()
 
 
 app = FastAPI(title="AdminHelper Server", docs_url="/api/docs", redoc_url=None, lifespan=lifespan)
@@ -220,6 +225,12 @@ app.include_router(provisioning_router)
 app.include_router(enrollment_router)
 app.include_router(frp_router)
 app.include_router(monitoring_proxy_router)
+# Notifications: the bell feed and per-user prefs are user-facing (access scope);
+# the event ingress is service-to-service (X-Internal-Key, no router-level scope).
+app.include_router(notifications_feed_router, dependencies=_access)
+app.include_router(notifications_prefs_router, dependencies=_access)
+app.include_router(notifications_stream_router, dependencies=_access)
+app.include_router(notifications_internal_router)
 app.include_router(ansible_router, dependencies=_access)
 
 # Serve static files from frontend/ (Vite build output).

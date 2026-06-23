@@ -115,34 +115,76 @@ def get_next_run(hook_id: str) -> datetime | None:
     return None
 
 
-def load_all_scheduled_hooks() -> None:
-    """On server start, load and schedule all active scheduled hooks."""
-    from app.core.database import SessionLocal
+def reconcile_scheduled_hooks(db=None) -> None:
+    """Sync the scheduler's jobs with the hooks table (the source of truth).
+
+    Runs in the dedicated scheduler process: the web workers no longer register
+    jobs directly (they have no running scheduler), so this reconcile is how a
+    newly created / changed / deleted scheduled hook reaches the scheduler. It
+    is idempotent — add_hook uses replace_existing, and stale jobs are removed.
+    Also persists next_run back to the DB so the API can show it. ``db`` is an
+    optional session (the periodic job opens its own; tests inject one).
+    """
     from app.modules.hooks.models import Hook
 
-    db = SessionLocal()
+    own_session = db is None
+    if own_session:
+        from app.core.database import SessionLocal
+
+        db = SessionLocal()
     try:
         hooks = (
             db.query(Hook)
             .filter(Hook.hook_type == "schedule", Hook.enabled == True)  # noqa: E712
             .all()
         )
+        active_ids: set[str] = set()
         for hook in hooks:
             if not hook.schedule_interval:
                 continue
             try:
-                add_hook(hook.id, hook.schedule_interval)
+                add_hook(hook.id, hook.schedule_interval)  # replace_existing -> idempotent
+                active_ids.add(hook.id)
             except ValueError:
-                pass
+                continue
 
-        # Update next_run in the DB
+        # Drop jobs whose hook is gone or disabled (leave the system:* jobs alone).
+        for job in scheduler.get_jobs():
+            if job.id.startswith("system:"):
+                continue
+            if job.id not in active_ids:
+                scheduler.remove_job(job.id)
+
+        # Persist next_run for the API/UI.
         for hook in hooks:
+            if hook.id not in active_ids:
+                continue
             next_run = get_next_run(hook.id)
-            if next_run:
+            if next_run and hook.next_run != next_run:
                 hook.next_run = next_run
         db.commit()
     finally:
-        db.close()
+        if own_session:
+            db.close()
+
+
+# Backwards-compatible alias: the initial load is just a reconcile.
+load_all_scheduled_hooks = reconcile_scheduled_hooks
+
+
+_HOOK_RECONCILE_JOB_ID = "system:hook-reconcile"
+
+
+def schedule_hook_reconcile(seconds: int = 30) -> None:
+    """Register the periodic hook-reconcile (idempotent). Runs in the scheduler
+    process so DB changes by the web workers propagate within `seconds`."""
+    scheduler.add_job(
+        reconcile_scheduled_hooks,
+        trigger=IntervalTrigger(seconds=seconds),
+        id=_HOOK_RECONCILE_JOB_ID,
+        replace_existing=True,
+        next_run_time=datetime.now(timezone.utc),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -241,6 +283,73 @@ def schedule_audit_cleanup(hours: int = 24) -> None:
         _run_audit_cleanup,
         trigger=IntervalTrigger(hours=hours),
         id=_AUDIT_CLEANUP_JOB_ID,
+        replace_existing=True,
+        next_run_time=datetime.now(timezone.utc),
+    )
+
+
+_OUTBOX_DRAIN_JOB_ID = "system:notification-outbox-drain"
+
+
+def _run_outbox_drain() -> None:
+    """Deliver pending e-mail notifications (notification hub outbox), out of the
+    request path, with retry/backoff handled per entry."""
+    from app.core.database import SessionLocal
+    from app.modules.notifications.outbox import drain_outbox
+
+    db = SessionLocal()
+    try:
+        sent, failed = drain_outbox(db)
+        if sent or failed:
+            logger.info(
+                "Notification-Outbox: %d gesendet, %d endgueltig fehlgeschlagen", sent, failed
+            )
+    except Exception:
+        logger.exception("Notification-Outbox-Drain fehlgeschlagen")
+    finally:
+        db.close()
+
+
+def schedule_outbox_drain(minutes: int = 1) -> None:
+    """Register the periodic notification-outbox drain (idempotent). Runs once at
+    start and then every `minutes` minutes for timely e-mail delivery."""
+    scheduler.add_job(
+        _run_outbox_drain,
+        trigger=IntervalTrigger(minutes=minutes),
+        id=_OUTBOX_DRAIN_JOB_ID,
+        replace_existing=True,
+        next_run_time=datetime.now(timezone.utc),
+    )
+
+
+_NOTIFICATION_CLEANUP_JOB_ID = "system:notification-cleanup"
+
+
+def _run_notification_cleanup() -> None:
+    """Prune bell-feed rows older than NOTIFICATION_RETENTION_DAYS so the
+    notification table does not grow without bound."""
+    from app.core.config import NOTIFICATION_RETENTION_DAYS
+    from app.core.database import SessionLocal
+    from app.modules.notifications.service import cleanup_old_notifications
+
+    db = SessionLocal()
+    try:
+        removed = cleanup_old_notifications(db, NOTIFICATION_RETENTION_DAYS)
+        if removed:
+            logger.info("Notification-Cleanup: %d alte Eintraege entfernt", removed)
+    except Exception:
+        logger.exception("Notification-Cleanup fehlgeschlagen")
+    finally:
+        db.close()
+
+
+def schedule_notification_cleanup(hours: int = 24) -> None:
+    """Register the periodic bell-feed retention cleanup (idempotent). Runs once
+    at start and then every `hours` hours."""
+    scheduler.add_job(
+        _run_notification_cleanup,
+        trigger=IntervalTrigger(hours=hours),
+        id=_NOTIFICATION_CLEANUP_JOB_ID,
         replace_existing=True,
         next_run_time=datetime.now(timezone.utc),
     )

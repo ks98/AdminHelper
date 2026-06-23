@@ -92,6 +92,24 @@ MONITOR_API_KEY = os.environ.get("MONITOR_API_KEY", "")
 # (safe only for single-worker / dev setups).
 REDIS_URL = os.environ.get("REDIS_URL", "").strip()
 
+# Number of uvicorn workers (informational; set by the entrypoint). With more
+# than one worker the in-memory rate-limit fallback counts per process, so Redis
+# is required for a correct global limit — warn loudly if it is missing.
+WEB_CONCURRENCY = int(os.environ.get("WEB_CONCURRENCY", "1"))
+if WEB_CONCURRENCY > 1 and not REDIS_URL:
+    logger.warning(
+        "WEB_CONCURRENCY=%d (multi-worker) ohne REDIS_URL: Rate-Limiting zaehlt "
+        "pro Worker statt global, das effektive Limit ist %dx zu hoch. REDIS_URL setzen.",
+        WEB_CONCURRENCY,
+        WEB_CONCURRENCY,
+    )
+
+# SQLAlchemy connection pool, per process. With WEB_CONCURRENCY=N the total is
+# N*(pool_size+max_overflow); keep it under Postgres max_connections (default
+# 100). Lower these for many workers.
+DB_POOL_SIZE = int(os.environ.get("DB_POOL_SIZE", "10"))
+DB_MAX_OVERFLOW = int(os.environ.get("DB_MAX_OVERFLOW", "20"))
+
 # mTLS scope enforcement (ADR 0001 D3/D8, Phase A). The gateway forwards the
 # verified client identity as headers; per-route scope guards (app.core.identity)
 # read it. During the permissive rollout (A3–A7) this stays False: mismatches are
@@ -109,3 +127,18 @@ ENROLL_PORT = int(os.environ.get("ENROLL_PORT", "8444"))
 # many days — the ONLY delete path for the otherwise append-only trail. Set to 0
 # to keep entries forever (no pruning).
 AUDIT_RETENTION_DAYS = int(os.environ.get("AUDIT_RETENTION_DAYS", "365"))
+
+# SMTP relay for outbound e-mail notifications (the notification hub). An empty
+# SMTP_HOST disables the e-mail channel — outbox entries then fail and retry
+# until they exhaust their attempts. No local MTA: point this at an external
+# relay (587 STARTTLS or 465 SMTPS).
+SMTP_HOST = os.environ.get("SMTP_HOST", "").strip()
+SMTP_PORT = int(os.environ.get("SMTP_PORT", "587"))
+SMTP_USER = os.environ.get("SMTP_USER", "")
+SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "")
+SMTP_FROM = os.environ.get("SMTP_FROM", "adminhelper@localhost")
+# Delivery attempts before an outbox entry is marked permanently failed.
+NOTIFICATION_MAX_ATTEMPTS = int(os.environ.get("NOTIFICATION_MAX_ATTEMPTS", "5"))
+# Bell-feed retention in days. A daily system job prunes notification rows older
+# than this so the feed does not grow without bound. 0 = keep forever.
+NOTIFICATION_RETENTION_DAYS = int(os.environ.get("NOTIFICATION_RETENTION_DAYS", "90"))
