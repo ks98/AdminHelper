@@ -28,6 +28,8 @@
 /.next/
 /.nuxt/
 coverage/
+.coverage
+.coverage.*
 
 # Logs
 *.log
@@ -76,6 +78,11 @@ build-deb/
 
 # TLS-Zertifikate (auto-generiert oder eigene)
 /certs/
+
+# Schluessel-Container — enthalten private Schluessel, NIE committen
+# (z.B. der Browser-mTLS-Export adminhelper-browser.p12 aus dem Desktop-Client)
+*.p12
+*.pfx
 
 # Backup-Tarballs (enthalten Secrets: DB-Dumps, .env, verschluesselter Root-Key)
 /backups/
