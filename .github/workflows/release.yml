@@ -259,7 +259,9 @@ jobs:
           VERSION="$VER" REPO_GPG_KEY_ID="$KEY_ID" OUT_DIR=repo DEB="$DEB" RPM="$RPM" \
             bash apps/agent/build-repo.sh
           tar czf "release/adminhelper-agent-repo-${TAG}.tar.gz" -C repo .
-          echo "=== agent repo bundle ==="; tar tzf "release/adminhelper-agent-repo-${TAG}.tar.gz" | head
+          # sed (not head) reads the whole stream, so tar never gets SIGPIPE — `tar | head`
+          # under `set -o pipefail` fails the step with exit 2 once the listing exceeds 10 lines.
+          echo "=== agent repo bundle ==="; tar tzf "release/adminhelper-agent-repo-${TAG}.tar.gz" | sed -n '1,10p'
       - name: Flatten and checksum
         run: |
           find artifacts -type f -exec cp {} release/ \;
