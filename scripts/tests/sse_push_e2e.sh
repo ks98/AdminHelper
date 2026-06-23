@@ -40,7 +40,7 @@ export MONITOR_API_KEY="e2e-internal-key"
 export SECRET_KEY="e2e-secret-key-not-for-production-32bytes"
 export ADMIN_PASSWORD="e2e-admin-pw"
 export MTLS_ENFORCE="false"
-export DATA_DIR="$(mktemp -d)"
+DATA_DIR="$(mktemp -d)"; export DATA_DIR  # separate assign: don't mask mktemp's exit (SC2155)
 export WEB_CONCURRENCY="1"
 
 PID_A=""; PID_B=""
